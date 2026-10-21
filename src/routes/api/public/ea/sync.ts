@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { defined } from "@/lib/utils";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -53,16 +54,16 @@ export const Route = createFileRoute("/api/public/ea/sync")({
         if (!acc) return json({ error: "unknown key" }, 401);
         const now = new Date().toISOString();
 
-        await db.from("trading_accounts").update({ ...(p.account ?? {}), last_seen_at: now }).eq("id", acc.id);
+        await db.from("trading_accounts").update(defined({ ...(p.account ?? {}), last_seen_at: now })).eq("id", acc.id);
 
         if (p.positions) {
           const tickets = p.positions.map((x) => x.ticket);
           if (tickets.length)
-            await db.from("trades").upsert(p.positions.map((x) => ({ ...x, account_id: acc.id, user_id: acc.user_id, status: "open" })), { onConflict: "account_id,ticket" });
+            await db.from("trades").upsert(p.positions.map((x) => defined({ ...x, account_id: acc.id, user_id: acc.user_id, status: "open" })), { onConflict: "account_id,ticket" });
           // Any previously open trade not reported anymore and not in `closed` is left for the closed sync.
         }
         if (p.closed?.length) {
-          await db.from("trades").upsert(p.closed.map((x) => ({ ...x, account_id: acc.id, user_id: acc.user_id, status: "closed", closed_at: x.closed_at ?? now })), { onConflict: "account_id,ticket" });
+          await db.from("trades").upsert(p.closed.map((x) => defined({ ...x, account_id: acc.id, user_id: acc.user_id, status: "closed", closed_at: x.closed_at ?? now })), { onConflict: "account_id,ticket" });
         }
         for (const r of p.results ?? []) {
           await db.from("trade_commands").update({ status: r.status, result: r.result ?? null, executed_at: now }).eq("id", r.id).eq("account_id", acc.id);

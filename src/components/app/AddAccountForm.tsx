@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { defined } from "@/lib/utils";
 
 const schema = z.object({
   label: z.string().trim().max(60).optional(),
@@ -29,7 +30,7 @@ export function AddAccountForm({ platform }: { platform: "mt5" | "tradelocker" }
     if (!parsed.success) return toast.error("Check the account number, server and lot size.");
     setBusy(true);
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("trading_accounts").insert({ ...parsed.data, platform, user_id: u.user!.id });
+    const { error } = await supabase.from("trading_accounts").insert(defined({ ...parsed.data, platform, user_id: u.user!.id }));
     setBusy(false);
     if (error) return toast.error("Could not add account.");
     toast.success("Account added. Copy its EA key from Settings.");
