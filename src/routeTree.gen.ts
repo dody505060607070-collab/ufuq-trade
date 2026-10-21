@@ -10,33 +10,501 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RiskDisclosureRouteImport } from './routes/risk-disclosure'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as WebAppInstallTriggerRouteImport } from './routes/web-app-install-trigger'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedBrokersRouteImport } from './routes/_authenticated/brokers'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedHedgeRouteImport } from './routes/_authenticated/hedge'
+import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedAccountsAddMt5RouteImport } from './routes/_authenticated/accounts.add-mt5'
+import { Route as AuthenticatedAccountsAddTradelockerRouteImport } from './routes/_authenticated/accounts.add-tradelocker'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
+import { Route as AuthenticatedAdminBrokersRouteImport } from './routes/_authenticated/admin.brokers'
+import { Route as AuthenticatedAdminCampaignRouteImport } from './routes/_authenticated/admin.campaign'
+import { Route as AuthenticatedAdminEaReleasesRouteImport } from './routes/_authenticated/admin.ea-releases'
+import { Route as AuthenticatedAdminInstrumentsRouteImport } from './routes/_authenticated/admin.instruments'
+import { Route as AuthenticatedAdminModelsRouteImport } from './routes/_authenticated/admin.models'
+import { Route as AuthenticatedAdminOverviewRouteImport } from './routes/_authenticated/admin.overview'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
+import { Route as AuthenticatedAdminSignalsRouteImport } from './routes/_authenticated/admin.signals'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
+import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
+import { Route as AuthenticatedSettingsPreferencesRouteImport } from './routes/_authenticated/settings.preferences'
+import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
+import { Route as AuthenticatedAdminUsersIdRouteImport } from './routes/_authenticated/admin.users.$id'
+import { Route as ApiPublicEaSyncRouteImport } from './routes/api/public/ea/sync'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiskDisclosureRoute = RiskDisclosureRouteImport.update({
+  id: '/risk-disclosure',
+  path: '/risk-disclosure',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WebAppInstallTriggerRoute = WebAppInstallTriggerRouteImport.update({
+  id: '/web-app-install-trigger',
+  path: '/web-app-install-trigger',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBrokersRoute = AuthenticatedBrokersRouteImport.update({
+  id: '/brokers',
+  path: '/brokers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHedgeRoute = AuthenticatedHedgeRouteImport.update({
+  id: '/hedge',
+  path: '/hedge',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPerformanceRoute =
+  AuthenticatedPerformanceRouteImport.update({
+    id: '/performance',
+    path: '/performance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAccountsAddMt5Route =
+  AuthenticatedAccountsAddMt5RouteImport.update({
+    id: '/accounts/add-mt5',
+    path: '/accounts/add-mt5',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAccountsAddTradelockerRoute =
+  AuthenticatedAccountsAddTradelockerRouteImport.update({
+    id: '/accounts/add-tradelocker',
+    path: '/accounts/add-tradelocker',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminBrokersRoute =
+  AuthenticatedAdminBrokersRouteImport.update({
+    id: '/brokers',
+    path: '/brokers',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCampaignRoute =
+  AuthenticatedAdminCampaignRouteImport.update({
+    id: '/campaign',
+    path: '/campaign',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminEaReleasesRoute =
+  AuthenticatedAdminEaReleasesRouteImport.update({
+    id: '/ea-releases',
+    path: '/ea-releases',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminInstrumentsRoute =
+  AuthenticatedAdminInstrumentsRouteImport.update({
+    id: '/instruments',
+    path: '/instruments',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminModelsRoute =
+  AuthenticatedAdminModelsRouteImport.update({
+    id: '/models',
+    path: '/models',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminOverviewRoute =
+  AuthenticatedAdminOverviewRouteImport.update({
+    id: '/overview',
+    path: '/overview',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSignalsRoute =
+  AuthenticatedAdminSignalsRouteImport.update({
+    id: '/signals',
+    path: '/signals',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedSettingsIndexRoute =
+  AuthenticatedSettingsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsPreferencesRoute =
+  AuthenticatedSettingsPreferencesRouteImport.update({
+    id: '/preferences',
+    path: '/preferences',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsProfileRoute =
+  AuthenticatedSettingsProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedAdminUsersIdRoute =
+  AuthenticatedAdminUsersIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminUsersRoute,
+  } as any)
+const ApiPublicEaSyncRoute = ApiPublicEaSyncRouteImport.update({
+  id: '/api/public/ea/sync',
+  path: '/api/public/ea/sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/risk-disclosure': typeof RiskDisclosureRoute
+  '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/brokers': typeof AuthenticatedBrokersRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/hedge': typeof AuthenticatedHedgeRoute
+  '/performance': typeof AuthenticatedPerformanceRoute
+  '/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
+  '/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/brokers': typeof AuthenticatedAdminBrokersRoute
+  '/admin/campaign': typeof AuthenticatedAdminCampaignRoute
+  '/admin/ea-releases': typeof AuthenticatedAdminEaReleasesRoute
+  '/admin/instruments': typeof AuthenticatedAdminInstrumentsRoute
+  '/admin/models': typeof AuthenticatedAdminModelsRoute
+  '/admin/overview': typeof AuthenticatedAdminOverviewRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/signals': typeof AuthenticatedAdminSignalsRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRouteWithChildren
+  '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
+  '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/risk-disclosure': typeof RiskDisclosureRoute
+  '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/brokers': typeof AuthenticatedBrokersRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/hedge': typeof AuthenticatedHedgeRoute
+  '/performance': typeof AuthenticatedPerformanceRoute
+  '/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
+  '/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/brokers': typeof AuthenticatedAdminBrokersRoute
+  '/admin/campaign': typeof AuthenticatedAdminCampaignRoute
+  '/admin/ea-releases': typeof AuthenticatedAdminEaReleasesRoute
+  '/admin/instruments': typeof AuthenticatedAdminInstrumentsRoute
+  '/admin/models': typeof AuthenticatedAdminModelsRoute
+  '/admin/overview': typeof AuthenticatedAdminOverviewRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/signals': typeof AuthenticatedAdminSignalsRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRouteWithChildren
+  '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
+  '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/risk-disclosure': typeof RiskDisclosureRoute
+  '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/brokers': typeof AuthenticatedBrokersRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/hedge': typeof AuthenticatedHedgeRoute
+  '/_authenticated/performance': typeof AuthenticatedPerformanceRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/_authenticated/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
+  '/_authenticated/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
+  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/brokers': typeof AuthenticatedAdminBrokersRoute
+  '/_authenticated/admin/campaign': typeof AuthenticatedAdminCampaignRoute
+  '/_authenticated/admin/ea-releases': typeof AuthenticatedAdminEaReleasesRoute
+  '/_authenticated/admin/instruments': typeof AuthenticatedAdminInstrumentsRoute
+  '/_authenticated/admin/models': typeof AuthenticatedAdminModelsRoute
+  '/_authenticated/admin/overview': typeof AuthenticatedAdminOverviewRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/signals': typeof AuthenticatedAdminSignalsRoute
+  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRouteWithChildren
+  '/_authenticated/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
+  '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/forgot-password'
+    | '/login'
+    | '/privacy'
+    | '/register'
+    | '/reset-password'
+    | '/risk-disclosure'
+    | '/terms'
+    | '/unsubscribe'
+    | '/verify-email'
+    | '/web-app-install-trigger'
+    | '/admin'
+    | '/brokers'
+    | '/dashboard'
+    | '/hedge'
+    | '/performance'
+    | '/settings'
+    | '/accounts/add-mt5'
+    | '/accounts/add-tradelocker'
+    | '/admin/audit'
+    | '/admin/brokers'
+    | '/admin/campaign'
+    | '/admin/ea-releases'
+    | '/admin/instruments'
+    | '/admin/models'
+    | '/admin/overview'
+    | '/admin/settings'
+    | '/admin/signals'
+    | '/admin/users'
+    | '/settings/preferences'
+    | '/settings/profile'
+    | '/admin/'
+    | '/settings/'
+    | '/admin/users/$id'
+    | '/api/public/ea/sync'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/forgot-password'
+    | '/login'
+    | '/privacy'
+    | '/register'
+    | '/reset-password'
+    | '/risk-disclosure'
+    | '/terms'
+    | '/unsubscribe'
+    | '/verify-email'
+    | '/web-app-install-trigger'
+    | '/brokers'
+    | '/dashboard'
+    | '/hedge'
+    | '/performance'
+    | '/accounts/add-mt5'
+    | '/accounts/add-tradelocker'
+    | '/admin/audit'
+    | '/admin/brokers'
+    | '/admin/campaign'
+    | '/admin/ea-releases'
+    | '/admin/instruments'
+    | '/admin/models'
+    | '/admin/overview'
+    | '/admin/settings'
+    | '/admin/signals'
+    | '/admin/users'
+    | '/settings/preferences'
+    | '/settings/profile'
+    | '/admin'
+    | '/settings'
+    | '/admin/users/$id'
+    | '/api/public/ea/sync'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/about'
+    | '/contact'
+    | '/forgot-password'
+    | '/login'
+    | '/privacy'
+    | '/register'
+    | '/reset-password'
+    | '/risk-disclosure'
+    | '/terms'
+    | '/unsubscribe'
+    | '/verify-email'
+    | '/web-app-install-trigger'
+    | '/_authenticated/admin'
+    | '/_authenticated/brokers'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/hedge'
+    | '/_authenticated/performance'
+    | '/_authenticated/settings'
+    | '/_authenticated/accounts/add-mt5'
+    | '/_authenticated/accounts/add-tradelocker'
+    | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/brokers'
+    | '/_authenticated/admin/campaign'
+    | '/_authenticated/admin/ea-releases'
+    | '/_authenticated/admin/instruments'
+    | '/_authenticated/admin/models'
+    | '/_authenticated/admin/overview'
+    | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/signals'
+    | '/_authenticated/admin/users'
+    | '/_authenticated/settings/preferences'
+    | '/_authenticated/settings/profile'
+    | '/_authenticated/admin/'
+    | '/_authenticated/settings/'
+    | '/_authenticated/admin/users/$id'
+    | '/api/public/ea/sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
+  ContactRoute: typeof ContactRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  RiskDisclosureRoute: typeof RiskDisclosureRoute
+  TermsRoute: typeof TermsRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
+  WebAppInstallTriggerRoute: typeof WebAppInstallTriggerRoute
+  ApiPublicEaSyncRoute: typeof ApiPublicEaSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +516,372 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/risk-disclosure': {
+      id: '/risk-disclosure'
+      path: '/risk-disclosure'
+      fullPath: '/risk-disclosure'
+      preLoaderRoute: typeof RiskDisclosureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/web-app-install-trigger': {
+      id: '/web-app-install-trigger'
+      path: '/web-app-install-trigger'
+      fullPath: '/web-app-install-trigger'
+      preLoaderRoute: typeof WebAppInstallTriggerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/brokers': {
+      id: '/_authenticated/brokers'
+      path: '/brokers'
+      fullPath: '/brokers'
+      preLoaderRoute: typeof AuthenticatedBrokersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hedge': {
+      id: '/_authenticated/hedge'
+      path: '/hedge'
+      fullPath: '/hedge'
+      preLoaderRoute: typeof AuthenticatedHedgeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/performance': {
+      id: '/_authenticated/performance'
+      path: '/performance'
+      fullPath: '/performance'
+      preLoaderRoute: typeof AuthenticatedPerformanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/accounts/add-mt5': {
+      id: '/_authenticated/accounts/add-mt5'
+      path: '/accounts/add-mt5'
+      fullPath: '/accounts/add-mt5'
+      preLoaderRoute: typeof AuthenticatedAccountsAddMt5RouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/accounts/add-tradelocker': {
+      id: '/_authenticated/accounts/add-tradelocker'
+      path: '/accounts/add-tradelocker'
+      fullPath: '/accounts/add-tradelocker'
+      preLoaderRoute: typeof AuthenticatedAccountsAddTradelockerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/audit': {
+      id: '/_authenticated/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/brokers': {
+      id: '/_authenticated/admin/brokers'
+      path: '/brokers'
+      fullPath: '/admin/brokers'
+      preLoaderRoute: typeof AuthenticatedAdminBrokersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/campaign': {
+      id: '/_authenticated/admin/campaign'
+      path: '/campaign'
+      fullPath: '/admin/campaign'
+      preLoaderRoute: typeof AuthenticatedAdminCampaignRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/ea-releases': {
+      id: '/_authenticated/admin/ea-releases'
+      path: '/ea-releases'
+      fullPath: '/admin/ea-releases'
+      preLoaderRoute: typeof AuthenticatedAdminEaReleasesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/instruments': {
+      id: '/_authenticated/admin/instruments'
+      path: '/instruments'
+      fullPath: '/admin/instruments'
+      preLoaderRoute: typeof AuthenticatedAdminInstrumentsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/models': {
+      id: '/_authenticated/admin/models'
+      path: '/models'
+      fullPath: '/admin/models'
+      preLoaderRoute: typeof AuthenticatedAdminModelsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/overview': {
+      id: '/_authenticated/admin/overview'
+      path: '/overview'
+      fullPath: '/admin/overview'
+      preLoaderRoute: typeof AuthenticatedAdminOverviewRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/signals': {
+      id: '/_authenticated/admin/signals'
+      path: '/signals'
+      fullPath: '/admin/signals'
+      preLoaderRoute: typeof AuthenticatedAdminSignalsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/settings/': {
+      id: '/_authenticated/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/preferences': {
+      id: '/_authenticated/settings/preferences'
+      path: '/preferences'
+      fullPath: '/settings/preferences'
+      preLoaderRoute: typeof AuthenticatedSettingsPreferencesRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/profile': {
+      id: '/_authenticated/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AuthenticatedSettingsProfileRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/admin/users/$id': {
+      id: '/_authenticated/admin/users/$id'
+      path: '/$id'
+      fullPath: '/admin/users/$id'
+      preLoaderRoute: typeof AuthenticatedAdminUsersIdRouteImport
+      parentRoute: typeof AuthenticatedAdminUsersRoute
+    }
+    '/api/public/ea/sync': {
+      id: '/api/public/ea/sync'
+      path: '/api/public/ea/sync'
+      fullPath: '/api/public/ea/sync'
+      preLoaderRoute: typeof ApiPublicEaSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedAdminUsersRouteChildren {
+  AuthenticatedAdminUsersIdRoute: typeof AuthenticatedAdminUsersIdRoute
+}
+
+const AuthenticatedAdminUsersRouteChildren: AuthenticatedAdminUsersRouteChildren =
+  {
+    AuthenticatedAdminUsersIdRoute: AuthenticatedAdminUsersIdRoute,
+  }
+
+const AuthenticatedAdminUsersRouteWithChildren =
+  AuthenticatedAdminUsersRoute._addFileChildren(
+    AuthenticatedAdminUsersRouteChildren,
+  )
+
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminBrokersRoute: typeof AuthenticatedAdminBrokersRoute
+  AuthenticatedAdminCampaignRoute: typeof AuthenticatedAdminCampaignRoute
+  AuthenticatedAdminEaReleasesRoute: typeof AuthenticatedAdminEaReleasesRoute
+  AuthenticatedAdminInstrumentsRoute: typeof AuthenticatedAdminInstrumentsRoute
+  AuthenticatedAdminModelsRoute: typeof AuthenticatedAdminModelsRoute
+  AuthenticatedAdminOverviewRoute: typeof AuthenticatedAdminOverviewRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminSignalsRoute: typeof AuthenticatedAdminSignalsRoute
+  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRouteWithChildren
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminBrokersRoute: AuthenticatedAdminBrokersRoute,
+  AuthenticatedAdminCampaignRoute: AuthenticatedAdminCampaignRoute,
+  AuthenticatedAdminEaReleasesRoute: AuthenticatedAdminEaReleasesRoute,
+  AuthenticatedAdminInstrumentsRoute: AuthenticatedAdminInstrumentsRoute,
+  AuthenticatedAdminModelsRoute: AuthenticatedAdminModelsRoute,
+  AuthenticatedAdminOverviewRoute: AuthenticatedAdminOverviewRoute,
+  AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+  AuthenticatedAdminSignalsRoute: AuthenticatedAdminSignalsRoute,
+  AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRouteWithChildren,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
+interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsPreferencesRoute: typeof AuthenticatedSettingsPreferencesRoute
+  AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
+  AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
+}
+
+const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsPreferencesRoute: AuthenticatedSettingsPreferencesRoute,
+  AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
+  AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+}
+
+const AuthenticatedSettingsRouteWithChildren =
+  AuthenticatedSettingsRoute._addFileChildren(
+    AuthenticatedSettingsRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedBrokersRoute: typeof AuthenticatedBrokersRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedHedgeRoute: typeof AuthenticatedHedgeRoute
+  AuthenticatedPerformanceRoute: typeof AuthenticatedPerformanceRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedAccountsAddMt5Route: typeof AuthenticatedAccountsAddMt5Route
+  AuthenticatedAccountsAddTradelockerRoute: typeof AuthenticatedAccountsAddTradelockerRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedBrokersRoute: AuthenticatedBrokersRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedHedgeRoute: AuthenticatedHedgeRoute,
+  AuthenticatedPerformanceRoute: AuthenticatedPerformanceRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedAccountsAddMt5Route: AuthenticatedAccountsAddMt5Route,
+  AuthenticatedAccountsAddTradelockerRoute:
+    AuthenticatedAccountsAddTradelockerRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
+  ContactRoute: ContactRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
+  RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  RiskDisclosureRoute: RiskDisclosureRoute,
+  TermsRoute: TermsRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
+  WebAppInstallTriggerRoute: WebAppInstallTriggerRoute,
+  ApiPublicEaSyncRoute: ApiPublicEaSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
