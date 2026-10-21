@@ -24,6 +24,7 @@ import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WebAppInstallTriggerRouteImport } from './routes/web-app-install-trigger'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAutopilotRouteImport } from './routes/_authenticated/autopilot'
 import { Route as AuthenticatedBrokersRouteImport } from './routes/_authenticated/brokers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedHedgeRouteImport } from './routes/_authenticated/hedge'
@@ -121,6 +122,11 @@ const WebAppInstallTriggerRoute = WebAppInstallTriggerRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAutopilotRoute = AuthenticatedAutopilotRouteImport.update({
+  id: '/autopilot',
+  path: '/autopilot',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBrokersRoute = AuthenticatedBrokersRouteImport.update({
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brokers': typeof AuthenticatedBrokersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/hedge': typeof AuthenticatedHedgeRoute
@@ -313,6 +320,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brokers': typeof AuthenticatedBrokersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/hedge': typeof AuthenticatedHedgeRoute
@@ -354,6 +362,7 @@ export interface FileRoutesById {
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/autopilot': typeof AuthenticatedAutopilotRoute
   '/_authenticated/brokers': typeof AuthenticatedBrokersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/hedge': typeof AuthenticatedHedgeRoute
@@ -396,6 +405,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/web-app-install-trigger'
     | '/admin'
+    | '/autopilot'
     | '/brokers'
     | '/dashboard'
     | '/hedge'
@@ -435,6 +445,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/autopilot'
     | '/brokers'
     | '/dashboard'
     | '/hedge'
@@ -475,6 +486,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/web-app-install-trigger'
     | '/_authenticated/admin'
+    | '/_authenticated/autopilot'
     | '/_authenticated/brokers'
     | '/_authenticated/dashboard'
     | '/_authenticated/hedge'
@@ -625,6 +637,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/autopilot': {
+      id: '/_authenticated/autopilot'
+      path: '/autopilot'
+      fullPath: '/autopilot'
+      preLoaderRoute: typeof AuthenticatedAutopilotRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/brokers': {
@@ -862,6 +881,7 @@ const AuthenticatedSettingsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedAutopilotRoute: typeof AuthenticatedAutopilotRoute
   AuthenticatedBrokersRoute: typeof AuthenticatedBrokersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHedgeRoute: typeof AuthenticatedHedgeRoute
@@ -873,6 +893,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedAutopilotRoute: AuthenticatedAutopilotRoute,
   AuthenticatedBrokersRoute: AuthenticatedBrokersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHedgeRoute: AuthenticatedHedgeRoute,

@@ -3,7 +3,7 @@ import { Link, useNavigate, useRouter, useLocation } from "@tanstack/react-route
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
-  LayoutGrid, Landmark, Monitor, SlidersHorizontal, KeyRound, ArrowRightLeft, BarChart3, User, ShieldCheck, LogOut, FileText, ArrowLeft,
+  LayoutGrid, Landmark, Monitor, SlidersHorizontal, KeyRound, ArrowRightLeft, BarChart3, User, ShieldCheck, LogOut, FileText, ArrowLeft, Bot,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { to: "/autopilot", label: "Auto-Pilot", icon: Bot },
   { to: "/brokers", label: "Brokers", icon: Landmark },
   { to: "/accounts/add-mt5", label: "Add MT5 Account", icon: Monitor },
   { to: "/settings/preferences", label: "Settings", icon: SlidersHorizontal },
