@@ -1,3 +1,4 @@
+import { useT, HelpNote, LanguageToggle } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/_authenticated/settings/")({
 });
 
 function EaConfig() {
+  const t = useT();
   const { user } = useAuth();
   const qc = useQueryClient();
   const profile = useProfile();
@@ -28,10 +30,10 @@ function EaConfig() {
   const apiUrl = `${origin}/api/public/ea`;
 
   const refresh = async () => {
-    if (!window.confirm("Refresh your API key? Every EA using the current key must be reconfigured.")) return;
+    if (!window.confirm(t("Refresh your API key? Every EA using the current key must be reconfigured."))) return;
     const { error } = await supabase.from("ea_credentials").update({ api_key: crypto.randomUUID(), updated_at: new Date().toISOString() }).eq("user_id", user!.id);
-    if (error) return toast.error("Could not refresh the key.");
-    toast.success("New API key generated.");
+    if (error) return toast.error(t("Could not refresh the key."));
+    toast.success(t("New API key generated."));
     void qc.invalidateQueries({ queryKey: ["ea-creds"] });
   };
 
@@ -39,50 +41,50 @@ function EaConfig() {
   const isSource = !ea.data?.file_url;
 
   return (
-    <Page title="MT5 EA Configuration" subtitle="Use these credentials to connect your Arrissa EA to this account.">
-      <Card title="Download EA">
+    <Page title={t("MT5 EA Configuration")} subtitle={t("Use these credentials to connect your Arrissa EA to this account.")}>
+      <Card title={t("Download EA")}>
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary-glow"><Download className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">Arrissa EA <span className="ml-1 rounded-md bg-primary/20 px-1.5 py-0.5 text-xs text-primary-glow">v{ea.data?.version ?? "1.0"}</span></p>
-            <p className="text-sm text-muted-foreground">MetaTrader 5 Expert Advisor — connect your MT5 account to the Arrissa platform.</p>
+            <p className="font-semibold">{t("Arrissa EA")} <span className="ms-1 rounded-md bg-primary/20 px-1.5 py-0.5 text-xs text-primary-glow">{t("v")}{ea.data?.version ?? "1.0"}</span></p>
+            <p className="text-sm text-muted-foreground">{t("MetaTrader 5 Expert Advisor — connect your MT5 account to the Arrissa platform.")}</p>
           </div>
-          <Button asChild variant="hero" className="h-11 rounded-full px-6"><a href={fileUrl} download>{isSource ? "Download .mq5" : "Download .ex5"}</a></Button>
+          <Button asChild variant="hero" className="h-11 rounded-full px-6"><a href={fileUrl} download>{isSource ? t("Download .mq5") : t("Download .ex5")}</a></Button>
         </div>
-        {isSource && <p className="mt-4 text-xs text-muted-foreground">This is the EA source file. Open it in MetaEditor (installed with MT5) and press Compile once — MT5 creates the .ex5 automatically.</p>}
+        {isSource && <p className="mt-4 text-xs text-muted-foreground">{t("This is the EA source file. Open it in MetaEditor (installed with MT5) and press Compile once — MT5 creates the .ex5 automatically.")}</p>}
       </Card>
 
-      <Card title="Your Credentials">
-        <CopyRow label="USERNAME" value={profile.data?.username ?? "…"} />
-        <CopyRow label="API KEY" value={creds.data?.api_key ?? "…"} mono />
-        <p className="mt-4 flex gap-2 text-sm text-muted-foreground"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> Refreshing your API key will invalidate the current one. All EAs using it must be reconfigured.</p>
-        <Button variant="destructive" className="mt-4 h-11 w-full rounded-full" onClick={refresh}>Refresh API Key</Button>
+      <Card title={t("Your Credentials")}>
+        <CopyRow label={t("USERNAME")} value={profile.data?.username ?? "…"} />
+        <CopyRow label={t("API KEY")} value={creds.data?.api_key ?? "…"} mono />
+        <p className="mt-4 flex gap-2 text-sm text-muted-foreground"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />  {t("Refreshing your API key will invalidate the current one. All EAs using it must be reconfigured.")}</p>
+        <Button variant="destructive" className="mt-4 h-11 w-full rounded-full" onClick={refresh}>{t("Refresh API Key")}</Button>
       </Card>
 
-      <Card title="MT5 Web Request Setup">
-        <p className="text-sm text-muted-foreground">For the EA to communicate with Arrissa, MetaTrader 5 must be allowed to make web requests to the API URL below. Do this once per MT5 installation.</p>
-        <div className="mt-4"><CopyRow label="API URL" value={apiUrl} mono /></div>
+      <Card title={t("MT5 Web Request Setup")}>
+        <p className="text-sm text-muted-foreground">{t("For the EA to communicate with Arrissa, MetaTrader 5 must be allowed to make web requests to the API URL below. Do this once per MT5 installation.")}</p>
+        <div className="mt-4"><CopyRow label={t("API URL")} value={apiUrl} mono /></div>
         <ol className="mt-4 space-y-2 px-5 text-sm text-muted-foreground">
-          <li>Open <b className="text-foreground">MetaTrader 5</b> and go to <b className="text-foreground">Tools → Options</b>.</li>
-          <li>Click the <b className="text-foreground">Expert Advisors</b> tab.</li>
-          <li>Check <b className="text-foreground">"Allow WebRequest for listed URL"</b>.</li>
-          <li>Click the <b className="text-foreground">+</b> button, paste the URL above, and press <b className="text-foreground">OK</b>.</li>
+          <li>{t("Open")} <b className="text-foreground">{t("MetaTrader 5")}</b>  {t("and go to")} <b className="text-foreground">{t("Tools → Options")}</b>.</li>
+          <li>{t("Click the")} <b className="text-foreground">{t("Expert Advisors")}</b>  {t("tab.")}</li>
+          <li>{t("Check")} <b className="text-foreground">{t("\"Allow WebRequest for listed URL\"")}</b>.</li>
+          <li>{t("Click the")} <b className="text-foreground">+</b>  {t("button, paste the URL above, and press")} <b className="text-foreground">{t("OK")}</b>.</li>
         </ol>
       </Card>
 
-      <Card title="Getting Started">
-        <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-          <li>Download the EA above and place it in MT5: <b className="text-foreground">File → Open Data Folder → MQL5 → Experts</b>.</li>
-          <li>In MT5 open <b className="text-foreground">Navigator</b>, right-click Expert Advisors → Refresh (compile it in MetaEditor if it's the .mq5 file).</li>
-          <li>Drag <b className="text-foreground">ArrissaEA</b> onto any chart. In the Inputs tab paste your <b className="text-foreground">Username</b>, <b className="text-foreground">API Key</b> and the <b className="text-foreground">API URL</b>.</li>
-          <li>Turn on the <b className="text-foreground">Algo Trading</b> button in the MT5 toolbar. Your account appears below within seconds.</li>
-          <li>Keep MT5 running (on your PC or a VPS) so the EA can execute your commands.</li>
+      <Card title={t("Getting Started")}>
+        <ol className="list-decimal space-y-2 ps-5 text-sm text-muted-foreground">
+          <li>{t("Download the EA above and place it in MT5:")} <b className="text-foreground">{t("File → Open Data Folder → MQL5 → Experts")}</b>.</li>
+          <li>{t("In MT5 open")} <b className="text-foreground">{t("Navigator")}</b>{t(", end-click Expert Advisors → Refresh (compile it in MetaEditor if it's the .mq5 file).")}</li>
+          <li>{t("Drag")} <b className="text-foreground">{t("ArrissaEA")}</b>  {t("onto any chart. In the Inputs tab paste your")} <b className="text-foreground">{t("Username")}</b>, <b className="text-foreground">{t("API Key")}</b>  {t("and the")} <b className="text-foreground">{t("API URL")}</b>.</li>
+          <li>{t("Turn on the")} <b className="text-foreground">{t("Algo Trading")}</b>  {t("button in the MT5 toolbar. Your account appears below within seconds.")}</li>
+          <li>{t("Keep MT5 running (on your PC or a VPS) so the EA can execute your commands.")}</li>
         </ol>
       </Card>
 
-      <Card title="Connected accounts">
+      <Card title={t("Connected accounts")}>
         {(accounts.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">No accounts yet. Attach the EA in MT5 and the account is added automatically, or <Link to="/accounts/add-mt5" className="text-primary-glow underline">add it manually</Link>.</p>
+          <p className="text-sm text-muted-foreground">{t("No accounts yet. Attach the EA in MT5 and the account is added automatically, or")} <Link to="/accounts/add-mt5" className="text-primary-glow underline">{t("add it manually")}</Link>.</p>
         ) : <div className="space-y-3">{accounts.data!.map((a) => <AccountRow key={a.id} a={a} />)}</div>}
       </Card>
     </Page>
@@ -90,11 +92,12 @@ function EaConfig() {
 }
 
 function CopyRow({ label, value, mono }: { label: string; value: ReactNode; mono?: boolean }) {
+  const t = useT();
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
       <div className="min-w-0">
         <p className="text-[11px] font-semibold tracking-widest text-muted-foreground">{label}</p>
-        <p className={mono ? "mt-1 break-all font-mono text-sm" : "mt-1 font-semibold"}>{value}</p>
+        <p className={mono ? t("mt-1 break-all font-mono text-sm") : t("mt-1 font-semibold")}>{value}</p>
       </div>
       <button aria-label={`Copy ${label}`} onClick={() => { void navigator.clipboard.writeText(String(value)); toast.success(`${label.toLowerCase()} copied.`); }} className="text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
     </div>
@@ -102,16 +105,17 @@ function CopyRow({ label, value, mono }: { label: string; value: ReactNode; mono
 }
 
 function AccountRow({ a }: { a: Account }) {
+  const t = useT();
   const qc = useQueryClient();
   const [lot, setLot] = useState(String(a.lot_size));
   const update = async (patch: Partial<Account>, msg: string) => {
     const { error } = await supabase.from("trading_accounts").update(patch).eq("id", a.id);
-    if (error) return toast.error("Update failed.");
+    if (error) return toast.error(t("Update failed."));
     toast.success(msg);
     void qc.invalidateQueries({ queryKey: ["accounts"] });
   };
   const remove = async () => {
-    if (!window.confirm("Disconnect this account? Its trade history will be deleted.")) return;
+    if (!window.confirm(t("Disconnect this account? Its trade history will be deleted."))) return;
     await supabase.from("trading_accounts").delete().eq("id", a.id);
     void qc.invalidateQueries({ queryKey: ["accounts"] });
   };
@@ -120,14 +124,14 @@ function AccountRow({ a }: { a: Account }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-semibold">{a.label || a.login} <span className="text-xs text-muted-foreground">#{a.login} · {a.server ?? "—"}</span></p>
-          <p className="text-xs text-muted-foreground">Balance {fmt(a.balance)} · Equity {fmt(a.equity)} · {a.last_seen_at ? `Last seen ${new Date(a.last_seen_at).toLocaleString()}` : "EA never connected"}</p>
+          <p className="text-xs text-muted-foreground">{t("Balance")} {fmt(a.balance)}  {t("· Equity")} {fmt(a.equity)} · {a.last_seen_at ? `Last seen ${new Date(a.last_seen_at).toLocaleString()}` : t("EA never connected")}</p>
         </div>
-        <span className={`flex items-center gap-1 text-xs ${isOnline(a) ? "text-success" : "text-muted-foreground"}`}>{isOnline(a) ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}{isOnline(a) ? "EA connected" : "EA not connected"}</span>
+        <span className={`flex items-center gap-1 text-xs ${isOnline(a) ? "text-success" : "text-muted-foreground"}`}>{isOnline(a) ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}{isOnline(a) ? t("EA connected") : t("EA not connected")}</span>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Default lot</span><Input value={lot} onChange={(e) => setLot(e.target.value)} className="h-8 w-20 rounded-full" /><Button size="sm" variant="secondary" className="rounded-full" onClick={() => { const v = Number(lot); if (!(v >= 0.01 && v <= 100)) return toast.error("Lot must be 0.01–100."); void update({ lot_size: v }, "Lot size saved."); }}>Save</Button></div>
-        <label className="flex items-center gap-2"><Switch checked={a.auto_trading} onCheckedChange={(v) => update({ auto_trading: v }, v ? "Auto trading enabled." : "Auto trading disabled.")} /> Auto-trade platform signals</label>
-        <Button size="sm" variant="ghost" className="ml-auto text-destructive" onClick={remove}><Trash2 /> Disconnect</Button>
+        <div className="flex items-center gap-2"><span className="text-muted-foreground">{t("Default lot")}</span><Input value={lot} onChange={(e) => setLot(e.target.value)} className="h-8 w-20 rounded-full" /><Button size="sm" variant="secondary" className="rounded-full" onClick={() => { const v = Number(lot); if (!(v >= 0.01 && v <= 100)) return toast.error(t("Lot must be 0.01–100.")); void update({ lot_size: v }, t("Lot size saved.")); }}>{t("Save")}</Button></div>
+        <label className="flex items-center gap-2"><Switch checked={a.auto_trading} onCheckedChange={(v) => update({ auto_trading: v }, v ? t("Auto trading enabled.") : t("Auto trading disabled."))} />  {t("Auto-trade platform signals")}</label>
+        <Button size="sm" variant="ghost" className="ms-auto text-destructive" onClick={remove}><Trash2 />  {t("Disconnect")}</Button>
       </div>
     </div>
   );

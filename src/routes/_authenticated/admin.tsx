@@ -1,3 +1,4 @@
+import { useT } from "@/lib/i18n";
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,12 +19,13 @@ const tabs = [
 ] as const;
 
 function AdminLayout() {
+  const t = useT();
   return (
     <div className="p-4 md:p-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Admin panel</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("Admin panel")}</h1>
       <div className="mb-6 mt-4 flex flex-wrap gap-1 border-b border-border">
         {tabs.map(([to, label]) => (
-          <Link key={to} to={to} className="-mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted-foreground hover:text-foreground" activeProps={{ className: "!border-primary !text-foreground" }}>{label}</Link>
+          <Link key={to} to={to} className="-mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted-foreground hover:text-foreground" activeProps={{ className: "!border-primary !text-foreground" }}>{t(label)}</Link>
         ))}
       </div>
       <Outlet />

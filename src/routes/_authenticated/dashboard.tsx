@@ -1,3 +1,4 @@
+import { useT, HelpNote, LanguageToggle } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -32,6 +33,7 @@ const AUTO_KEY = "arrissa.autoAnalysis";
 const inputCls = "h-11 rounded-full border-border bg-transparent text-center";
 
 function Dashboard() {
+  const t = useT();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const accounts = useAccounts();
@@ -107,7 +109,7 @@ function Dashboard() {
   }, [account?.id, online]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const execute = async () => {
-    if (!account) return toast.error("Add an MT5 account first.");
+    if (!account) return toast.error(t("Add an MT5 account first."));
     if (!online) return setEaModal(true);
     const o = {
       side, orderType, lot: Number(lot), count: Number(count), interval: Number(interval),
@@ -147,7 +149,7 @@ function Dashboard() {
       if (!silent) toast.success(`Analysis for ${sym} ready.`);
       setAnalysisOpen(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Analysis failed.");
+      toast.error(e instanceof Error ? e.message : t("Analysis failed."));
     } finally {
       setBusy(false);
     }
@@ -163,16 +165,16 @@ function Dashboard() {
     const v = !auto;
     setAuto(v);
     localStorage.setItem(AUTO_KEY, v ? "on" : "off");
-    toast.success(v ? `Auto analysis on — every 15 minutes for the selected instrument.` : "Auto analysis off.");
+    toast.success(v ? `Auto analysis on — every 15 minutes for the selected instrument.` : t("Auto analysis off."));
     if (v) void runAnalysis(symbol, tf, true);
   };
   const useSignal = (s: { symbol: string; direction: string; stop_loss: number | null; take_profit: number | null }) => {
-    if (s.direction !== "buy" && s.direction !== "sell") return toast.info("This analysis is neutral — no trade suggested.");
+    if (s.direction !== "buy" && s.direction !== "sell") return toast.info(t("This analysis is neutral — no trade suggested."));
     setSymbol(s.symbol);
     setSide(s.direction);
     if (prefs?.copy_sl !== false) setSl(s.stop_loss?.toString() ?? "");
     if (prefs?.copy_tp !== false) setTp(s.take_profit?.toString() ?? "");
-    toast.success("Signal loaded into the trading form.");
+    toast.success(t("Signal loaded into the trading form."));
   };
   const shownAnalyses = (analyses.data ?? []).filter((a) => !onlyCurrent || a.symbol === symbol);
 
@@ -183,52 +185,52 @@ function Dashboard() {
   return (
     <div className="grid min-h-screen xl:grid-cols-[350px_minmax(0,1fr)_350px]">
       {/* LEFT: analysis */}
-      <aside className="space-y-4 border-border bg-background p-5 xl:border-r">
-        <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={() => setAnalysisOpen(true)}>Analysis</Button>
+      <aside className="space-y-4 border-border bg-background p-5 xl:border-e">
+        <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={() => setAnalysisOpen(true)}>{t("Analysis")}</Button>
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold tracking-widest text-muted-foreground">RECENT ANALYSIS</h2>
+          <h2 className="text-sm font-semibold tracking-widest text-muted-foreground">{t("RECENT ANALYSIS")}</h2>
           <div className="flex gap-2">
-            <Tip label={onlyCurrent ? "Showing current instrument only" : "Show current instrument only"} side="bottom">
-              <button onClick={() => setOnlyCurrent((v) => !v)} aria-label="Filter" className={cn("flex h-7 w-7 items-center justify-center rounded-full border border-border", onlyCurrent && "border-primary text-primary-glow")}><ListFilter className="h-3.5 w-3.5" /></button>
+            <Tip label={onlyCurrent ? t("Showing current instrument only") : t("Show current instrument only")} side="bottom">
+              <button onClick={() => setOnlyCurrent((v) => !v)} aria-label={t("Filter")} className={cn("flex h-7 w-7 items-center justify-center rounded-full border border-border", onlyCurrent && "border-primary text-primary-glow")}><ListFilter className="h-3.5 w-3.5" /></button>
             </Tip>
-            <Tip label={auto ? "Auto analysis every 15 min: ON" : "Auto analysis every 15 min: OFF"} side="bottom">
-              <button onClick={toggleAuto} aria-label="Auto analysis" className={cn("flex h-7 w-7 items-center justify-center rounded-full", auto ? "bg-success text-success-foreground" : "border border-border text-muted-foreground")}><Clock className="h-3.5 w-3.5" /></button>
+            <Tip label={auto ? t("Auto analysis every 15 min: ON") : t("Auto analysis every 15 min: OFF")} side="bottom">
+              <button onClick={toggleAuto} aria-label={t("Auto analysis")} className={cn("flex h-7 w-7 items-center justify-center rounded-full", auto ? "bg-success text-success-foreground" : "border border-border text-muted-foreground")}><Clock className="h-3.5 w-3.5" /></button>
             </Tip>
           </div>
         </div>
-        {busy && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Analysing {symbol}…</p>}
+        {busy && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />  {t("Analysing")} {symbol}…</p>}
         {(signals.data ?? []).map((s) => (
-          <AnalysisCard key={s.id} tag="Platform signal" symbol={s.symbol} direction={s.direction} entry={s.entry} sl={s.stop_loss} tp={s.take_profit} text={s.note} at={s.created_at} onUse={() => useSignal(s)} />
+          <AnalysisCard key={s.id} tag={t("Platform signal")} symbol={s.symbol} direction={s.direction} entry={s.entry} sl={s.stop_loss} tp={s.take_profit} text={s.note} at={s.created_at} onUse={() => useSignal(s)} />
         ))}
         {shownAnalyses.length === 0 && !busy ? (
-          <p className="pt-10 text-center text-sm text-muted-foreground">No analysis yet. Open Analysis and request a symbol.</p>
+          <p className="pt-10 text-center text-sm text-muted-foreground">{t("No analysis yet. Open Analysis and request a symbol.")}</p>
         ) : shownAnalyses.map((a) => (
           <AnalysisCard key={a.id} symbol={a.symbol} tag={a.timeframe ?? undefined} direction={a.direction} confidence={a.confidence} entry={a.entry} sl={a.stop_loss} tp={a.take_profit} text={a.summary} at={a.created_at} onUse={() => useSignal(a)} />
         ))}
-        <p className="text-[11px] text-muted-foreground">AI analysis is not financial advice. Always manage your risk.</p>
+        <p className="text-[11px] text-muted-foreground">{t("AI analysis is not financial advice. Always manage your risk.")}</p>
       </aside>
 
       {/* CENTER: trading form */}
       <section className="min-w-0 space-y-5 bg-surface p-5">
         <div className="flex items-center gap-6 rounded-full bg-gradient-to-r from-card via-card to-accent px-8 py-4">
-          <Metric label="BALANCE" value={account ? money(account.balance) : null} />
-          <Metric label="EQUITY" value={account ? money(account.equity) : null} />
-          <Metric label="PROFIT" badge={String(accTrades.length)} value={account ? (hide ? "••••••" : `${profit >= 0 ? "+" : ""}${fmt(profit)}`) : null} tone={profit > 0 ? "up" : profit < 0 ? "down" : undefined} />
-          <div className="ml-auto flex gap-2">
-            <Tip label={hide ? "Show values" : "Hide values"} side="bottom"><button onClick={() => setHide((v) => !v)} aria-label="Hide values" className="flex h-9 w-9 items-center justify-center rounded-full border border-border">{hide ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button></Tip>
-            <Tip label={online ? "EA connected" : "EA not connected"} side="bottom"><button onClick={() => !online && setEaModal(true)} aria-label="EA status" className={cn("flex h-9 w-9 items-center justify-center rounded-full border", online ? "border-success text-success" : "border-border")}><Target className="h-4 w-4" /></button></Tip>
+          <Metric label={t("BALANCE")} value={account ? money(account.balance) : null} />
+          <Metric label={t("EQUITY")} value={account ? money(account.equity) : null} />
+          <Metric label={t("PROFIT")} badge={String(accTrades.length)} value={account ? (hide ? "••••••" : `${profit >= 0 ? "+" : ""}${fmt(profit)}`) : null} tone={profit > 0 ? t("up") : profit < 0 ? t("down") : undefined} />
+          <div className="ms-auto flex gap-2">
+            <Tip label={hide ? t("Show values") : t("Hide values")} side="bottom"><button onClick={() => setHide((v) => !v)} aria-label={t("Hide values")} className="flex h-9 w-9 items-center justify-center rounded-full border border-border">{hide ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button></Tip>
+            <Tip label={online ? t("EA connected") : t("EA not connected")} side="bottom"><button onClick={() => !online && setEaModal(true)} aria-label={t("EA status")} className={cn("flex h-9 w-9 items-center justify-center rounded-full border", online ? "border-success text-success" : "border-border")}><Target className="h-4 w-4" /></button></Tip>
           </div>
         </div>
 
         {/* account row */}
         <div className="flex gap-2">
           {(accounts.data ?? []).length === 0 ? (
-            <Link to="/accounts/add-mt5" className="flex h-12 flex-1 items-center rounded-full border border-dashed border-border px-4 text-sm text-muted-foreground hover:text-foreground">+ Add an MT5 account to start trading</Link>
+            <Link to="/accounts/add-mt5" className="flex h-12 flex-1 items-center rounded-full border border-dashed border-border px-4 text-sm text-muted-foreground hover:text-foreground">{t("+ Add an MT5 account to start trading")}</Link>
           ) : (
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger className="h-12 flex-1 rounded-full px-3">
                 {account && (
-                  <div className="flex items-center gap-3 text-left">
+                  <div className="flex items-center gap-3 text-start">
                     <BrokerLogo name={account.broker_name} color={broker(account)?.brand_color} className="h-7 w-7 text-xs" />
                     <div className="leading-tight"><p className="font-semibold">{account.label || account.login}</p><p className="text-xs text-muted-foreground">#{account.login}</p></div>
                     {online ? <Wifi className="h-3.5 w-3.5 text-success" /> : <WifiOff className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -236,33 +238,32 @@ function Dashboard() {
                 )}
               </SelectTrigger>
               <SelectContent>
-                {accounts.data!.map((a) => <SelectItem key={a.id} value={a.id}>{a.label || a.login} · #{a.login} {isOnline(a) ? "· online" : ""}</SelectItem>)}
+                {accounts.data!.map((a) => <SelectItem key={a.id} value={a.id}>{a.label || a.login} · #{a.login} {isOnline(a) ? t("· online") : ""}</SelectItem>)}
               </SelectContent>
             </Select>
           )}
-          <Button variant="outline" className="h-12 rounded-full" disabled={!account} onClick={() => void profile.update({ default_account_id: accountId }, "Default account saved.")}>
-            <Star className={cn("h-4 w-4", prefs?.default_account_id === accountId && accountId && "fill-warning text-warning")} /> Set Default
-          </Button>
-          <Tip label="EA configuration" side="bottom"><Link to="/settings" aria-label="EA configuration" className="flex h-12 w-12 items-center justify-center rounded-full border border-border"><Settings2 className="h-4 w-4" /></Link></Tip>
+          <Button variant="outline" className="h-12 rounded-full" disabled={!account} onClick={() => void profile.update({ default_account_id: accountId }, t("Default account saved."))}>
+            <Star className={cn("h-4 w-4", prefs?.default_account_id === accountId && accountId && "fill-warning text-warning")} />  {t("Set Default")} </Button>
+          <Tip label={t("EA configuration")} side="bottom"><Link to="/settings" aria-label={t("EA configuration")} className="flex h-12 w-12 items-center justify-center rounded-full border border-border"><Settings2 className="h-4 w-4" /></Link></Tip>
         </div>
 
         {/* instrument */}
         <div className="space-y-2">
-          <p className="text-sm font-semibold">Select Instrument</p>
+          <p className="text-sm font-semibold">{t("Select Instrument")}</p>
           <div className="flex gap-2">
-            <button onClick={() => setPickerOpen(true)} className="flex h-12 flex-1 items-center gap-3 rounded-full border border-primary px-3 text-left">
+            <button onClick={() => setPickerOpen(true)} className="flex h-12 flex-1 items-center gap-3 rounded-full border border-primary px-3 text-start">
               <InstrumentIcon flag={inst?.flag} />
               <span className="font-semibold">{symbol || "…"}</span>
               {price != null && <span className="font-mono text-sm text-muted-foreground">{fmt(price, priceDigits(price))}</span>}
               {quote.data?.change_pct != null && <span className={cn("text-xs", quote.data.change_pct >= 0 ? "text-success" : "text-destructive")}>{quote.data.change_pct >= 0 ? "+" : ""}{quote.data.change_pct.toFixed(2)}%</span>}
-              <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="ms-auto h-4 w-4 text-muted-foreground" />
             </button>
-            <Tip label={showChart ? "Hide chart" : "Show chart"} side="bottom"><button onClick={() => setShowChart((v) => !v)} aria-label="Chart" className={cn("flex h-12 w-12 items-center justify-center rounded-full border border-border", showChart && "border-primary text-primary-glow")}><CandlestickChart className="h-4 w-4" /></button></Tip>
+            <Tip label={showChart ? t("Hide chart") : t("Show chart")} side="bottom"><button onClick={() => setShowChart((v) => !v)} aria-label={t("Chart")} className={cn("flex h-12 w-12 items-center justify-center rounded-full border border-border", showChart && "border-primary text-primary-glow")}><CandlestickChart className="h-4 w-4" /></button></Tip>
           </div>
           {showChart && inst && (
             <div className="space-y-2">
               <div className="flex gap-1">{TF.map((t) => <button key={t} onClick={() => setTf(t)} className={cn("rounded-full px-3 py-1 text-xs", tf === t ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>{t}</button>)}</div>
-              <iframe key={inst.tv_symbol + tf} title="Chart" className="h-[420px] w-full rounded-2xl border border-border"
+              <iframe key={inst.tv_symbol + tf} title={t("Chart")} className="h-[420px] w-full rounded-2xl border border-border"
                 src={`https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(inst.tv_symbol)}&interval=${tvInterval[tf]}&theme=dark&style=1&withdateranges=1&timezone=Etc%2FUTC`} />
             </div>
           )}
@@ -270,55 +271,55 @@ function Dashboard() {
 
         {/* direction */}
         <div className="space-y-2">
-          <p className="text-sm font-semibold">Trade Direction</p>
+          <p className="text-sm font-semibold">{t("Trade Direction")}</p>
           <div className="grid grid-cols-2 overflow-hidden rounded-full">
-            <button onClick={() => setSide("buy")} className={cn("h-12 font-bold tracking-wide", side === "buy" ? "bg-buy text-primary-foreground" : "bg-secondary text-buy")}>BUY</button>
-            <button onClick={() => setSide("sell")} className={cn("h-12 font-bold tracking-wide", side === "sell" ? "bg-destructive text-destructive-foreground" : "bg-sell-muted text-destructive")}>SELL</button>
+            <button onClick={() => setSide("buy")} className={cn("h-12 font-bold tracking-wide", side === "buy" ? "bg-buy text-primary-foreground" : "bg-secondary text-buy")}>{t("BUY")}</button>
+            <button onClick={() => setSide("sell")} className={cn("h-12 font-bold tracking-wide", side === "sell" ? "bg-destructive text-destructive-foreground" : "bg-sell-muted text-destructive")}>{t("SELL")}</button>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <div className="space-y-2">
-            <p className="text-sm font-semibold">Order Type</p>
+            <p className="text-sm font-semibold">{t("Order Type")}</p>
             <Select value={orderType} onValueChange={setOrderType}>
               <SelectTrigger className="h-11 rounded-full px-5"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="market">Market</SelectItem><SelectItem value="limit">Limit</SelectItem><SelectItem value="stop">Stop</SelectItem></SelectContent>
+              <SelectContent><SelectItem value="market">{t("Market")}</SelectItem><SelectItem value="limit">{t("Limit")}</SelectItem><SelectItem value="stop">{t("Stop")}</SelectItem></SelectContent>
             </Select>
           </div>
-          <NumField label="Lot" v={lot} on={setLot} />
-          <NumField label="Trades" v={count} on={setCount} />
-          <NumField label="Interval (s)" v={interval} on={setIntervalS} />
+          <NumField label={t("Lot")} v={lot} on={setLot} />
+          <NumField label={t("Trades")} v={count} on={setCount} />
+          <NumField label={t("Interval (s)")} v={interval} on={setIntervalS} />
         </div>
         {orderType !== "market" && <NumField label={`${orderType === "limit" ? "Limit" : "Stop"} price`} v={orderPrice} on={setOrderPrice} placeholder={price ? fmt(price, priceDigits(price)) : "0.00"} left />}
         <div className="grid gap-3 sm:grid-cols-2">
-          <NumField label="SL (Optional)" v={sl} on={setSl} placeholder="0.00" left />
-          <NumField label="TP (Optional)" v={tp} on={setTp} placeholder="0.00" left />
+          <NumField label={t("SL (Optional)")} v={sl} on={setSl} placeholder="0.00" left />
+          <NumField label={t("TP (Optional)")} v={tp} on={setTp} placeholder="0.00" left />
         </div>
-        <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={execute} disabled={sending}>{sending ? <Loader2 className="animate-spin" /> : null} Execute Trade</Button>
+        <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={execute} disabled={sending}>{sending ? <Loader2 className="animate-spin" /> : null}  {t("Execute Trade")}</Button>
 
         <NewsPanel />
       </section>
 
       {/* RIGHT: open trades */}
-      <aside className="space-y-4 bg-background p-5 xl:border-l xl:border-border">
+      <aside className="space-y-4 bg-background p-5 xl:border-s xl:border-border">
         <GlobalManage accounts={accounts.data ?? []} current={account} />
         <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-widest text-muted-foreground">OPEN TRADES <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{accTrades.length}</span></h2>
+          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-widest text-muted-foreground">{t("OPEN TRADES")} <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{accTrades.length}</span></h2>
           <span className={cn("text-sm font-semibold", profit < 0 ? "text-destructive" : "text-success")}>{account?.currency ?? "USD"} {fmt(profit)}</span>
         </div>
-        {!account ? <p className="pt-6 text-center text-sm text-muted-foreground">Add an MT5 account to see trades.</p>
-          : !online && accTrades.length === 0 ? <p className="pt-6 text-center text-sm text-muted-foreground">Waiting for MT5 EA connection…</p>
-          : accTrades.length === 0 ? <p className="pt-6 text-center text-sm text-muted-foreground">No open trades.</p>
+        {!account ? <p className="pt-6 text-center text-sm text-muted-foreground">{t("Add an MT5 account to see trades.")}</p>
+          : !online && accTrades.length === 0 ? <p className="pt-6 text-center text-sm text-muted-foreground">{t("Waiting for MT5 EA connection…")}</p>
+          : accTrades.length === 0 ? <p className="pt-6 text-center text-sm text-muted-foreground">{t("No open trades.")}</p>
           : accTrades.map((t) => (
             <div key={t.id} className="rounded-2xl bg-card p-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="font-semibold">{t.symbol} <span className={cn("ml-1 text-xs", t.side === "buy" ? "text-success" : "text-destructive")}>{t.side.toUpperCase()} {t.volume}</span></span>
+                <span className="font-semibold">{t.symbol} <span className={cn("ms-1 text-xs", t.side === "buy" ? "text-success" : "text-destructive")}>{t.side.toUpperCase()} {t.volume}</span></span>
                 <span className={cn("font-semibold", Number(t.profit) >= 0 ? "text-success" : "text-destructive")}>{fmt(t.profit)}</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Open {fmt(t.open_price, priceDigits(t.open_price))} · SL {fmt(t.stop_loss, priceDigits(t.open_price))} · TP {fmt(t.take_profit, priceDigits(t.open_price))}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("Open")} {fmt(t.open_price, priceDigits(t.open_price))}  {t("· SL")} {fmt(t.stop_loss, priceDigits(t.open_price))}  {t("· TP")} {fmt(t.take_profit, priceDigits(t.open_price))}</p>
               <div className="mt-2 flex justify-between text-xs text-muted-foreground">
                 <span>#{t.ticket}{t.opened_at ? ` · ${timeAgo(t.opened_at)}` : ""}</span>
-                <button className="text-destructive hover:underline" onClick={() => void queueCommand([account], "close_trade", { ticket: t.ticket })}>Close</button>
+                <button className="text-destructive hover:underline" onClick={() => void queueCommand([account], "close_trade", { ticket: t.ticket })}>{t("Close")}</button>
               </div>
             </div>
           ))}
@@ -328,28 +329,28 @@ function Dashboard() {
 
       <Dialog open={analysisOpen} onOpenChange={setAnalysisOpen}>
         <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader><DialogTitle className="text-center">Analysis</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-center">{t("Analysis")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <button onClick={() => setPickerOpen(true)} className="flex h-12 w-full items-center gap-3 rounded-full border border-primary px-3 text-left">
-              <InstrumentIcon flag={inst?.flag} /><span className="font-semibold">{symbol}</span><span className="truncate text-xs text-muted-foreground">{inst?.name}</span><ChevronDown className="ml-auto h-4 w-4" />
+            <button onClick={() => setPickerOpen(true)} className="flex h-12 w-full items-center gap-3 rounded-full border border-primary px-3 text-start">
+              <InstrumentIcon flag={inst?.flag} /><span className="font-semibold">{symbol}</span><span className="truncate text-xs text-muted-foreground">{inst?.name}</span><ChevronDown className="ms-auto h-4 w-4" />
             </button>
             <div>
-              <p className="mb-2 text-sm font-semibold">Timeframe</p>
+              <p className="mb-2 text-sm font-semibold">{t("Timeframe")}</p>
               <div className="grid grid-cols-5 gap-1 rounded-full bg-secondary p-1">{TF.map((t) => <button key={t} onClick={() => setTf(t)} className={cn("rounded-full py-1.5 text-xs font-semibold", tf === t ? "bg-background" : "text-muted-foreground")}>{t}</button>)}</div>
             </div>
-            <p className="text-xs text-muted-foreground">The AI reads live candles, the economic calendar and world headlines, then returns direction, entry, stop loss and take profit.</p>
-            <Button variant="hero" className="h-12 w-full rounded-full" disabled={busy || !symbol} onClick={() => void runAnalysis(symbol, tf)}>{busy ? <Loader2 className="animate-spin" /> : <Brain />} Analyse {symbol}</Button>
+            <p className="text-xs text-muted-foreground">{t("The AI reads live candles, the economic calendar and world headlines, then returns direction, entry, stop loss and take profit.")}</p>
+            <Button variant="hero" className="h-12 w-full rounded-full" disabled={busy || !symbol} onClick={() => void runAnalysis(symbol, tf)}>{busy ? <Loader2 className="animate-spin" /> : <Brain />}  {t("Analyse")} {symbol}</Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={eaModal} onOpenChange={setEaModal}>
         <DialogContent className="max-w-sm rounded-3xl">
-          <DialogHeader><DialogTitle className="text-center">EA Is Not Connected</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-center">{t("EA Is Not Connected")}</DialogTitle></DialogHeader>
           <div className="space-y-4 text-sm text-muted-foreground">
-            <p>Your MT5 Expert Advisor (EA) appears to be offline. For Arrissa to send trades and execute your commands, it must be connected to your trading account via an Expert Advisor running inside MetaTrader 5.</p>
-            <p>This is a one-time setup. Once configured, you can manage your entire trading account from this app — placing trades, monitoring positions, and controlling your account — without ever opening your laptop or a trading terminal again.</p>
-            <Button variant="hero" className="h-11 w-full rounded-full" onClick={() => { setEaModal(false); void navigate({ to: "/settings" }); }}>Go to Settings</Button>
+            <p>{t("Your MT5 Expert Advisor (EA) appears to be offline. For Arrissa to send trades and execute your commands, it must be connected to your trading account via an Expert Advisor running inside MetaTrader 5.")}</p>
+            <p>{t("This is a one-time setup. Once configured, you can manage your entire trading account from this app — placing trades, monitoring positions, and controlling your account — without ever opening your laptop or a trading terminal again.")}</p>
+            <Button variant="hero" className="h-11 w-full rounded-full" onClick={() => { setEaModal(false); void navigate({ to: "/settings" }); }}>{t("Go to Settings")}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -358,6 +359,7 @@ function Dashboard() {
 }
 
 function Metric({ label, value, badge, tone }: { label: string; value: string | null; badge?: string; tone?: "up" | "down" | undefined }) {
+  const t = useT();
   return (
     <div className="min-w-0 flex-1">
       <p className="flex items-center gap-2 text-[11px] font-semibold tracking-widest text-muted-foreground">{label}{badge && <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] text-primary-foreground">{badge}</span>}</p>
@@ -367,20 +369,22 @@ function Metric({ label, value, badge, tone }: { label: string; value: string | 
 }
 
 function NumField({ label, v, on, placeholder, left }: { label: string; v: string; on: (v: string) => void; placeholder?: string; left?: boolean }) {
+  const t = useT();
   return (
     <div className="space-y-2">
       <p className="text-sm font-semibold">{label}</p>
-      <Input inputMode="decimal" value={v} placeholder={placeholder} onChange={(e) => on(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputCls, left && "px-5 text-left")} />
+      <Input inputMode="decimal" value={v} placeholder={placeholder} onChange={(e) => on(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputCls, left && "px-5 text-start")} />
     </div>
   );
 }
 
 function AnalysisCard(p: { symbol: string; tag?: string | undefined; direction: string; confidence?: number | null; entry: number | null; sl: number | null; tp: number | null; text: string | null; at: string; onUse: () => unknown }) {
+  const t = useT();
   const d = priceDigits(p.entry);
   return (
     <div className="rounded-2xl bg-card p-4 text-sm">
       <div className="flex items-center justify-between">
-        <span className="font-semibold">{p.symbol} {p.tag && <span className="ml-1 text-xs font-normal text-muted-foreground">{p.tag}</span>}</span>
+        <span className="font-semibold">{p.symbol} {p.tag && <span className="ms-1 text-xs font-normal text-muted-foreground">{p.tag}</span>}</span>
         <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", p.direction === "buy" ? "bg-success/15 text-success" : p.direction === "sell" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground")}>
           {p.direction === "buy" ? <ArrowUpRight className="h-3 w-3" /> : p.direction === "sell" ? <ArrowDownRight className="h-3 w-3" /> : null}{p.direction.toUpperCase()}
         </span>
@@ -392,13 +396,14 @@ function AnalysisCard(p: { symbol: string; tag?: string | undefined; direction: 
       {p.text && <p className="mt-3 line-clamp-4 text-xs leading-relaxed text-muted-foreground">{p.text}</p>}
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
         <span>{p.confidence != null ? `${p.confidence}% · ` : ""}{timeAgo(p.at)}</span>
-        {p.direction !== "neutral" && <button onClick={p.onUse} className="rounded-full bg-primary px-3 py-1 font-semibold text-primary-foreground">Use Signal</button>}
+        {p.direction !== "neutral" && <button onClick={p.onUse} className="rounded-full bg-primary px-3 py-1 font-semibold text-primary-foreground">{t("Use Signal")}</button>}
       </div>
     </div>
   );
 }
 
 function GlobalManage({ accounts, current }: { accounts: Account[]; current: Account | undefined }) {
+  const t = useT();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<"one" | "all">("one");
@@ -415,31 +420,31 @@ function GlobalManage({ accounts, current }: { accounts: Account[]; current: Acc
   const confirmRun = (msg: string, cmd: Parameters<typeof queueCommand>[1]) => window.confirm(msg) && void run(cmd);
   return (
     <>
-      <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={() => setOpen(true)}>Global Manage</Button>
+      <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={() => setOpen(true)}>{t("Global Manage")}</Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader><DialogTitle className="text-center">Global Manage</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-center">{t("Global Manage")}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-1 rounded-full bg-secondary p-1 text-sm">
-              <button onClick={() => setScope("one")} className={cn("rounded-full py-1.5", scope === "one" ? "bg-background font-semibold" : "text-muted-foreground")}>This account</button>
-              <button onClick={() => setScope("all")} className={cn("rounded-full py-1.5", scope === "all" ? "bg-background font-semibold" : "text-muted-foreground")}>All accounts ({accounts.length})</button>
+              <button onClick={() => setScope("one")} className={cn("rounded-full py-1.5", scope === "one" ? "bg-background font-semibold" : "text-muted-foreground")}>{t("This account")}</button>
+              <button onClick={() => setScope("all")} className={cn("rounded-full py-1.5", scope === "all" ? "bg-background font-semibold" : "text-muted-foreground")}>{t("All accounts (")}{accounts.length})</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="rounded-full" onClick={() => confirmRun("Close ALL open trades?", "close_all")}><XCircle /> Close all</Button>
-              <Button variant="outline" className="rounded-full" onClick={() => void run("break_even")}><Scale /> Break even</Button>
-              <Button variant="outline" className="rounded-full" onClick={() => confirmRun("Remove the stop loss from all trades?", "delete_sl")}><Eraser /> Delete SL</Button>
-              <Button variant="outline" className="rounded-full" onClick={() => void run("clear_pending")}><Ban /> Cancel pending</Button>
+              <Button variant="outline" className="rounded-full" onClick={() => confirmRun("Close ALL open trades?", "close_all")}><XCircle />  {t("Close all")}</Button>
+              <Button variant="outline" className="rounded-full" onClick={() => void run("break_even")}><Scale />  {t("Break even")}</Button>
+              <Button variant="outline" className="rounded-full" onClick={() => confirmRun("Remove the stop loss from all trades?", "delete_sl")}><Eraser />  {t("Delete SL")}</Button>
+              <Button variant="outline" className="rounded-full" onClick={() => void run("clear_pending")}><Ban />  {t("Cancel pending")}</Button>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Cap loss — close everything if floating loss reaches this amount.</p>
-              <div className="flex gap-2"><Input placeholder="e.g. 200" inputMode="decimal" value={cap} onChange={(e) => setCap(e.target.value)} className="rounded-full" /><Button variant="secondary" className="rounded-full" onClick={() => Number(cap) > 0 ? void run("cap_loss", { threshold: -Math.abs(Number(cap)) }) : toast.error("Enter an amount.")}>Set</Button></div>
-              <p className="text-xs text-muted-foreground">Trailing profit — once profit reaches this amount, close all if it gives back 30% from its peak.</p>
-              <div className="flex gap-2"><Input placeholder="e.g. 100" inputMode="decimal" value={trail} onChange={(e) => setTrail(e.target.value)} className="rounded-full" /><Button variant="secondary" className="rounded-full" onClick={() => Number(trail) > 0 ? void run("trailing_profit", { threshold: Number(trail) }) : toast.error("Enter an amount.")}>Activate</Button></div>
+              <p className="text-xs text-muted-foreground">{t("Cap loss — close everything if floating loss reaches this amount.")}</p>
+              <div className="flex gap-2"><Input placeholder={t("e.g. 200")} inputMode="decimal" value={cap} onChange={(e) => setCap(e.target.value)} className="rounded-full" /><Button variant="secondary" className="rounded-full" onClick={() => Number(cap) > 0 ? void run("cap_loss", { threshold: -Math.abs(Number(cap)) }) : toast.error(t("Enter an amount."))}>{t("Set")}</Button></div>
+              <p className="text-xs text-muted-foreground">{t("Trailing profit — once profit reaches this amount, close all if it gives back 30% from its peak.")}</p>
+              <div className="flex gap-2"><Input placeholder={t("e.g. 100")} inputMode="decimal" value={trail} onChange={(e) => setTrail(e.target.value)} className="rounded-full" /><Button variant="secondary" className="rounded-full" onClick={() => Number(trail) > 0 ? void run("trailing_profit", { threshold: Number(trail) }) : toast.error(t("Enter an amount."))}>{t("Activate")}</Button></div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-semibold tracking-widest text-muted-foreground">RECENT COMMANDS</p>
+              <p className="mb-2 text-xs font-semibold tracking-widest text-muted-foreground">{t("RECENT COMMANDS")}</p>
               <ul className="max-h-40 space-y-1 overflow-y-auto text-sm">
-                {(commands.data ?? []).length === 0 && <li className="text-muted-foreground">Nothing yet.</li>}
+                {(commands.data ?? []).length === 0 && <li className="text-muted-foreground">{t("Nothing yet.")}</li>}
                 {(commands.data ?? []).map((c) => (
                   <li key={c.id} className="flex justify-between gap-2">
                     <span className="truncate capitalize">{c.command.replace(/_/g, " ")} <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span></span>
@@ -456,6 +461,7 @@ function GlobalManage({ accounts, current }: { accounts: Account[]; current: Acc
 }
 
 function NewsPanel() {
+  const t = useT();
   const [tab, setTab] = useState<"geo" | "cal">("geo");
   const newsFn = useServerFn(getNews);
   const calFn = useServerFn(getCalendar);
@@ -477,14 +483,14 @@ function NewsPanel() {
     <div className="-mx-5 rounded-3xl bg-card/60">
       <div className="flex gap-1 p-4 pb-2">
         <div className="flex gap-1 rounded-full bg-background p-1 text-xs font-semibold">
-          <button onClick={() => setTab("geo")} className={cn("rounded-full px-3 py-1.5", tab === "geo" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Geopolitics</button>
-          <button onClick={() => setTab("cal")} className={cn("rounded-full px-3 py-1.5", tab === "cal" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Economic Calendar</button>
+          <button onClick={() => setTab("geo")} className={cn("rounded-full px-3 py-1.5", tab === "geo" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>{t("Geopolitics")}</button>
+          <button onClick={() => setTab("cal")} className={cn("rounded-full px-3 py-1.5", tab === "cal" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>{t("Economic Calendar")}</button>
         </div>
       </div>
       {tab === "geo" ? (
         <ul>
-          {news.isLoading && <li className="px-6 py-4 text-sm text-muted-foreground">Loading headlines…</li>}
-          {news.data?.length === 0 && <li className="px-6 py-4 text-sm text-muted-foreground">Headlines are unavailable right now.</li>}
+          {news.isLoading && <li className="px-6 py-4 text-sm text-muted-foreground">{t("Loading headlines…")}</li>}
+          {news.data?.length === 0 && <li className="px-6 py-4 text-sm text-muted-foreground">{t("Headlines are unavailable right now.")}</li>}
           {(news.data ?? []).map((n) => (
             <li key={n.url + n.title} className="flex items-center gap-3 border-t border-border/60 px-6 py-2.5 text-[13px]">
               <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dot(n.published))} />
@@ -495,8 +501,8 @@ function NewsPanel() {
         </ul>
       ) : (
         <div>
-          {cal.isLoading && <p className="px-6 py-4 text-sm text-muted-foreground">Loading calendar…</p>}
-          {cal.data?.length === 0 && <p className="px-6 py-4 text-sm text-muted-foreground">Calendar is unavailable right now.</p>}
+          {cal.isLoading && <p className="px-6 py-4 text-sm text-muted-foreground">{t("Loading calendar…")}</p>}
+          {cal.data?.length === 0 && <p className="px-6 py-4 text-sm text-muted-foreground">{t("Calendar is unavailable right now.")}</p>}
           {days.map(([day, evs]) => (
             <div key={day}>
               <p className="border-t border-border/60 px-6 py-2 text-xs font-semibold text-muted-foreground">{day}</p>
@@ -505,7 +511,7 @@ function NewsPanel() {
                   <span className="font-mono text-xs">{new Date(e.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                   <span className="text-xs font-semibold">{e.country}</span>
                   <span className="flex min-w-0 items-center gap-2"><span className={cn("h-2 w-2 shrink-0 rounded-full", e.impact === "High" ? "bg-destructive" : e.impact === "Medium" ? "bg-warning" : "bg-muted-foreground/50")} /><span className="truncate">{e.title}</span></span>
-                  <span className="text-[11px] text-muted-foreground">F {e.forecast || "—"} · P {e.previous || "—"}</span>
+                  <span className="text-[11px] text-muted-foreground">{t("F")} {e.forecast || "—"}  {t("· P")} {e.previous || "—"}</span>
                 </div>
               ))}
             </div>

@@ -1,9 +1,10 @@
+import { HelpNote } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminCrud } from "@/components/admin/AdminCrud";
 
 export const Route = createFileRoute("/_authenticated/admin/brokers")({
   component: () => (
-    <AdminCrud title="Brokers" table="brokers" order="sort_order" ascending fields={[
+    <div className="space-y-3"><HelpNote>{"Brokers are partner cards and links shown to users."}</HelpNote><AdminCrud title="Brokers" table="brokers" order="sort_order" ascending fields={[
       { key: "name", label: "Name", required: true },
       { key: "description", label: "Description", type: "textarea", table: false },
       { key: "partner_url", label: "Partner link" },
@@ -11,6 +12,6 @@ export const Route = createFileRoute("/_authenticated/admin/brokers")({
       { key: "platforms", label: "Platforms (comma separated)", type: "list" },
       { key: "sort_order", label: "Order", type: "number" },
       { key: "is_active", label: "Active", type: "bool" },
-    ]} />
+    ]} /></div>
   ),
 });
