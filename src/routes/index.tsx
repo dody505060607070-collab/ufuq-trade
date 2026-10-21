@@ -1,15 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import {
-  Brain, Zap, Shield, LineChart, Lock, Bell, Layers, Crosshair, Download, Link2, Sparkles, PlayCircle, BadgeCheck, Building2, ArrowRight,
-} from "lucide-react";
-import { PublicLayout } from "@/components/site/PublicLayout";
+import { Brain, Zap, Shield, LineChart, Lock, Bell, Layers, Crosshair, Download, Link2, Sparkles, Rocket, BadgeCheck, Building2, Activity, Check, Instagram, Youtube, Github, Music2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { InstrumentIcon, BrokerLogo } from "@/components/app/InstrumentIcon";
+import { useAuth } from "@/lib/auth";
+import { useBrokers, useInstruments } from "@/lib/trading";
 import { seo } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
-  head: () => seo("AI Trading Signals & Execution for MT5", "AI market analysis, one-click execution, smart risk management and real-time analytics for MetaTrader 5 traders."),
+  head: () => seo("Trade Smarter with Structured AI Analysis", "Execute profitable trades with real-time insights, automate your strategy controls, and connect seamlessly to MetaTrader 5."),
   component: Landing,
 });
 
@@ -23,108 +22,177 @@ const features = [
   { icon: Layers, t: "Multi-Account Trading", d: "Manage multiple accounts from one workspace with consistent logic." },
   { icon: Crosshair, t: "Custom Instruments", d: "Focus on your preferred symbols with fast instrument selection controls." },
 ];
-
 const steps = [
-  { icon: Download, t: "Install EA", d: "Install the ArrissaAI Expert Advisor for MetaTrader 5." },
+  { icon: Download, t: "Download EA", d: "Install the ArrissaAI Expert Advisor for MetaTrader 5." },
   { icon: Link2, t: "Connect Account", d: "Link your MT5 account securely with your API credentials." },
-  { icon: Sparkles, t: "Get AI Analysis", d: "Receive structured insights and directional trade suggestions." },
-  { icon: PlayCircle, t: "Execute & Manage", d: "Execute manually or automate management based on your strategy rules." },
+  { icon: Sparkles, t: "AI Analysis", d: "Receive structured insights and directional trade suggestions." },
+  { icon: Rocket, t: "Execute & Manage", d: "Execute manually or automate management based on your strategy rules." },
 ];
 
 function Landing() {
-  const { data: instruments } = useQuery({
-    queryKey: ["public-instruments"],
-    queryFn: async () => (await supabase.from("instruments").select("symbol,name").order("sort_order")).data ?? [],
-  });
-  const { data: brokers } = useQuery({
-    queryKey: ["public-brokers"],
-    queryFn: async () => (await supabase.from("brokers").select("id,name").order("sort_order")).data ?? [],
-  });
-
+  const { user } = useAuth();
+  const instruments = useInstruments();
+  const brokers = useBrokers();
   return (
-    <PublicLayout>
-      <section className="relative overflow-hidden bg-hero-glow">
-        <div className="grid-bg absolute inset-0 opacity-30 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
-        <div className="relative mx-auto max-w-6xl px-4 pb-24 pt-24 text-center md:pt-32">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-primary-glow" /> AI-powered trading for MetaTrader 5
-          </span>
-          <h1 className="mx-auto mt-6 max-w-4xl text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
-            Trade smarter with <span className="text-gradient">AI analysis</span> and one-click execution
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            Real-time signal direction, account-aware execution and smart risk controls — all from one dashboard connected to your MT5 accounts.
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Button asChild variant="hero" size="lg"><Link to="/register">Create free account <ArrowRight /></Link></Button>
-            <Button asChild variant="outline" size="lg"><Link to="/login">Sign in</Link></Button>
+    <div className="min-h-screen bg-background">
+      <section className="relative overflow-hidden bg-hero-glow pb-16">
+        <header className="mx-auto mt-4 flex max-w-4xl items-center justify-between rounded-full border border-border bg-card/70 px-5 py-3 backdrop-blur">
+          <Link to="/" className="flex items-center gap-2 font-bold"><span className="text-primary-glow">✳</span> ArrissaAI</Link>
+          <nav className="hidden gap-8 text-xs text-muted-foreground md:flex">
+            <a href="#features" className="hover:text-foreground">Features</a>
+            <a href="#how" className="hover:text-foreground">How It Works</a>
+            <a href="#pricing" className="hover:text-foreground">Pricing</a>
+          </nav>
+          <div className="flex gap-2">
+            {user ? <Button asChild variant="hero" size="sm" className="rounded-full"><Link to="/dashboard">Open Dashboard</Link></Button> : <>
+              <Button asChild variant="secondary" size="sm" className="rounded-full"><Link to="/login">Sign In</Link></Button>
+              <Button asChild variant="hero" size="sm" className="rounded-full"><Link to="/register">Get Started</Link></Button>
+            </>}
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">No subscriptions and no hidden usage fees.</p>
-        </div>
-      </section>
+        </header>
 
-      <section className="border-y border-border/60 bg-surface py-6">
-        <div className="mx-auto max-w-6xl px-4">
-          <p className="mb-3 text-center text-xs uppercase tracking-widest text-muted-foreground">Supported instruments</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {(instruments ?? []).map((i) => (
-              <span key={i.symbol} title={i.name} className="rounded-md border border-border bg-card px-3 py-1 font-mono text-sm">{i.symbol}</span>
+        <div className="mx-auto max-w-3xl px-4 pt-16 text-center">
+          <p className="text-[11px] font-semibold tracking-widest text-primary-glow">AI-POWERED TRADING INTELLIGENCE</p>
+          <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-6xl">Trade Smarter with<br />Structured AI Analysis</h1>
+          <p className="mx-auto mt-5 max-w-xl text-sm text-muted-foreground">Execute profitable trades with real-time insights, automate your strategy controls, and connect seamlessly to MetaTrader 5.</p>
+          <div className="mt-7 flex justify-center gap-3">
+            <Button asChild variant="hero" className="rounded-full px-6"><Link to={user ? "/dashboard" : "/register"}>Start Trading Free</Link></Button>
+            <Button asChild variant="outline" className="rounded-full px-10"><Link to="/login">Sign In</Link></Button>
+          </div>
+          <div className="mx-auto mt-10 flex max-w-2xl flex-wrap justify-center gap-2">
+            {(instruments.data ?? []).map((i) => (
+              <span key={i.id} className="flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1.5 text-xs font-medium"><InstrumentIcon flag={i.flag} className="h-4 w-4 text-[7px]" />{i.symbol}</span>
             ))}
           </div>
         </div>
-      </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-24">
-        <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl">Everything you need to trade with confidence</h2>
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((f) => (
-            <div key={f.t} className="rounded-xl border border-border bg-card p-6 transition hover:border-primary/60">
-              <f.icon className="h-6 w-6 text-primary-glow" />
-              <h3 className="mt-4 font-medium">{f.t}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{f.d}</p>
-            </div>
-          ))}
+        <div className="mx-auto mt-16 max-w-5xl px-4">
+          <Mockup />
+          <p className="mt-4 text-center text-xs text-muted-foreground">Real-time AI signals, account analytics, and one-click execution in a single workflow.</p>
         </div>
       </section>
 
-      <section className="border-t border-border/60 bg-surface py-24">
-        <div className="mx-auto max-w-6xl px-4">
-          <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl">How it works</h2>
-          <div className="mt-12 grid gap-6 md:grid-cols-4">
-            {steps.map((s, i) => (
-              <div key={s.t} className="relative rounded-xl border border-border bg-card p-6">
-                <span className="absolute right-4 top-4 font-mono text-xs text-muted-foreground">0{i + 1}</span>
-                <s.icon className="h-6 w-6 text-primary-glow" />
-                <h3 className="mt-4 font-medium">{s.t}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{s.d}</p>
+      <section id="features" className="bg-surface py-20">
+        <div className="mx-auto max-w-5xl px-4">
+          <Head tag="FEATURES" title={<>Everything You Need to Trade with<br />Precision</>} sub="Built for modern traders who want clarity, automation, and speed without platform bloat." />
+          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map((f) => (
+              <div key={f.t}>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-primary-glow"><f.icon className="h-4 w-4" /></span>
+                <p className="mt-4 text-sm font-semibold">{f.t}</p>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{f.d}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-24 md:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card p-8">
-          <BadgeCheck className="h-7 w-7 text-success" />
-          <h3 className="mt-4 text-2xl font-semibold">Free to use</h3>
-          <p className="mt-2 text-muted-foreground">No subscriptions and no hidden usage fees.</p>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-8">
-          <Building2 className="h-7 w-7 text-primary-glow" />
-          <h3 className="mt-4 text-2xl font-semibold">Regulated Brokers</h3>
-          <p className="mt-2 text-muted-foreground">Trade through established global partner brokers.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {(brokers ?? []).map((b) => <span key={b.id} className="rounded-md bg-secondary px-3 py-1 text-sm">{b.name}</span>)}
+      <section id="how" className="py-20">
+        <div className="mx-auto max-w-5xl px-4">
+          <Head tag="HOW IT WORKS" title="Get Started in Minutes" sub="From setup to execution, the flow is direct and purpose-built for MT5 traders." />
+          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {steps.map((s, i) => (
+              <div key={s.t} className="rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-center justify-between"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-primary-glow"><s.icon className="h-4 w-4" /></span><span className="flex h-6 w-6 items-center justify-center rounded-full border border-border text-[10px] text-muted-foreground">0{i + 1}</span></div>
+                <p className="mt-6 text-sm font-semibold">{s.t}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{s.d}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-24">
-        <div className="rounded-3xl bg-gradient-primary p-10 text-center shadow-glow md:p-16">
-          <h2 className="text-3xl font-semibold text-primary-foreground md:text-4xl">Start trading with Arrissa AI today</h2>
-          <Button asChild size="lg" variant="secondary" className="mt-8"><Link to="/register">Create your account</Link></Button>
+      <section id="pricing" className="bg-surface py-20">
+        <div className="mx-auto grid max-w-5xl items-center gap-10 px-4 lg:grid-cols-2">
+          <div>
+            <p className="text-[11px] font-semibold tracking-widest text-muted-foreground">PRICING</p>
+            <h2 className="mt-2 text-3xl font-bold">AI Trading at Zero Cost</h2>
+            <p className="mt-3 text-sm text-muted-foreground">We partnered with various brokers to provide full access with no subscription fees. Open through partner links to unlock all features.</p>
+            <ul className="mt-6 space-y-4 text-sm">
+              {[[BadgeCheck, "100% Free to Use", "No subscriptions and no hidden usage fees."], [Building2, "Regulated Brokers", "Trade through established global partner brokers."], [Activity, "Tight Spreads", "Competitive spreads and fast execution conditions."]].map(([I, t, d]) => {
+                const Icon = I as typeof BadgeCheck;
+                return <li key={t as string} className="flex gap-3"><Icon className="mt-0.5 h-4 w-4 text-primary-glow" /><span><b>{t as string}</b><br /><span className="text-xs text-muted-foreground">{d as string}</span></span></li>;
+              })}
+            </ul>
+          </div>
+          <div>
+            <p className="mb-4 text-center text-sm font-semibold">Official Partner Brokers</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(brokers.data ?? []).map((b) => (
+                <div key={b.id} className="rounded-2xl border border-border bg-card p-5 text-center">
+                  <BrokerLogo name={b.name} color={b.brand_color} className="mx-auto h-16 w-16" />
+                  <p className="mt-3 text-sm font-semibold">{b.name}</p>
+                  <ul className="mt-3 space-y-1 text-left text-xs text-muted-foreground">{b.features.map((f) => <li key={f} className="flex items-center gap-2"><Check className="h-3 w-3 text-success" />{f}</li>)}</ul>
+                  <Button asChild variant="hero" size="sm" className="mt-4 w-full rounded-full"><a href={b.partner_url ?? "#"} target="_blank" rel="noreferrer">Open Account</a></Button>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
-    </PublicLayout>
+
+      <section className="px-4 py-20">
+        <div className="mx-auto max-w-4xl rounded-3xl border border-border bg-card px-6 py-16 text-center">
+          <h2 className="text-3xl font-bold">Ready to Transform Your Trading?</h2>
+          <p className="mt-3 text-sm text-muted-foreground">Join traders using AI to make sharper decisions with less manual overhead.</p>
+          <div className="mt-6 flex justify-center gap-3">
+            <Button asChild variant="hero" className="rounded-full px-8"><Link to={user ? "/dashboard" : "/register"}>Get Started Free</Link></Button>
+            <Button asChild variant="secondary" className="rounded-full px-12"><Link to="/login">Sign In</Link></Button>
+          </div>
+          <div className="mt-10 flex flex-wrap justify-center gap-5 text-xs text-muted-foreground">
+            {["No credit card required", "Free tier available", "Cancel anytime"].map((t) => <span key={t} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-success" />{t}</span>)}
+          </div>
+        </div>
+      </section>
+
+      <footer className="mx-auto max-w-4xl px-4 pb-10">
+        <div className="grid gap-8 sm:grid-cols-4">
+          <div>
+            <p className="font-bold">ArrissaAI</p>
+            <div className="mt-3 flex gap-2 text-muted-foreground">{[Instagram, Youtube, Github, Music2].map((I, i) => <span key={i} className="flex h-7 w-7 items-center justify-center rounded-full border border-border"><I className="h-3.5 w-3.5" /></span>)}</div>
+          </div>
+          <FootCol title="Product" links={[["#features", "Features"], ["#pricing", "Pricing"], ["/ea/ArrissaEA.mq5", "Download EA"]]} />
+          <FootCol title="Company" links={[["/about", "About"], ["/contact", "Contact"]]} />
+          <FootCol title="Legal" links={[["/terms", "Terms"], ["/privacy", "Privacy"], ["/risk-disclosure", "Risk Disclosure"]]} />
+        </div>
+        <div className="mt-10 flex flex-wrap justify-between gap-2 text-[11px] text-muted-foreground">
+          <span>© {new Date().getFullYear()} ArrissaAI. All rights reserved.</span>
+          <span>Trading in derivatives is highly speculative and involves significant risk.</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function Head({ tag, title, sub }: { tag: string; title: React.ReactNode; sub: string }) {
+  return <div className="text-center"><p className="text-[11px] font-semibold tracking-widest text-muted-foreground">{tag}</p><h2 className="mt-2 text-3xl font-bold">{title}</h2><p className="mt-3 text-sm text-muted-foreground">{sub}</p></div>;
+}
+
+function FootCol({ title, links }: { title: string; links: [string, string][] }) {
+  return <div><p className="text-sm font-semibold">{title}</p><ul className="mt-3 space-y-2 text-xs text-muted-foreground">{links.map(([h, l]) => <li key={l}><a href={h} className="hover:text-foreground">{l}</a></li>)}</ul></div>;
+}
+
+/** Static preview of the dashboard. */
+function Mockup() {
+  const sig = [["USDJPY", "sell"], ["EURJPY", "sell"], ["BTCUSD", "sell"], ["XAUUSD", "sell"]];
+  const trades = ["USDJPY", "USDJPY", "USDJPY", "EURJPY", "USDJPY", "EURJPY", "USDJPY"];
+  return (
+    <div className="grid h-[300px] grid-cols-[110px_110px_1fr_110px] gap-2 overflow-hidden rounded-3xl border border-border bg-card p-3 text-[7px] sm:h-[300px] md:text-[8px]">
+      <div className="space-y-2 text-muted-foreground"><p className="font-bold text-foreground">✳ ArrissaAI</p>{["Dashboard", "Add MT5 Account", "MT5 EA Configuration", "Performance", "Personal Profile"].map((x) => <p key={x}>{x}</p>)}</div>
+      <div className="space-y-1.5"><div className="rounded-full bg-primary py-1 text-center text-primary-foreground">Analysis</div>
+        {sig.map(([s]) => <div key={s} className="rounded-md bg-background p-1.5"><div className="flex justify-between"><b>{s}</b><span className="rounded bg-destructive px-1 text-destructive-foreground">SELL</span></div><div className="mt-1 h-1 rounded bg-muted" /><div className="mt-1 rounded bg-primary/70 py-0.5 text-center text-primary-foreground">Use Signal</div></div>)}
+      </div>
+      <div className="space-y-2">
+        <div className="flex justify-between rounded-full bg-background px-3 py-1.5"><span>BALANCE<br /><b>$ 95364.50</b></span><span>EQUITY<br /><b>$ 102564.22</b></span><span>PROFIT<br /><b className="text-success">$ 7299.72</b></span></div>
+        <div className="rounded-full border border-border px-3 py-1.5">Arrissa Account</div>
+        <div className="rounded-full border border-primary px-3 py-1.5">BTCUSD</div>
+        <div className="grid grid-cols-2 overflow-hidden rounded-full"><span className="bg-buy py-1.5 text-center text-primary-foreground">BUY</span><span className="bg-sell-muted py-1.5 text-center text-destructive">SELL</span></div>
+        <div className="grid grid-cols-3 gap-1">{["Market", "1", "1"].map((x, i) => <span key={i} className="rounded-full border border-border px-2 py-1">{x}</span>)}</div>
+        <div className="rounded-full bg-primary py-1.5 text-center text-primary-foreground">Execute Trade</div>
+      </div>
+      <div className="space-y-1.5"><div className="rounded-full bg-primary py-1 text-center text-primary-foreground">Global Manage</div>
+        {trades.map((t, i) => <div key={i} className={cn("flex justify-between rounded-md bg-background p-1.5")}><b>{t}</b><span className="text-success">+212.83</span></div>)}
+      </div>
+    </div>
   );
 }
