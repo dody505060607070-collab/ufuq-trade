@@ -44,7 +44,7 @@ export const analyzeMarket = createServerFn({ method: "POST" })
         },
       ],
       providerOptions: {
-        openai: { forceReasoning: true, reasoningEffort: "low", store: false, include: ["reasoning.encrypted_content"] },
+        openai: { forceReasoning: true, reasoningEffort: "high", store: false, include: ["reasoning.encrypted_content"] },
       },
     });
 
