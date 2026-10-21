@@ -55,7 +55,7 @@ function Prefs() {
   );
 }
 
-function Row({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
+function Row({ title, desc, children }: { title: string; desc: string; children: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4 py-4">
       <div><p className="text-sm font-medium">{title}</p><p className="text-xs text-muted-foreground">{desc}</p></div>

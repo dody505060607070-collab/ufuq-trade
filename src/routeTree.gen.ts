@@ -33,6 +33,7 @@ import { Route as AuthenticatedAccountsAddTradelockerRouteImport } from './route
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as AuthenticatedSettingsPreferencesRouteImport } from './routes/_authenticated/settings.preferences'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
+import { Route as ApiPublicEaSyncRouteImport } from './routes/api/public/ea/sync'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -159,6 +160,11 @@ const AuthenticatedSettingsProfileRoute =
     path: '/profile',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const ApiPublicEaSyncRoute = ApiPublicEaSyncRouteImport.update({
+  id: '/api/public/ea/sync',
+  path: '/api/public/ea/sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -235,6 +243,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/settings/preferences'
     | '/settings/profile'
     | '/settings/'
+    | '/api/public/ea/sync'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/settings/preferences'
     | '/settings/profile'
     | '/settings'
+    | '/api/public/ea/sync'
   id:
     | '__root__'
     | '/'
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/preferences'
     | '/_authenticated/settings/profile'
     | '/_authenticated/settings/'
+    | '/api/public/ea/sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -329,6 +341,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WebAppInstallTriggerRoute: typeof WebAppInstallTriggerRoute
+  ApiPublicEaSyncRoute: typeof ApiPublicEaSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -501,6 +514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsProfileRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/api/public/ea/sync': {
+      id: '/api/public/ea/sync'
+      path: '/api/public/ea/sync'
+      fullPath: '/api/public/ea/sync'
+      preLoaderRoute: typeof ApiPublicEaSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -560,6 +580,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WebAppInstallTriggerRoute: WebAppInstallTriggerRoute,
+  ApiPublicEaSyncRoute: ApiPublicEaSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
