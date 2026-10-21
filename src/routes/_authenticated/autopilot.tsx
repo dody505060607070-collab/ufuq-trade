@@ -74,6 +74,8 @@ function AutoPilot() {
         </div>
       </Card>
 
+      <LiveMonitor enabled={s.enabled && autoAccounts.length > 0} events={events.data ?? []} accountIds={autoAccounts.map((a) => a.id)} />
+
       <Card title={t("Accounts")}>
         {(accounts.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{t("No MT5 account connected yet.")}</p> : (
           <div className="space-y-2">
@@ -135,4 +137,63 @@ function AutoPilot() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div><div className="mb-1 text-xs font-semibold text-muted-foreground">{label}</div>{children}</div>;
+}
+
+const CYCLE = 15 * 60_000;
+
+function LiveMonitor({ enabled, events, accountIds }: { enabled: boolean; events: { action: string; created_at: string }[]; accountIds: string[] }) {
+  const t = useT();
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => { setNow(Date.now()); const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+  const open = useQuery({
+    queryKey: ["autopilot-open", accountIds.join(",")], enabled: accountIds.length > 0, refetchInterval: 30_000,
+    queryFn: async () => (await supabase.from("trades").select("id", { count: "exact", head: true }).in("account_id", accountIds).eq("status", "open")).count ?? 0,
+  });
+  const n = now ?? 0;
+  const next = Math.ceil((n + 1) / CYCLE) * CYCLE;
+  const left = Math.max(0, next - n);
+  const mm = String(Math.floor(left / 60_000)).padStart(2, "0");
+  const ss = String(Math.floor((left % 60_000) / 1000)).padStart(2, "0");
+  const pct = now ? 100 - (left / CYCLE) * 100 : 0;
+  const scanning = enabled && left > CYCLE - 20_000;
+  const dayStart = new Date(n); dayStart.setHours(0, 0, 0, 0);
+  const today = events.filter((e) => e.action === "opened" && new Date(e.created_at).getTime() >= dayStart.getTime()).length;
+  const last = events[0]?.created_at;
+  const r = 54, c = 2 * Math.PI * r;
+
+  return (
+    <Card title={t("Live monitor")}>
+      <div className="flex flex-col items-center gap-6 sm:flex-row">
+        <div className="relative h-36 w-36 shrink-0">
+          <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+            <circle cx="60" cy="60" r={r} className="fill-none stroke-muted" strokeWidth="8" />
+            <circle cx="60" cy="60" r={r} className={cn("fill-none transition-all duration-1000", enabled ? "stroke-primary" : "stroke-muted-foreground")} strokeWidth="8" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c - (c * pct) / 100} />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="font-mono text-3xl font-bold tabular-nums" dir="ltr">{now ? `${mm}:${ss}` : "--:--"}</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("Scans every 15 minutes")}</span>
+          </div>
+        </div>
+        <div className="w-full flex-1 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className={cn("relative flex h-3 w-3")}>
+              {enabled && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />}
+              <span className={cn("relative inline-flex h-3 w-3 rounded-full", enabled ? "bg-success" : "bg-muted-foreground")} />
+            </span>
+            <span className="text-lg font-semibold">{!enabled ? t("Paused — turn Auto-Pilot on") : scanning ? t("Scanning market now…") : `${t("Next AI scan in")} ${mm}:${ss}`}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Stat label={t("Next scan at")} value={now ? new Date(next).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+            <Stat label={t("Last check")} value={last ? timeAgo(last) : t("never")} />
+            <Stat label={t("Open trades")} value={String(open.data ?? 0)} />
+            <Stat label={t("Auto trades today")} value={String(today)} />
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-2xl border border-border bg-background/40 px-3 py-2"><div className="text-[11px] text-muted-foreground">{label}</div><div className="font-semibold tabular-nums">{value}</div></div>;
 }
