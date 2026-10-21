@@ -333,7 +333,6 @@ export const AR_APP: Record<string, string> = {
   "Instruments": "الأدوات",
   "Up to 6 instruments.": "حتى 6 أدوات.",
   "Safety rules": "قواعد الأمان",
-  "Timeframe": "الإطار الزمني",
   "Minimum AI confidence (%)": "أقل نسبة ثقة للذكاء الاصطناعي (%)",
   "Lot size per trade": "حجم اللوت لكل صفقة",
   "Max open trades per account": "أقصى عدد صفقات مفتوحة لكل حساب",

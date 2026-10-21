@@ -19,9 +19,9 @@ export const Route = createFileRoute("/api/public/autopilot/run")({
         const pairs = [...new Set(users.flatMap((u) => u.symbols.map((s) => `${s}|${u.timeframe}`)))].slice(0, 12);
         const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
         const news = new Map<string, boolean>();
-        const owner = users[0].user_id;
+        const owner = users[0]!.user_id;
         await Promise.all(pairs.map(async (k) => {
-          const [sym, tf] = k.split("|");
+          const [sym = "", tf = "H1"] = k.split("|");
           try {
             let r = await getCached(db, sym, tf);
             if (!r) {
