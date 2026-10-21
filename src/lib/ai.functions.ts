@@ -137,15 +137,15 @@ async function saveFor(
         user_id: context.userId,
         symbol: data.symbol,
         timeframe: data.timeframe,
-        direction: r.direction,
+        direction: r.direction as Levels["direction"],
         confidence: Math.round(r.confidence),
         entry: r.entry,
         stop_loss: r.stop_loss,
         take_profit: r.take_profit,
-        summary: r.summary,
+        summary: r.summary ?? "",
       })
       .select()
       .single();
     if (error) throw new Error("Could not save analysis.");
     return row;
-  });
+}
