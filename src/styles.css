@@ -49,6 +49,11 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-gold: var(--gold);
+  --color-btc: var(--btc);
+  --color-eth: var(--eth);
+  --color-buy: var(--buy);
+  --color-sell-muted: var(--sell-muted);
 }
 
 :root {
@@ -90,6 +95,11 @@
   --sidebar-accent-foreground: oklch(0.97 0.003 286);
   --sidebar-border: oklch(0.26 0.008 286);
   --sidebar-ring: oklch(0.58 0.24 293);
+  --gold: oklch(0.85 0.17 90);
+  --btc: oklch(0.75 0.17 60);
+  --eth: oklch(0.62 0.15 275);
+  --buy: oklch(0.7 0.17 145);
+  --sell-muted: oklch(0.25 0.05 25);
 
   --gradient-primary: linear-gradient(135deg, var(--primary), var(--primary-glow));
   --gradient-hero: radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in oklab, var(--primary) 35%, transparent), transparent 70%);
