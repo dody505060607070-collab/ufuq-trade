@@ -46,6 +46,7 @@ import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsPreferencesRouteImport } from './routes/_authenticated/settings.preferences'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 import { Route as AuthenticatedAdminUsersIdRouteImport } from './routes/_authenticated/admin.users.$id'
+import { Route as ApiPublicAutopilotRunRouteImport } from './routes/api/public/autopilot/run'
 import { Route as ApiPublicEaSyncRouteImport } from './routes/api/public/ea/sync'
 
 const IndexRoute = IndexRouteImport.update({
@@ -247,6 +248,11 @@ const AuthenticatedAdminUsersIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminUsersRoute,
   } as any)
+const ApiPublicAutopilotRunRoute = ApiPublicAutopilotRunRouteImport.update({
+  id: '/api/public/autopilot/run',
+  path: '/api/public/autopilot/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEaSyncRoute = ApiPublicEaSyncRouteImport.update({
   id: '/api/public/ea/sync',
   path: '/api/public/ea/sync',
@@ -290,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
+  '/api/public/autopilot/run': typeof ApiPublicAutopilotRunRoute
   '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesByTo {
@@ -327,6 +334,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
+  '/api/public/autopilot/run': typeof ApiPublicAutopilotRunRoute
   '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesById {
@@ -368,6 +376,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
+  '/api/public/autopilot/run': typeof ApiPublicAutopilotRunRoute
   '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRouteTypes {
@@ -409,6 +418,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/settings/'
     | '/admin/users/$id'
+    | '/api/public/autopilot/run'
     | '/api/public/ea/sync'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -446,6 +456,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/settings'
     | '/admin/users/$id'
+    | '/api/public/autopilot/run'
     | '/api/public/ea/sync'
   id:
     | '__root__'
@@ -486,6 +497,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/settings/'
     | '/_authenticated/admin/users/$id'
+    | '/api/public/autopilot/run'
     | '/api/public/ea/sync'
   fileRoutesById: FileRoutesById
 }
@@ -504,6 +516,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WebAppInstallTriggerRoute: typeof WebAppInstallTriggerRoute
+  ApiPublicAutopilotRunRoute: typeof ApiPublicAutopilotRunRoute
   ApiPublicEaSyncRoute: typeof ApiPublicEaSyncRoute
 }
 
@@ -768,6 +781,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersIdRouteImport
       parentRoute: typeof AuthenticatedAdminUsersRoute
     }
+    '/api/public/autopilot/run': {
+      id: '/api/public/autopilot/run'
+      path: '/api/public/autopilot/run'
+      fullPath: '/api/public/autopilot/run'
+      preLoaderRoute: typeof ApiPublicAutopilotRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ea/sync': {
       id: '/api/public/ea/sync'
       path: '/api/public/ea/sync'
@@ -881,6 +901,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WebAppInstallTriggerRoute: WebAppInstallTriggerRoute,
+  ApiPublicAutopilotRunRoute: ApiPublicAutopilotRunRoute,
   ApiPublicEaSyncRoute: ApiPublicEaSyncRoute,
 }
 export const routeTree = rootRouteImport
