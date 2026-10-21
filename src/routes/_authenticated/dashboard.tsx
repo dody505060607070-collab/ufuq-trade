@@ -226,13 +226,13 @@ function Dashboard() {
             <Link to="/accounts/add-mt5" className="flex h-12 flex-1 items-center rounded-full border border-dashed border-border px-4 text-sm text-muted-foreground hover:text-foreground">+ Add an MT5 account to start trading</Link>
           ) : (
             <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger className="h-12 flex-1 rounded-full px-3 [&>span]:line-clamp-none">
+              <SelectTrigger className="h-12 flex-1 rounded-full px-3">
                 {account && (
-                  <span className="flex items-center gap-3 text-left">
+                  <div className="flex items-center gap-3 text-left">
                     <BrokerLogo name={account.broker_name} color={broker(account)?.brand_color} className="h-7 w-7 text-xs" />
-                    <span className="leading-tight"><span className="block font-semibold">{account.label || account.login}</span><span className="block text-xs text-muted-foreground">#{account.login}</span></span>
+                    <div className="leading-tight"><p className="font-semibold">{account.label || account.login}</p><p className="text-xs text-muted-foreground">#{account.login}</p></div>
                     {online ? <Wifi className="h-3.5 w-3.5 text-success" /> : <WifiOff className="h-3.5 w-3.5 text-muted-foreground" />}
-                  </span>
+                  </div>
                 )}
               </SelectTrigger>
               <SelectContent>
