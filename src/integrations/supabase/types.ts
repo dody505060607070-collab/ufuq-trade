@@ -127,36 +127,45 @@ export type Database = {
       }
       brokers: {
         Row: {
+          brand_color: string | null
           created_at: string
           description: string | null
+          features: string[]
           id: string
           is_active: boolean
           logo_url: string | null
           name: string
           partner_url: string | null
           platforms: string[]
+          regulation: string | null
           sort_order: number
         }
         Insert: {
+          brand_color?: string | null
           created_at?: string
           description?: string | null
+          features?: string[]
           id?: string
           is_active?: boolean
           logo_url?: string | null
           name: string
           partner_url?: string | null
           platforms?: string[]
+          regulation?: string | null
           sort_order?: number
         }
         Update: {
+          brand_color?: string | null
           created_at?: string
           description?: string | null
+          features?: string[]
           id?: string
           is_active?: boolean
           logo_url?: string | null
           name?: string
           partner_url?: string | null
           platforms?: string[]
+          regulation?: string | null
           sort_order?: number
         }
         Relationships: []
@@ -209,6 +218,24 @@ export type Database = {
           id?: string
           message?: string
           name?: string
+        }
+        Relationships: []
+      }
+      ea_credentials: {
+        Row: {
+          api_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -293,66 +320,99 @@ export type Database = {
       instruments: {
         Row: {
           category: string
+          flag: string | null
           id: string
           is_active: boolean
           name: string
           sort_order: number
           symbol: string
           tv_symbol: string
+          yahoo_symbol: string | null
         }
         Insert: {
           category?: string
+          flag?: string | null
           id?: string
           is_active?: boolean
           name: string
           sort_order?: number
           symbol: string
           tv_symbol: string
+          yahoo_symbol?: string | null
         }
         Update: {
           category?: string
+          flag?: string | null
           id?: string
           is_active?: boolean
           name?: string
           sort_order?: number
           symbol?: string
           tv_symbol?: string
+          yahoo_symbol?: string | null
         }
         Relationships: []
       }
       profiles: {
         Row: {
+          copy_sl: boolean
+          copy_tp: boolean
           country: string | null
           created_at: string
+          default_account_id: string | null
           default_instrument: string | null
           email: string | null
           email_opt_out: boolean
+          favorite_instruments: string[]
+          first_name: string | null
           full_name: string | null
           id: string
+          last_name: string | null
           notifications_enabled: boolean
           phone: string | null
+          push_notifications: boolean
+          show_tooltips: boolean
+          username: string | null
         }
         Insert: {
+          copy_sl?: boolean
+          copy_tp?: boolean
           country?: string | null
           created_at?: string
+          default_account_id?: string | null
           default_instrument?: string | null
           email?: string | null
           email_opt_out?: boolean
+          favorite_instruments?: string[]
+          first_name?: string | null
           full_name?: string | null
           id: string
+          last_name?: string | null
           notifications_enabled?: boolean
           phone?: string | null
+          push_notifications?: boolean
+          show_tooltips?: boolean
+          username?: string | null
         }
         Update: {
+          copy_sl?: boolean
+          copy_tp?: boolean
           country?: string | null
           created_at?: string
+          default_account_id?: string | null
           default_instrument?: string | null
           email?: string | null
           email_opt_out?: boolean
+          favorite_instruments?: string[]
+          first_name?: string | null
           full_name?: string | null
           id?: string
+          last_name?: string | null
           notifications_enabled?: boolean
           phone?: string | null
+          push_notifications?: boolean
+          show_tooltips?: boolean
+          username?: string | null
         }
         Relationships: []
       }
@@ -506,6 +566,7 @@ export type Database = {
           auto_trading: boolean
           balance: number | null
           broker_name: string | null
+          connection_type: string
           created_at: string
           currency: string | null
           ea_key: string
@@ -525,6 +586,7 @@ export type Database = {
           auto_trading?: boolean
           balance?: number | null
           broker_name?: string | null
+          connection_type?: string
           created_at?: string
           currency?: string | null
           ea_key?: string
@@ -544,6 +606,7 @@ export type Database = {
           auto_trading?: boolean
           balance?: number | null
           broker_name?: string | null
+          connection_type?: string
           created_at?: string
           currency?: string | null
           ea_key?: string
@@ -591,6 +654,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      make_username: { Args: { _email: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
