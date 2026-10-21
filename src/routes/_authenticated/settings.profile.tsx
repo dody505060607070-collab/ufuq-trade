@@ -1,69 +1,105 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
-import { z } from "zod";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { Panel } from "@/components/app/AppShell";
+import { z } from "zod";
+import { User, Mail, AtSign, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Page, Card } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useProfile } from "@/lib/trading";
 
 export const Route = createFileRoute("/_authenticated/settings/profile")({
-  head: () => ({ meta: [{ title: "Personal profile | Arrissa AI" }] }),
-  component: Profile,
+  head: () => ({ meta: [{ title: "Personal Profile | Arrissa AI" }, { name: "description", content: "Manage your account information and password." }] }),
+  component: ProfilePage,
 });
 
-const schema = z.object({ full_name: z.string().trim().max(100), phone: z.string().trim().max(30), country: z.string().trim().max(60) });
+const info = z.object({
+  first_name: z.string().trim().min(1, "First name is required").max(50),
+  last_name: z.string().trim().max(50),
+  username: z.string().trim().toLowerCase().regex(/^[a-z0-9_]{3,24}$/, "Username: 3–24 letters, numbers or _"),
+});
+const pw = z.string().min(8, "Min 8 characters").regex(/[A-Z]/, "Needs 1 uppercase letter").regex(/[0-9]/, "Needs 1 number");
 
-function Profile() {
+function ProfilePage() {
   const { user } = useAuth();
-  const qc = useQueryClient();
-  const profile = useQuery({ queryKey: ["profile", user?.id], enabled: !!user, queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data });
-  const [busy, setBusy] = useState(false);
-
-  const save = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const parsed = schema.safeParse(Object.fromEntries(new FormData(e.currentTarget)));
-    if (!parsed.success) return toast.error("Invalid values.");
-    const { error } = await supabase.from("profiles").update(parsed.data).eq("id", user!.id);
-    if (error) return toast.error("Could not save profile.");
-    toast.success("Profile saved.");
-    void qc.invalidateQueries({ queryKey: ["profile"] });
+  const profile = useProfile();
+  const [f, setF] = useState({ first_name: "", last_name: "", username: "" });
+  useEffect(() => {
+    const p = profile.data;
+    if (p) setF({ first_name: p.first_name ?? p.full_name?.split(" ")[0] ?? "", last_name: p.last_name ?? "", username: p.username ?? "" });
+  }, [profile.data]);
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    const r = info.safeParse(f);
+    if (!r.success) return toast.error(r.error.issues[0]!.message);
+    setSaving(true);
+    await profile.update({ ...r.data, full_name: `${r.data.first_name} ${r.data.last_name}`.trim() }, "Profile saved.");
+    setSaving(false);
   };
-  const changePassword = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const password = String(f.get("password"));
-    if (password.length < 8) return toast.error("Password must be at least 8 characters.");
-    setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password, current_password: String(f.get("current")) } as { password: string });
-    setBusy(false);
+
+  const [pwd, setPwd] = useState({ current: "", next: "", confirm: "" });
+  const [changing, setChanging] = useState(false);
+  const change = async () => {
+    if (!pwd.current) return toast.error("Enter your current password.");
+    const r = pw.safeParse(pwd.next);
+    if (!r.success) return toast.error(r.error.issues[0]!.message);
+    if (pwd.next !== pwd.confirm) return toast.error("New passwords do not match.");
+    setChanging(true);
+    const { error: e1 } = await supabase.auth.signInWithPassword({ email: user!.email!, password: pwd.current });
+    if (e1) { setChanging(false); return toast.error("Current password is incorrect."); }
+    const { error } = await supabase.auth.updateUser({ password: pwd.next });
+    setChanging(false);
     if (error) return toast.error(error.message);
+    setPwd({ current: "", next: "", confirm: "" });
     toast.success("Password changed.");
-    e.currentTarget.reset();
   };
 
-  if (!profile.data) return <p className="text-sm text-muted-foreground">Loading…</p>;
   return (
-    <div className="space-y-6">
-      <Panel title="Personal information">
-        <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2"><Label>Email</Label><Input value={profile.data.email ?? ""} disabled /></div>
-          <div className="space-y-2"><Label htmlFor="full_name">Full name</Label><Input id="full_name" name="full_name" defaultValue={profile.data.full_name ?? ""} /></div>
-          <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" name="phone" defaultValue={profile.data.phone ?? ""} /></div>
-          <div className="space-y-2"><Label htmlFor="country">Country</Label><Input id="country" name="country" defaultValue={profile.data.country ?? ""} /></div>
-          <div className="sm:col-span-2"><Button type="submit" variant="hero">Save changes</Button></div>
-        </form>
-      </Panel>
-      <Panel title="Change password">
-        <form onSubmit={changePassword} className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2"><Label htmlFor="current">Current password</Label><Input id="current" name="current" type="password" required /></div>
-          <div className="space-y-2"><Label htmlFor="password">New password</Label><Input id="password" name="password" type="password" minLength={8} required /></div>
-          <div className="sm:col-span-2"><Button type="submit" variant="secondary" disabled={busy}>Update password</Button></div>
-        </form>
-      </Panel>
+    <Page title="Personal Profile" subtitle="Manage your account information and password.">
+      <Card title="Account Information">
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="First name" icon={<User />}><Input value={f.first_name} onChange={(e) => setF({ ...f, first_name: e.target.value })} className="h-11 rounded-full pl-11" /></Field>
+            <Field label="Last name" icon={<User />}><Input value={f.last_name} onChange={(e) => setF({ ...f, last_name: e.target.value })} className="h-11 rounded-full pl-11" /></Field>
+          </div>
+          <Field label="Email address" icon={<Mail />}><Input value={user?.email ?? ""} disabled className="h-11 rounded-full pl-11" /></Field>
+          <Field label="Username" icon={<AtSign />}><Input value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} className="h-11 rounded-full pl-11" /></Field>
+          <Button variant="hero" className="h-11 w-full rounded-full" onClick={save} disabled={saving}>{saving && <Loader2 className="animate-spin" />} Save changes</Button>
+        </div>
+      </Card>
+      <Card title="Change Password">
+        <div className="space-y-4">
+          <Pw label="Current password" placeholder="Enter current password" v={pwd.current} on={(v) => setPwd({ ...pwd, current: v })} />
+          <Pw label="New password" placeholder="Min 8 chars, 1 uppercase, 1 number" v={pwd.next} on={(v) => setPwd({ ...pwd, next: v })} />
+          <Pw label="Confirm new password" placeholder="Repeat new password" v={pwd.confirm} on={(v) => setPwd({ ...pwd, confirm: v })} />
+          <Button variant="hero" className="h-11 w-full rounded-full" onClick={change} disabled={changing}>{changing && <Loader2 className="animate-spin" />} Change password</Button>
+          <p className="text-xs text-muted-foreground">Signed up with Google? Use "Forgot password" on the login page to set a password first.</p>
+        </div>
+      </Card>
+    </Page>
+  );
+}
+
+function Field({ label, icon, children }: { label: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm">{label}</p>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
+        {children}
+      </div>
     </div>
+  );
+}
+
+function Pw({ label, placeholder, v, on }: { label: string; placeholder: string; v: string; on: (v: string) => void }) {
+  const [show, setShow] = useState(false);
+  return (
+    <Field label={label} icon={<Lock />}>
+      <Input type={show ? "text" : "password"} placeholder={placeholder} value={v} onChange={(e) => on(e.target.value)} className="h-11 rounded-full px-11" autoComplete="new-password" />
+      <button type="button" onClick={() => setShow(!show)} aria-label={show ? "Hide password" : "Show password"} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">{show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+    </Field>
   );
 }

@@ -1,65 +1,58 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Panel } from "@/components/app/AppShell";
+import { Page, Card } from "@/components/app/AppShell";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
-import type { Database } from "@/integrations/supabase/types";
+import { useProfile } from "@/lib/trading";
+import { getVoicePref, setVoicePref, speak } from "@/lib/alerts";
 
 export const Route = createFileRoute("/_authenticated/settings/preferences")({
-  head: () => ({ meta: [{ title: "App settings | Arrissa AI" }] }),
+  head: () => ({ meta: [{ title: "Settings | Arrissa AI" }, { name: "description", content: "Manage your notification and display preferences." }] }),
   component: Prefs,
 });
 
-type Patch = Database["public"]["Tables"]["profiles"]["Update"];
-
 function Prefs() {
-  const { user } = useAuth();
-  const qc = useQueryClient();
-  const profile = useQuery({ queryKey: ["profile", user?.id], enabled: !!user, queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data });
-  const instruments = useQuery({ queryKey: ["instruments"], queryFn: async () => (await supabase.from("instruments").select("*").eq("is_active", true).order("sort_order")).data ?? [] });
-
-  const update = async (patch: Patch) => {
-    const { error } = await supabase.from("profiles").update(patch).eq("id", user!.id);
-    if (error) return toast.error("Could not save.");
-    toast.success("Saved.");
-    void qc.invalidateQueries({ queryKey: ["profile"] });
-  };
-  const enableBrowserNotifications = async (v: boolean) => {
-    if (v && "Notification" in window && Notification.permission !== "granted") await Notification.requestPermission();
-    void update({ notifications_enabled: v });
-  };
-
+  const profile = useProfile();
   const p = profile.data;
-  if (!p) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  const [voice, setVoice] = useState(true);
+  useEffect(() => setVoice(getVoicePref()), []);
+
+  const togglePush = async (v: boolean) => {
+    if (v && "Notification" in window && Notification.permission !== "granted") {
+      const r = await Notification.requestPermission();
+      if (r !== "granted") return toast.error("Notifications are blocked in your browser settings.");
+    }
+    void profile.update({ push_notifications: v }, v ? "Signal notifications on." : "Signal notifications off.");
+  };
+
   return (
-    <Panel>
-      <div className="divide-y divide-border">
-        <Row title="Default instrument" desc="Instrument selected when you open the dashboard.">
-          <Select value={p.default_instrument ?? ""} onValueChange={(v) => update({ default_instrument: v })}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>{(instruments.data ?? []).map((i) => <SelectItem key={i.id} value={i.symbol}>{i.symbol}</SelectItem>)}</SelectContent>
-          </Select>
-        </Row>
-        <Row title="Enable Signal Notifications" desc="Get updates on trade execution, signal changes, and account events.">
-          <Switch checked={p.notifications_enabled} onCheckedChange={enableBrowserNotifications} />
-        </Row>
-        <Row title="Marketing emails" desc="Receive product news and campaign emails.">
-          <Switch checked={!p.email_opt_out} onCheckedChange={(v) => update({ email_opt_out: !v })} />
-        </Row>
-      </div>
-    </Panel>
+    <Page title="Settings" subtitle="Manage your notification and display preferences.">
+      <Card title="Notifications">
+        <Row title="Signal Push Notifications" desc="Receive OS notifications when a new signal arrives, even when the app is in the background." checked={!!p?.push_notifications} on={togglePush} />
+      </Card>
+      <Card title="Sound">
+        <Row title="Voice notifications" desc="A spoken line when things happen: trades opened, TP / SL hit, trades closed, new signals, connection changes and more. Saved on this device."
+          checked={voice} on={(v) => { setVoice(v); setVoicePref(v); if (v) speak("Voice notifications on"); }} />
+      </Card>
+      <Card title="Display">
+        <div className="space-y-4">
+          <Row title="Dashboard Tooltips" desc="Show small helper tooltips after hovering an item for 2 seconds." checked={!!p?.show_tooltips} on={(v) => void profile.update({ show_tooltips: v })} />
+          <Row title="Copy TP to trading form" desc='When on, "Use Signal" loads the Take Profit value into the trading form.' checked={!!p?.copy_tp} on={(v) => void profile.update({ copy_tp: v })} />
+          <Row title="Copy SL to trading form" desc='When on, "Use Signal" loads the Stop Loss value into the trading form.' checked={!!p?.copy_sl} on={(v) => void profile.update({ copy_sl: v })} />
+        </div>
+      </Card>
+    </Page>
   );
 }
 
-function Row({ title, desc, children }: { title: string; desc: string; children: ReactNode }) {
+function Row({ title, desc, checked, on }: { title: string; desc: string; checked: boolean; on: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-4">
-      <div><p className="text-sm font-medium">{title}</p><p className="text-xs text-muted-foreground">{desc}</p></div>
-      {children}
-    </div>
+    <label className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background/40 px-4 py-3">
+      <span>
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="block text-xs text-muted-foreground">{desc}</span>
+      </span>
+      <Switch checked={checked} onCheckedChange={on} />
+    </label>
   );
 }
