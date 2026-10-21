@@ -1,3 +1,4 @@
+import { useT } from "@/lib/i18n";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
@@ -26,6 +27,7 @@ const schema = z.object({
 });
 
 function Register() {
+  const t = useT();
   const { redirect } = Route.useSearch();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -34,8 +36,8 @@ function Register() {
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const parsed = schema.safeParse(Object.fromEntries(new FormData(e.currentTarget)));
-    if (!parsed.success) return toast.error("Name, valid email and a password of 8+ characters are required.");
-    if (!agree) return toast.error("Please accept the terms and risk disclosure.");
+    if (!parsed.success) return toast.error(t("Name, valid email and a password of 8+ characters are required."));
+    if (!agree) return toast.error(t("Please accept the terms and risk disclosure."));
     setBusy(true);
     const { error } = await supabase.auth.signUp({
       email: parsed.data.email,
@@ -50,19 +52,18 @@ function Register() {
   return (
     <AuthCard title="Create your account" subtitle="Free forever. No subscriptions.">
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-2"><Label htmlFor="full_name">Full name</Label><Input id="full_name" name="full_name" required maxLength={100} /></div>
-        <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" required autoComplete="email" /></div>
-        <div className="space-y-2"><Label htmlFor="password">Password</Label><Input id="password" name="password" type="password" minLength={8} required autoComplete="new-password" /></div>
+        <div className="space-y-2"><Label htmlFor="full_name">{t("Full name")}</Label><Input id="full_name" name="full_name" required maxLength={100} /></div>
+        <div className="space-y-2"><Label htmlFor="email">{t("Email")}</Label><Input id="email" name="email" type="email" required autoComplete="email" /></div>
+        <div className="space-y-2"><Label htmlFor="password">{t("Password")}</Label><Input id="password" name="password" type="password" minLength={8} required autoComplete="new-password" /></div>
         <label className="flex items-start gap-2 text-xs text-muted-foreground">
           <Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} className="mt-0.5" />
-          <span>I agree to the <Link to="/terms" className="text-primary-glow">Terms</Link>, <Link to="/privacy" className="text-primary-glow">Privacy Policy</Link> and <Link to="/risk-disclosure" className="text-primary-glow">Risk Disclosure</Link>.</span>
+          <span>{t("I agree to the")} <Link to="/terms" className="text-primary-glow">{t("Terms")}</Link>, <Link to="/privacy" className="text-primary-glow">{t("Privacy Policy")}</Link> {t("and")} <Link to="/risk-disclosure" className="text-primary-glow">{t("Risk Disclosure")}</Link>.</span>
         </label>
-        <Button type="submit" variant="hero" className="w-full" disabled={busy}>{busy ? "Creating…" : "Create account"}</Button>
+        <Button type="submit" variant="hero" className="w-full" disabled={busy}>{busy ? t("Creating…") : t("Create account")}</Button>
       </form>
-      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" /></div>
+      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />{t("or")}<span className="h-px flex-1 bg-border" /></div>
       <GoogleButton redirect={safeRedirect(redirect)} />
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        Already have an account? <Link to="/login" search={redirect ? { redirect } : {}} className="text-primary-glow hover:underline">Sign in</Link>
+      <p className="mt-6 text-center text-sm text-muted-foreground"> {t("Already have an account?")} <Link to="/login" search={redirect ? { redirect } : {}} className="text-primary-glow hover:underline">{t("Sign in")}</Link>
       </p>
     </AuthCard>
   );

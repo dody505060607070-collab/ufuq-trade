@@ -1,3 +1,4 @@
+import { useT, HelpNote, LanguageToggle } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/_authenticated/performance")({
 });
 
 function Performance() {
+  const t = useT();
   const accounts = useAccounts();
   const [acc, setAcc] = useState("all");
   const closed = useQuery({
@@ -27,33 +29,34 @@ function Performance() {
 
   return (
     <Page
-      title="Performance"
-      subtitle="Closed trade history from your MT5 accounts"
+      title={t("Performance")}
+      subtitle={t("Closed trade history from your MT5 accounts")}
       actions={
         <div className="flex gap-2">
+      <HelpNote>{"Review closed trades and compare account performance over time. Choose an account or date range to focus the results, and keep the MT5 EA running to receive updates."}</HelpNote>
           <Select value={acc} onValueChange={setAcc}>
             <SelectTrigger className="h-9 w-40 rounded-full"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="all">All Accounts</SelectItem>{(accounts.data ?? []).map((a) => <SelectItem key={a.id} value={a.id}>{a.label || a.login} #{a.login}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="all">{t("All Accounts")}</SelectItem>{(accounts.data ?? []).map((a) => <SelectItem key={a.id} value={a.id}>{a.label || a.login} #{a.login}</SelectItem>)}</SelectContent>
           </Select>
-          <Button variant="secondary" size="sm" className="h-9 rounded-full" onClick={() => void closed.refetch()} disabled={closed.isFetching}>{closed.isFetching && <Loader2 className="animate-spin" />} Refresh</Button>
+          <Button variant="secondary" size="sm" className="h-9 rounded-full" onClick={() => void closed.refetch()} disabled={closed.isFetching}>{closed.isFetching && <Loader2 className="animate-spin" />}  {t("Refresh")}</Button>
         </div>
       }
     >
       <div className="flex items-center gap-4 rounded-2xl border border-primary/40 bg-accent/40 p-4 text-sm text-muted-foreground">
-        <p className="flex-1">Performance data is sent to Arrissa directly from your MT5 terminal via the Expert Advisor (EA). Make sure your EA is installed and running to see accurate figures here.</p>
-        <Button asChild variant="hero" size="sm" className="rounded-full"><Link to="/settings">Set up EA</Link></Button>
+        <p className="flex-1">{t("Performance data is sent to Arrissa directly from your MT5 terminal via the Expert Advisor (EA). Make sure your EA is installed and running to see accurate figures here.")}</p>
+        <Button asChild variant="hero" size="sm" className="rounded-full"><Link to="/settings">{t("Set up EA")}</Link></Button>
       </div>
       <div className="space-y-2">
         {PERIODS.map((p) => {
           const s = periodStats(rows, p.key);
           return (
             <Collapsible key={p.key} className="rounded-2xl bg-card">
-              <CollapsibleTrigger className="group flex w-full items-center gap-3 px-4 py-4 text-left">
+              <CollapsibleTrigger className="group flex w-full items-center gap-3 px-4 py-4 text-start">
                 <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 <span className="flex-1 font-semibold">{p.label}</span>
-                {s.count === 0 ? <span className="text-xs italic text-muted-foreground">No data</span> : (
+                {s.count === 0 ? <span className="text-xs italic text-muted-foreground">{t("No data")}</span> : (
                   <span className="flex gap-4 text-xs">
-                    <span className="text-muted-foreground">{s.count} {s.count === 1 ? "trade" : "trades"} · {s.winRate.toFixed(0)}% win</span>
+                    <span className="text-muted-foreground">{s.count} {s.count === 1 ? t("trade") : t("trades")} · {s.winRate.toFixed(0)}{t("% win")}</span>
                     <span className={cn("font-semibold", s.net >= 0 ? "text-success" : "text-destructive")}>{s.net >= 0 ? "+" : ""}{fmt(s.net)}</span>
                   </span>
                 )}
@@ -66,15 +69,15 @@ function Performance() {
                     </div>
                     <div className="max-h-72 overflow-y-auto">
                       <table className="w-full text-xs">
-                        <thead className="text-left text-muted-foreground"><tr><th className="py-1">Symbol</th><th>Side</th><th>Lots</th><th>Open</th><th>Close</th><th>Closed</th><th className="text-right">P/L</th></tr></thead>
+                        <thead className="text-start text-muted-foreground"><tr><th className="py-1">{t("Symbol")}</th><th>{t("Side")}</th><th>{t("Lots")}</th><th>{t("Open")}</th><th>{t("Close")}</th><th>{t("Closed")}</th><th className="text-end">{t("P/L")}</th></tr></thead>
                         <tbody>
-                          {s.trades.map((t) => (
-                            <tr key={t.id} className="border-t border-border">
-                              <td className="py-1.5 font-semibold">{t.symbol}</td>
-                              <td className={t.side === "buy" ? "text-success" : "text-destructive"}>{t.side.toUpperCase()}</td>
-                              <td>{t.volume}</td><td>{fmt(t.open_price, priceDigits(t.open_price))}</td><td>{fmt(t.close_price, priceDigits(t.open_price))}</td>
-                              <td className="text-muted-foreground">{t.closed_at ? new Date(t.closed_at).toLocaleString() : "—"}</td>
-                              <td className={cn("text-right font-semibold", Number(t.profit) >= 0 ? "text-success" : "text-destructive")}>{fmt(t.profit)}</td>
+                          {s.trades.map((trade) => (
+                            <tr key={trade.id} className="border-t border-border">
+                              <td className="py-1.5 font-semibold">{trade.symbol}</td>
+                              <td className={trade.side === "buy" ? "text-success" : "text-destructive"}>{t(trade.side.toUpperCase())}</td>
+                              <td>{trade.volume}</td><td>{fmt(trade.open_price, priceDigits(trade.open_price))}</td><td>{fmt(trade.close_price, priceDigits(trade.open_price))}</td>
+                              <td className="text-muted-foreground">{trade.closed_at ? new Date(trade.closed_at).toLocaleString() : "—"}</td>
+                              <td className={cn("text-end font-semibold", Number(trade.profit) >= 0 ? "text-success" : "text-destructive")}>{fmt(trade.profit)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -92,5 +95,6 @@ function Performance() {
 }
 
 function Stat({ l, v }: { l: string; v: string }) {
-  return <div className="rounded-lg bg-muted p-2"><p className="text-muted-foreground">{l}</p><p className="font-semibold">{v}</p></div>;
+  const t = useT();
+  return <div className="rounded-lg bg-muted p-2"><p className="text-muted-foreground">{t(l)}</p><p className="font-semibold">{v}</p></div>;
 }

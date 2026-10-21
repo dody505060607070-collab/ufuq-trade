@@ -1,3 +1,4 @@
+import { useT, HelpNote, LanguageToggle } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/_authenticated/settings/preferences")({
 });
 
 function Prefs() {
+  const t = useT();
   const profile = useProfile();
   const p = profile.data;
   const [voice, setVoice] = useState(true);
@@ -20,25 +22,26 @@ function Prefs() {
   const togglePush = async (v: boolean) => {
     if (v && "Notification" in window && Notification.permission !== "granted") {
       const r = await Notification.requestPermission();
-      if (r !== "granted") return toast.error("Notifications are blocked in your browser settings.");
+      if (r !== "granted") return toast.error(t("Notifications are blocked in your browser settings."));
     }
-    void profile.update({ push_notifications: v }, v ? "Signal notifications on." : "Signal notifications off.");
+    void profile.update({ push_notifications: v }, v ? t("Signal notifications on.") : t("Signal notifications off."));
   };
 
   return (
-    <Page title="Settings" subtitle="Manage your notification and display preferences.">
-      <Card title="Notifications">
-        <Row title="Signal Push Notifications" desc="Receive OS notifications when a new signal arrives, even when the app is in the background." checked={!!p?.push_notifications} on={togglePush} />
+    <Page title={t("Settings")} subtitle={t("Manage your notification and display preferences.")}>
+      <HelpNote>{"Choose how the app notifies you and which dashboard helpers are shown. You can also control whether using a signal copies its Stop Loss and Take Profit into the trade form."}</HelpNote>
+      <Card title={t("Notifications")}>
+        <Row title={t("Signal Push Notifications")} desc={t("Receive OS notifications when a new signal arrives, even when the app is in the background.")} checked={!!p?.push_notifications} on={togglePush} />
       </Card>
-      <Card title="Sound">
-        <Row title="Voice notifications" desc="A spoken line when things happen: trades opened, TP / SL hit, trades closed, new signals, connection changes and more. Saved on this device."
-          checked={voice} on={(v) => { setVoice(v); setVoicePref(v); if (v) speak("Voice notifications on"); }} />
+      <Card title={t("Sound")}>
+        <Row title={t("Voice notifications")} desc={t("A spoken line when things happen: trades opened, TP / SL hit, trades closed, new signals, connection changes and more. Saved on this device.")}
+          checked={voice} on={(v) => { setVoice(v); setVoicePref(v); if (v) speak(t("Voice notifications on")); }} />
       </Card>
-      <Card title="Display">
+      <Card title={t("Display")}>
         <div className="space-y-4">
-          <Row title="Dashboard Tooltips" desc="Show small helper tooltips after hovering an item for 2 seconds." checked={!!p?.show_tooltips} on={(v) => void profile.update({ show_tooltips: v })} />
-          <Row title="Copy TP to trading form" desc='When on, "Use Signal" loads the Take Profit value into the trading form.' checked={!!p?.copy_tp} on={(v) => void profile.update({ copy_tp: v })} />
-          <Row title="Copy SL to trading form" desc='When on, "Use Signal" loads the Stop Loss value into the trading form.' checked={!!p?.copy_sl} on={(v) => void profile.update({ copy_sl: v })} />
+          <Row title={t("Dashboard Tooltips")} desc={t("Show small helper tooltips after hovering an item for 2 seconds.")} checked={!!p?.show_tooltips} on={(v) => void profile.update({ show_tooltips: v })} />
+          <Row title={t("Copy TP to trading form")} desc={t("When on, \"Use Signal\" loads the Take Profit value into the trading form.")} checked={!!p?.copy_tp} on={(v) => void profile.update({ copy_tp: v })} />
+          <Row title={t("Copy SL to trading form")} desc={t("When on, \"Use Signal\" loads the Stop Loss value into the trading form.")} checked={!!p?.copy_sl} on={(v) => void profile.update({ copy_sl: v })} />
         </div>
       </Card>
     </Page>
@@ -46,11 +49,12 @@ function Prefs() {
 }
 
 function Row({ title, desc, checked, on }: { title: string; desc: string; checked: boolean; on: (v: boolean) => void }) {
+  const t = useT();
   return (
     <label className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background/40 px-4 py-3">
       <span>
         <span className="block text-sm font-semibold">{title}</span>
-        <span className="block text-xs text-muted-foreground">{desc}</span>
+        <span className="block text-xs text-muted-foreground">{t(desc)}</span>
       </span>
       <Switch checked={checked} onCheckedChange={on} />
     </label>

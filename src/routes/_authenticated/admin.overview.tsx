@@ -1,3 +1,4 @@
+import { HelpNote } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Panel } from "@/components/app/AppShell";
@@ -19,6 +20,8 @@ function Overview() {
   const msgs = useQuery({ queryKey: ["admin-messages"], queryFn: async () => (await supabase.from("contact_messages").select("*").order("created_at", { ascending: false }).limit(10)).data ?? [] });
   const s = stats.data;
   return (
+    <>
+      <HelpNote>{"The admin overview summarizes platform activity and recent messages."}</HelpNote>
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {[["Users", s?.users], ["Accounts", s?.accounts], ["Trades", s?.trades], ["AI analyses", s?.analyses], ["Commands", s?.commands], ["Messages", s?.messages]].map(([l, v]) => (
@@ -38,5 +41,6 @@ function Overview() {
         )}
       </Panel>
     </div>
+    </>
   );
 }

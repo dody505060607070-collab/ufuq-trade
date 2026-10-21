@@ -1,3 +1,4 @@
+import { HelpNote } from "@/lib/i18n";
 import { createFileRoute, Link, Outlet, useMatch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -13,11 +14,13 @@ function Users() {
   if (child) return <Outlet />;
   const list = (users.data ?? []).filter((u) => `${u.email} ${u.full_name}`.toLowerCase().includes(q.toLowerCase()));
   return (
+    <>
+      <HelpNote>{"Users and their roles can be managed here."}</HelpNote>
     <div className="space-y-4">
       <Input placeholder="Search users…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left text-xs text-muted-foreground"><tr><th className="px-4 py-3">Name</th><th>Email</th><th>Country</th><th>Joined</th></tr></thead>
+          <thead className="bg-muted/40 text-start text-xs text-muted-foreground"><tr><th className="px-4 py-3">Name</th><th>Email</th><th>Country</th><th>Joined</th></tr></thead>
           <tbody>
             {list.map((u) => (
               <tr key={u.id} className="border-t border-border hover:bg-muted/30">
@@ -29,5 +32,6 @@ function Users() {
         </table>
       </div>
     </div>
+    </>
   );
 }

@@ -13,3 +13,6 @@
 - [x] Personal profile (names, username, change password)
 - [x] EA source file (MQL5) that talks to the sync endpoint
 - [x] Verify in browser
+
+# Arabic language
+- [x] English/Arabic switch on every page (RTL) + explanation box on each page

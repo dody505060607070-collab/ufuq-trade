@@ -1,3 +1,4 @@
+import { useT, HelpNote, LanguageToggle } from "@/lib/i18n";
 import { Link, useNavigate, useRouter, useLocation } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, type ReactNode } from "react";
@@ -23,17 +24,19 @@ const nav = [
 ] as const;
 
 export function Tip({ label, children, side = "right" }: { label: string; children: ReactNode; side?: "right" | "top" | "bottom" | "left" }) {
+  const t = useT();
   const profile = useProfile();
   if (profile.data && !profile.data.show_tooltips) return <>{children}</>;
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side={side}>{label}</TooltipContent>
+      <TooltipContent side={side}>{t(label)}</TooltipContent>
     </Tooltip>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const t = useT();
   const { user, isAdmin } = useAuth();
   const profile = useProfile();
   const qc = useQueryClient();
@@ -55,33 +58,34 @@ export function AppShell({ children }: { children: ReactNode }) {
     <TooltipProvider delayDuration={2000}>
       <LiveAlerts />
       <div className="flex min-h-screen">
-        <aside className="sticky top-0 z-40 flex h-screen w-[60px] shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar py-4">
-          <Link to="/dashboard" aria-label="Arrissa home" className="mb-6 text-primary-glow"><Spark /></Link>
+        <aside className="sticky top-0 z-40 flex h-screen w-[60px] shrink-0 flex-col items-center border-e border-sidebar-border bg-sidebar py-4">
+          <Link to="/dashboard" aria-label={t("Arrissa home")} className="mb-6 text-primary-glow"><Spark /></Link>
           <nav className="flex flex-1 flex-col items-center gap-1">
             {nav.map((n) => {
               const active = pathname === n.to;
               return (
-                <Tip key={n.to} label={n.label}>
-                  <Link to={n.to} aria-label={n.label} className={cn(railBtn, active && "bg-secondary text-foreground")}>
+                <Tip key={n.to} label={t(n.label)}>
+                  <Link to={n.to} aria-label={t(n.label)} className={cn(railBtn, active && "bg-secondary text-foreground")}>
                     <n.icon className="h-[18px] w-[18px]" />
                   </Link>
                 </Tip>
               );
             })}
             {isAdmin && (
-              <Tip label="Admin panel">
-                <Link to="/admin/overview" aria-label="Admin panel" className={cn(railBtn, "text-primary-glow", pathname.startsWith("/admin") && "bg-secondary")}>
+              <Tip label={t("Admin panel")}>
+                <Link to="/admin/overview" aria-label={t("Admin panel")} className={cn(railBtn, "text-primary-glow", pathname.startsWith("/admin") && "bg-secondary")}>
                   <ShieldCheck className="h-[18px] w-[18px]" />
                 </Link>
               </Tip>
             )}
           </nav>
           <div className="flex flex-col items-center gap-2 border-t border-sidebar-border pt-3">
-            <Tip label={user?.email ?? "Profile"}>
+            <Tip label={user?.email ?? t("Personal Profile")}>
               <Link to="/settings/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground ring-4 ring-primary/25">{initials}</Link>
             </Tip>
-            <Tip label="Sign out"><button onClick={signOut} aria-label="Sign out" className={railBtn}><LogOut className="h-[18px] w-[18px]" /></button></Tip>
-            <Tip label="Terms"><Link to="/terms" aria-label="Terms" className={railBtn}><FileText className="h-[18px] w-[18px]" /></Link></Tip>
+            <LanguageToggle className="rounded-full border border-border px-2 py-1 text-xs" />
+            <Tip label={t("Sign out")}><button onClick={signOut} aria-label={t("Sign out")} className={railBtn}><LogOut className="h-[18px] w-[18px]" /></button></Tip>
+            <Tip label={t("Terms")}><Link to="/terms" aria-label={t("Terms")} className={railBtn}><FileText className="h-[18px] w-[18px]" /></Link></Tip>
           </div>
         </aside>
         <main className="min-w-0 flex-1">{children}</main>
@@ -91,6 +95,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function Spark() {
+  const t = useT();
   return (
     <svg viewBox="0 0 32 32" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
       <path d="M16 3v26M3 16h26M6.8 6.8l18.4 18.4M25.2 6.8 6.8 25.2" />
@@ -101,10 +106,11 @@ function Spark() {
 
 /** Centered page layout with a Back link, like the original app. */
 export function Page({ title, subtitle, actions, children, wide }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; wide?: boolean }) {
+  const t = useT();
   const router = useRouter();
   return (
     <div className="px-4 py-4 md:px-5">
-      <button onClick={() => router.history.back()} className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Back</button>
+      <button onClick={() => router.history.back()} className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />  {t("Back")}</button>
       <div className={cn("mx-auto mt-10 pb-16", wide ? "max-w-3xl" : "max-w-[608px]")}>
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -120,6 +126,7 @@ export function Page({ title, subtitle, actions, children, wide }: { title: stri
 }
 
 export function Card({ title, children, className = "" }: { title?: ReactNode; children: ReactNode; className?: string }) {
+  const t = useT();
   return (
     <section className={cn("rounded-3xl bg-card p-6", className)}>
       {title && <h2 className="mb-5 text-[15px] font-semibold">{title}</h2>}
@@ -129,6 +136,7 @@ export function Card({ title, children, className = "" }: { title?: ReactNode; c
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
+  const t = useT();
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
@@ -141,6 +149,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
 }
 
 export function Panel({ title, children, className = "" }: { title?: string; children: ReactNode; className?: string }) {
+  const t = useT();
   return (
     <section className={`rounded-xl border border-border bg-card p-5 ${className}`}>
       {title && <h2 className="mb-4 text-sm font-medium text-muted-foreground">{title}</h2>}
@@ -150,6 +159,7 @@ export function Panel({ title, children, className = "" }: { title?: string; chi
 }
 
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
+  const t = useT();
   return (
     <div className="rounded-xl border border-dashed border-border p-10 text-center">
       <p className="font-medium">{title}</p>
@@ -160,6 +170,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
 
 /** Watches trades, commands, EA connection and signals; speaks / notifies on changes. */
 function LiveAlerts() {
+  const t = useT();
   const accounts = useAccounts();
   const profile = useProfile();
   const trades = useQuery({
@@ -185,8 +196,8 @@ function LiveAlerts() {
     const now = new Map(trades.data.map((t) => [t.id, { sl: t.stop_loss, tp: t.take_profit, symbol: t.symbol }]));
     const old = prev.current.trades;
     if (old) {
-      for (const [id, t] of now) if (!old.has(id)) speak(`Trade opened on ${t.symbol}`);
-      for (const [id, t] of old) if (!now.has(id)) speak(`Trade closed on ${t.symbol}`);
+      for (const [id, trade] of now) if (!old.has(id)) speak(t("Trade opened on {symbol}", { symbol: trade.symbol }));
+      for (const [id, trade] of old) if (!now.has(id)) speak(t("Trade closed on {symbol}", { symbol: trade.symbol }));
     }
     prev.current.trades = now;
   }, [trades.data]);
@@ -213,7 +224,7 @@ function LiveAlerts() {
     const old = prev.current.signals;
     if (old) for (const s of signals.data) if (!old.has(s.id)) {
       speak(`New signal: ${s.direction} ${s.symbol}`);
-      if (profile.data?.push_notifications) notify("New Arrissa signal", `${s.direction.toUpperCase()} ${s.symbol}${s.entry ? ` @ ${s.entry}` : ""}`);
+      if (profile.data?.push_notifications) notify(t("New Arrissa signal"), `${s.direction.toUpperCase()} ${s.symbol}${s.entry ? ` @ ${s.entry}` : ""}`);
     }
     prev.current.signals = now;
   }, [signals.data, profile.data?.push_notifications]);
