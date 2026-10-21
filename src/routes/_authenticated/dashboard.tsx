@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  ChevronDown, Star, Settings2, CandlestickChart, Eye, EyeOff, Target, ListFilter, Clock, Loader2, X, ArrowUpRight, ArrowDownRight,
+  ChevronDown, Star, Settings2, CandlestickChart, Eye, EyeOff, Target, ListFilter, Clock, Loader2, ArrowUpRight, ArrowDownRight,
   XCircle, Scale, Eraser, Ban, Wifi, WifiOff, Brain,
 } from "lucide-react";
 import { Tip } from "@/components/app/AppShell";
@@ -516,5 +516,3 @@ function NewsPanel() {
   );
 }
 
-// Re-exported for the X icon import (avoid unused warning in some builds)
-export const _icons = { X };
