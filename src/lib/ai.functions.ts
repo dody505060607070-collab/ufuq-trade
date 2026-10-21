@@ -32,7 +32,7 @@ export const analyzeMarket = createServerFn({ method: "POST" })
         .select("direction,confidence,entry,stop_loss,take_profit,summary,user_id")
         .eq("symbol", data.symbol).eq("timeframe", data.timeframe).gte("created_at", since)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (cached) return saveFor(context, data, cached);
+      if (cached) return saveFor(context, data, { ...cached, confidence: cached.confidence ?? 0 });
     }
 
     const { fetchCandles, fetchCalendar, fetchNews } = await import("./market.server");
