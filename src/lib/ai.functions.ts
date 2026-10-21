@@ -61,7 +61,7 @@ export const analyzeMarket = createServerFn({ method: "POST" })
     const prompt = `Instrument: ${data.symbol} (${inst?.name ?? ""})\nTimeframe: ${data.timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nRecent ${data.timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${events || "none"}\n\nLatest headlines:\n${heads || "none"}\n\nProvide your directional analysis as json.`;
 
     const geminiKey = process.env["GEMINI_API_KEY"];
-    const text = geminiKey ? await callGemini(geminiKey, prompt) : await callLovable(model?.model_id ?? "openai/gpt-6-astra", prompt);
+    const text = (geminiKey ? await callGemini(geminiKey, prompt).catch(() => null) : null) ?? await callLovable(model?.model_id ?? "openai/gpt-6-astra", prompt);
 
     const match = text.match(/\{[\s\S]*\}/);
     let json: unknown = null;
@@ -76,8 +76,8 @@ const INSTRUCTIONS =
   "You are a senior FX/CFD market analyst. Base the analysis strictly on the price data, economic calendar and headlines provided. Return ONLY a JSON object with keys: direction (buy|sell|neutral), confidence (0-100 integer), entry (number or null), stop_loss (number or null), take_profit (number or null), summary (max 5 sentences: trend/structure, key support & resistance, upcoming events, sentiment, risk). Entry must be near the current price. For buy: stop_loss < entry < take_profit. For sell: take_profit < entry < stop_loss. Use a risk:reward of at least 1:1.5 and place stops beyond recent structure. If the data is unclear or high-impact news is imminent, return neutral with null levels. If no price data is available, return null levels.";
 
 /** Free path: the owner's own Google Gemini key. */
-async function callGemini(key: string, prompt: string): Promise<string> {
-  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+async function callGemini(key: string, prompt: string): Promise<string | null> {
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
@@ -86,11 +86,10 @@ async function callGemini(key: string, prompt: string): Promise<string> {
       generationConfig: { responseMimeType: "application/json" },
     }),
   });
-  if (res.status === 429) throw new Error("Free Gemini limit reached for now. Please try again in a minute.");
-  if (res.status === 400 || res.status === 403) throw new Error("The Gemini key is invalid or blocked.");
-  if (!res.ok) throw new Error("AI analysis failed. Please try again.");
+  // Busy / limit reached / key problem: return null so the caller falls back to Lovable AI.
+  if (!res.ok) { console.error("Gemini failed", res.status); return null; }
   const j = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-  return j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+  return j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") || null;
 }
 
 /** Default path: Lovable AI (uses workspace credits). */
