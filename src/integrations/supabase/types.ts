@@ -125,6 +125,72 @@ export type Database = {
         }
         Relationships: []
       }
+      autopilot_events: {
+        Row: {
+          action: string
+          created_at: string
+          detail: string | null
+          id: string
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      autopilot_settings: {
+        Row: {
+          avoid_news: boolean
+          enabled: boolean
+          lot_size: number
+          max_daily: number
+          max_open: number
+          min_confidence: number
+          symbols: string[]
+          timeframe: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avoid_news?: boolean
+          enabled?: boolean
+          lot_size?: number
+          max_daily?: number
+          max_open?: number
+          min_confidence?: number
+          symbols?: string[]
+          timeframe?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avoid_news?: boolean
+          enabled?: boolean
+          lot_size?: number
+          max_daily?: number
+          max_open?: number
+          min_confidence?: number
+          symbols?: string[]
+          timeframe?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       brokers: {
         Row: {
           brand_color: string | null
