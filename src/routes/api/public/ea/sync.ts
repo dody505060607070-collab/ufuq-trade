@@ -5,7 +5,7 @@ import { defined } from "@/lib/utils";
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-EA-Key",
+  "Access-Control-Allow-Headers": "Content-Type, X-EA-Key, X-API-Key, X-Username",
 };
 
 const position = z.object({
@@ -29,6 +29,9 @@ const body = z.object({
     free_margin: z.number().optional(),
     leverage: z.number().int().optional(),
     currency: z.string().max(10).optional(),
+    login: z.union([z.string(), z.number()]).transform(String).optional(),
+    server: z.string().max(100).optional(),
+    company: z.string().max(100).optional(),
   }).optional(),
   positions: z.array(position).max(500).optional(),
   closed: z.array(position).max(500).optional(),
@@ -43,27 +46,55 @@ export const Route = createFileRoute("/api/public/ea/sync")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: cors }),
       POST: async ({ request }) => {
+        const asText = new URL(request.url).searchParams.get("format") === "text";
+        const fail = (msg: string, status: number) => (asText ? new Response(`ERR|${msg}\n`, { status, headers: { ...cors, "Content-Type": "text/plain" } }) : json({ error: msg }, status));
         const key = request.headers.get("x-ea-key") ?? "";
-        if (!z.string().uuid().safeParse(key).success) return json({ error: "invalid key" }, 401);
+        const apiKey = request.headers.get("x-api-key") ?? "";
+        const username = (request.headers.get("x-username") ?? "").trim().toLowerCase();
+        const uuid = z.string().uuid();
+        if (!uuid.safeParse(key).success && !uuid.safeParse(apiKey).success) return fail("invalid key", 401);
         const parsed = body.safeParse(await request.json().catch(() => null));
-        if (!parsed.success) return json({ error: "invalid body" }, 400);
+        if (!parsed.success) return fail("invalid body", 400);
         const p = parsed.data;
 
         const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
-        const { data: acc } = await db.from("trading_accounts").select("id,user_id").eq("ea_key", key).maybeSingle();
-        if (!acc) return json({ error: "unknown key" }, 401);
+        let acc: { id: string; user_id: string } | null = null;
+        if (uuid.safeParse(key).success) {
+          acc = (await db.from("trading_accounts").select("id,user_id").eq("ea_key", key).maybeSingle()).data;
+        } else {
+          // Username + API key flow: the EA identifies the MT5 account by its login and is auto-registered.
+          const { data: cred } = await db.from("ea_credentials").select("user_id").eq("api_key", apiKey).maybeSingle();
+          if (!cred) return fail("unknown api key", 401);
+          const { data: prof } = await db.from("profiles").select("username").eq("id", cred.user_id).maybeSingle();
+          if (!prof?.username || prof.username.toLowerCase() !== username) return fail("username does not match api key", 401);
+          const login = p.account?.login;
+          if (!login || !/^\d{3,20}$/.test(login)) return fail("missing account login", 400);
+          acc = (await db.from("trading_accounts").select("id,user_id").eq("user_id", cred.user_id).eq("login", login).maybeSingle()).data;
+          if (!acc) {
+            const { data: created } = await db.from("trading_accounts").insert({ user_id: cred.user_id, login, platform: "mt5", label: "MT5 Account", server: p.account?.server ?? null, broker_name: p.account?.company?.split(" ")[0] ?? null }).select("id,user_id").single();
+            acc = created;
+          }
+        }
+        if (!acc) return fail("unknown key", 401);
         const now = new Date().toISOString();
 
-        await db.from("trading_accounts").update(defined({ ...(p.account ?? {}), last_seen_at: now })).eq("id", acc.id);
+        const { login: _l, company: _c, ...accFields } = p.account ?? {};
+        await db.from("trading_accounts").update(defined({ ...accFields, last_seen_at: now })).eq("id", acc.id);
 
         if (p.positions) {
           const tickets = p.positions.map((x) => x.ticket);
           if (tickets.length)
             await db.from("trades").upsert(p.positions.map((x) => defined({ ...x, account_id: acc.id, user_id: acc.user_id, status: "open" })), { onConflict: "account_id,ticket" });
-          // Any previously open trade not reported anymore and not in `closed` is left for the closed sync.
         }
         if (p.closed?.length) {
           await db.from("trades").upsert(p.closed.map((x) => defined({ ...x, account_id: acc.id, user_id: acc.user_id, status: "closed", closed_at: x.closed_at ?? now })), { onConflict: "account_id,ticket" });
+        }
+        if (p.positions) {
+          // Positions no longer reported by the terminal are closed.
+          const live = new Set(p.positions.map((x) => x.ticket));
+          const { data: openRows } = await db.from("trades").select("id,ticket").eq("account_id", acc.id).eq("status", "open");
+          const stale = (openRows ?? []).filter((r) => !live.has(r.ticket)).map((r) => r.id);
+          if (stale.length) await db.from("trades").update({ status: "closed", closed_at: now }).in("id", stale);
         }
         for (const r of p.results ?? []) {
           await db.from("trade_commands").update({ status: r.status, result: r.result ?? null, executed_at: now }).eq("id", r.id).eq("account_id", acc.id);
@@ -89,6 +120,16 @@ export const Route = createFileRoute("/api/public/ea/sync")({
         if (cmds?.length) await db.from("trade_commands").update({ status: "sent" }).in("id", cmds.map((c) => c.id));
 
         const watch = mine.filter((h) => h.trigger_type === "price").map((h) => ({ id: h.id, symbol: h.symbol, price: h.trigger_price }));
+        if (asText) {
+          const v = (x: unknown) => (x == null ? "" : String(x).replace(/[|\n\r]/g, " "));
+          const lines = [`OK|${now}`];
+          for (const c of cmds ?? []) {
+            const pl = (c.payload ?? {}) as Record<string, unknown>;
+            lines.push(["C", c.id, c.command, v(pl.symbol), v(pl.side), v(pl.order_type ?? "market"), v(pl.lot), v(pl.sl), v(pl.tp), v(pl.price), v(pl.count ?? 1), v(pl.delay_seconds ?? 0), v(pl.threshold), v(pl.ticket), pl.until_no_margin ? "1" : "0"].join("|"));
+          }
+          for (const w of watch) lines.push(["W", w.id, v(w.symbol), v(w.price)].join("|"));
+          return new Response(lines.join("\n") + "\n", { headers: { ...cors, "Content-Type": "text/plain" } });
+        }
         return json({ commands: cmds ?? [], watch_prices: watch, server_time: now });
       },
     },
