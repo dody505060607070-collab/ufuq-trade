@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { sanitizeLevels } from "./levels";
 
 const input = z.object({
   symbol: z.string().trim().min(2).max(20),
@@ -106,12 +107,3 @@ export const analyzeMarket = createServerFn({ method: "POST" })
     if (error) throw new Error("Could not save analysis.");
     return row;
   });
-
-/** Drop SL/TP that are on the wrong side of entry so a bad answer can never be copied into an order. */
-export function sanitizeLevels<T extends { direction: string; entry: number | null; stop_loss: number | null; take_profit: number | null }>(r: T): T {
-  const { direction, entry, stop_loss, take_profit } = r;
-  if (direction === "neutral" || entry == null) return { ...r, stop_loss: direction === "neutral" ? null : stop_loss, take_profit: direction === "neutral" ? null : take_profit, entry: direction === "neutral" ? null : entry };
-  const okSl = stop_loss == null || (direction === "buy" ? stop_loss < entry : stop_loss > entry);
-  const okTp = take_profit == null || (direction === "buy" ? take_profit > entry : take_profit < entry);
-  return { ...r, stop_loss: okSl ? stop_loss : null, take_profit: okTp ? take_profit : null };
-}
