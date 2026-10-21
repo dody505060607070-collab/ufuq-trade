@@ -1,29 +1,44 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { Link, useNavigate, useRouter, useLocation } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
-  LayoutDashboard, LineChart, Shuffle, Building2, Settings, PlusCircle, ShieldCheck, LogOut, Menu, X,
+  LayoutGrid, Landmark, Monitor, SlidersHorizontal, KeyRound, ArrowRightLeft, BarChart3, User, ShieldCheck, LogOut, FileText, ArrowLeft,
 } from "lucide-react";
-import { Logo } from "@/components/site/Logo";
-import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { isOnline, useAccounts, useProfile } from "@/lib/trading";
+import { notify, speak } from "@/lib/alerts";
+import { cn } from "@/lib/utils";
 
 const nav = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/performance", label: "Performance", icon: LineChart },
-  { to: "/hedge", label: "Hedge", icon: Shuffle },
-  { to: "/brokers", label: "Brokers", icon: Building2 },
-  { to: "/accounts/add-mt5", label: "Add MT5 Account", icon: PlusCircle },
-  { to: "/accounts/add-tradelocker", label: "Add TradeLocker", icon: PlusCircle },
-  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { to: "/brokers", label: "Brokers", icon: Landmark },
+  { to: "/accounts/add-mt5", label: "Add MT5 Account", icon: Monitor },
+  { to: "/settings/preferences", label: "Settings", icon: SlidersHorizontal },
+  { to: "/settings", label: "MT5 EA Configuration", icon: KeyRound },
+  { to: "/hedge", label: "Hedge", icon: ArrowRightLeft },
+  { to: "/performance", label: "Performance", icon: BarChart3 },
+  { to: "/settings/profile", label: "Personal Profile", icon: User },
 ] as const;
+
+export function Tip({ label, children, side = "right" }: { label: string; children: ReactNode; side?: "right" | "top" | "bottom" | "left" }) {
+  const profile = useProfile();
+  if (profile.data && !profile.data.show_tooltips) return <>{children}</>;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side={side}>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, isAdmin } = useAuth();
+  const profile = useProfile();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
 
   const signOut = async () => {
     await qc.cancelQueries();
@@ -32,53 +47,84 @@ export function AppShell({ children }: { children: ReactNode }) {
     void navigate({ to: "/login", replace: true });
   };
 
-  const links = (
-    <nav className="flex flex-1 flex-col gap-1 p-3">
-      {nav.map((n) => (
-        <Link
-          key={n.to}
-          to={n.to}
-          onClick={() => setOpen(false)}
-          activeOptions={{ exact: n.to === "/settings" ? false : true }}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground" }}
-        >
-          <n.icon className="h-4 w-4" /> {n.label}
-        </Link>
-      ))}
-      {isAdmin && (
-        <Link
-          to="/admin/overview"
-          onClick={() => setOpen(false)}
-          className="mt-4 flex items-center gap-3 rounded-lg border border-primary/40 px-3 py-2 text-sm text-primary-glow hover:bg-sidebar-accent"
-        >
-          <ShieldCheck className="h-4 w-4" /> Admin panel
-        </Link>
-      )}
-    </nav>
-  );
+  const p = profile.data;
+  const initials = ((p?.first_name?.[0] ?? p?.full_name?.[0] ?? user?.email?.[0] ?? "A") + (p?.last_name?.[0] ?? p?.full_name?.split(" ")[1]?.[0] ?? "")).toUpperCase();
+  const railBtn = "flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground";
 
   return (
-    <div className="flex min-h-screen">
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-sidebar-border bg-sidebar transition-transform md:static md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-          <Logo to="/dashboard" />
-          <button className="md:hidden" onClick={() => setOpen(false)} aria-label="Close menu"><X className="h-5 w-5" /></button>
+    <TooltipProvider delayDuration={2000}>
+      <LiveAlerts />
+      <div className="flex min-h-screen">
+        <aside className="sticky top-0 z-40 flex h-screen w-[60px] shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar py-4">
+          <Link to="/dashboard" aria-label="Arrissa home" className="mb-6 text-primary-glow"><Spark /></Link>
+          <nav className="flex flex-1 flex-col items-center gap-1">
+            {nav.map((n) => {
+              const active = pathname === n.to;
+              return (
+                <Tip key={n.to} label={n.label}>
+                  <Link to={n.to} aria-label={n.label} className={cn(railBtn, active && "bg-secondary text-foreground")}>
+                    <n.icon className="h-[18px] w-[18px]" />
+                  </Link>
+                </Tip>
+              );
+            })}
+            {isAdmin && (
+              <Tip label="Admin panel">
+                <Link to="/admin/overview" aria-label="Admin panel" className={cn(railBtn, "text-primary-glow", pathname.startsWith("/admin") && "bg-secondary")}>
+                  <ShieldCheck className="h-[18px] w-[18px]" />
+                </Link>
+              </Tip>
+            )}
+          </nav>
+          <div className="flex flex-col items-center gap-2 border-t border-sidebar-border pt-3">
+            <Tip label={user?.email ?? "Profile"}>
+              <Link to="/settings/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground ring-4 ring-primary/25">{initials}</Link>
+            </Tip>
+            <Tip label="Sign out"><button onClick={signOut} aria-label="Sign out" className={railBtn}><LogOut className="h-[18px] w-[18px]" /></button></Tip>
+            <Tip label="Terms"><Link to="/terms" aria-label="Terms" className={railBtn}><FileText className="h-[18px] w-[18px]" /></Link></Tip>
+          </div>
+        </aside>
+        <main className="min-w-0 flex-1">{children}</main>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+function Spark() {
+  return (
+    <svg viewBox="0 0 32 32" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+      <path d="M16 3v26M3 16h26M6.8 6.8l18.4 18.4M25.2 6.8 6.8 25.2" />
+      <circle cx="16" cy="16" r="3" />
+    </svg>
+  );
+}
+
+/** Centered page layout with a Back link, like the original app. */
+export function Page({ title, subtitle, actions, children, wide }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; wide?: boolean }) {
+  const router = useRouter();
+  return (
+    <div className="px-4 py-4 md:px-5">
+      <button onClick={() => router.history.back()} className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Back</button>
+      <div className={cn("mx-auto mt-10 pb-16", wide ? "max-w-3xl" : "max-w-[608px]")}>
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+            {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+          </div>
+          {actions}
         </div>
-        {links}
-        <div className="border-t border-sidebar-border p-3">
-          <p className="truncate px-3 pb-2 text-xs text-muted-foreground">{user?.email}</p>
-          <Button variant="ghost" className="w-full justify-start" onClick={signOut}><LogOut /> Sign out</Button>
-        </div>
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center gap-3 border-b border-border px-4 md:hidden">
-          <button onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button>
-          <Logo to="/dashboard" />
-        </header>
-        <main className="flex-1 p-4 md:p-8">{children}</main>
+        <div className="space-y-6">{children}</div>
       </div>
     </div>
+  );
+}
+
+export function Card({ title, children, className = "" }: { title?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={cn("rounded-3xl bg-card p-6", className)}>
+      {title && <h2 className="mb-5 text-[15px] font-semibold">{title}</h2>}
+      {children}
+    </section>
   );
 }
 
@@ -110,4 +156,67 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
       {children && <div className="mt-2 text-sm text-muted-foreground">{children}</div>}
     </div>
   );
+}
+
+/** Watches trades, commands, EA connection and signals; speaks / notifies on changes. */
+function LiveAlerts() {
+  const accounts = useAccounts();
+  const profile = useProfile();
+  const trades = useQuery({
+    queryKey: ["open-trades"],
+    queryFn: async () => (await supabase.from("trades").select("*").eq("status", "open").order("opened_at", { ascending: false })).data ?? [],
+    refetchInterval: 5_000,
+  });
+  const commands = useQuery({
+    queryKey: ["commands"],
+    queryFn: async () => (await supabase.from("trade_commands").select("*").order("created_at", { ascending: false }).limit(20)).data ?? [],
+    refetchInterval: 5_000,
+  });
+  const signals = useQuery({
+    queryKey: ["signals"],
+    queryFn: async () => (await supabase.from("signals").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(10)).data ?? [],
+    refetchInterval: 30_000,
+  });
+
+  const prev = useRef<{ trades?: Map<string, { sl: number | null; tp: number | null; symbol: string }>; cmds?: Map<string, string>; online?: Map<string, boolean>; signals?: Set<string> }>({});
+
+  useEffect(() => {
+    if (!trades.data) return;
+    const now = new Map(trades.data.map((t) => [t.id, { sl: t.stop_loss, tp: t.take_profit, symbol: t.symbol }]));
+    const old = prev.current.trades;
+    if (old) {
+      for (const [id, t] of now) if (!old.has(id)) speak(`Trade opened on ${t.symbol}`);
+      for (const [id, t] of old) if (!now.has(id)) speak(`Trade closed on ${t.symbol}`);
+    }
+    prev.current.trades = now;
+  }, [trades.data]);
+
+  useEffect(() => {
+    if (!commands.data) return;
+    const now = new Map(commands.data.map((c) => [c.id, c.status]));
+    const old = prev.current.cmds;
+    if (old) for (const c of commands.data) if (old.get(c.id) && old.get(c.id) !== c.status && c.status === "failed") speak(`Command failed: ${c.command.replace(/_/g, " ")}`);
+    prev.current.cmds = now;
+  }, [commands.data]);
+
+  useEffect(() => {
+    if (!accounts.data) return;
+    const now = new Map(accounts.data.map((a) => [a.id, isOnline(a)]));
+    const old = prev.current.online;
+    if (old) for (const a of accounts.data) if (old.has(a.id) && old.get(a.id) !== now.get(a.id)) speak(now.get(a.id) ? `Account ${a.login} connected` : `Account ${a.login} disconnected`);
+    prev.current.online = now;
+  }, [accounts.data]);
+
+  useEffect(() => {
+    if (!signals.data) return;
+    const now = new Set(signals.data.map((s) => s.id));
+    const old = prev.current.signals;
+    if (old) for (const s of signals.data) if (!old.has(s.id)) {
+      speak(`New signal: ${s.direction} ${s.symbol}`);
+      if (profile.data?.push_notifications) notify("New Arrissa signal", `${s.direction.toUpperCase()} ${s.symbol}${s.entry ? ` @ ${s.entry}` : ""}`);
+    }
+    prev.current.signals = now;
+  }, [signals.data, profile.data?.push_notifications]);
+
+  return null;
 }

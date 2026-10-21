@@ -1,36 +1,34 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Building2 } from "lucide-react";
-import { PageHeader, Empty } from "@/components/app/AppShell";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ExternalLink, Monitor, Info } from "lucide-react";
+import { Page } from "@/components/app/AppShell";
+import { BrokerLogo } from "@/components/app/InstrumentIcon";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { useBrokers } from "@/lib/trading";
 
 export const Route = createFileRoute("/_authenticated/brokers")({
-  head: () => ({ meta: [{ title: "Brokers | Arrissa AI" }] }),
+  head: () => ({ meta: [{ title: "Brokers | Arrissa AI" }, { name: "description", content: "Partner brokers supported on the Arrissa platform." }] }),
   component: Brokers,
 });
 
 function Brokers() {
-  const { data, isLoading } = useQuery({ queryKey: ["brokers"], queryFn: async () => (await supabase.from("brokers").select("*").eq("is_active", true).order("sort_order")).data ?? [] });
+  const brokers = useBrokers();
   return (
-    <div>
-      <PageHeader title="Brokers" subtitle="Partner brokers supported on the Arrissa platform. Open an account through our partner link to connect." />
-      {isLoading ? <p className="text-sm text-muted-foreground">Loading brokers…</p> : !data?.length ? <Empty title="No brokers available at this time." /> : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((b) => (
-            <div key={b.id} className="flex flex-col rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-3">
-                {b.logo_url ? <img src={b.logo_url} alt={b.name} className="h-10 w-10 rounded-lg object-contain" /> : <span className="grid h-10 w-10 place-items-center rounded-lg bg-secondary"><Building2 className="h-5 w-5" /></span>}
-                <div><p className="font-medium">{b.name}</p><p className="text-xs uppercase text-muted-foreground">{b.platforms.join(" · ")}</p></div>
-              </div>
-              <p className="mt-3 flex-1 text-sm text-muted-foreground">{b.description}</p>
-              {b.partner_url ? (
-                <Button asChild variant="hero" className="mt-4"><a href={b.partner_url} target="_blank" rel="noreferrer">Open account <ExternalLink /></a></Button>
-              ) : <Button disabled className="mt-4">No partner link</Button>}
+    <Page wide title="Brokers" subtitle="Partner brokers supported on the Arrissa platform. Open an account through our partner link to connect.">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {(brokers.data ?? []).map((b) => (
+          <div key={b.id} className="flex flex-col rounded-3xl bg-card p-5">
+            <BrokerLogo name={b.name} color={b.brand_color} className="h-12 w-12" />
+            <p className="mt-3 font-bold">{b.name}</p>
+            {b.regulation && <p className="text-xs text-muted-foreground">{b.regulation}</p>}
+            <div className="mt-2 flex gap-1">{b.platforms.map((p) => <span key={p} className="rounded-md border border-primary/40 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary-glow">{p}</span>)}</div>
+            <div className="mt-4 space-y-2 border-t border-border pt-4">
+              <Button asChild variant="hero" className="w-full rounded-full"><a href={b.partner_url ?? "#"} target="_blank" rel="noreferrer"><ExternalLink /> Open Account</a></Button>
+              <Button asChild variant="outline" className="w-full rounded-full"><Link to="/accounts/add-mt5"><Monitor /> Add MT5 Account</Link></Button>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+          </div>
+        ))}
+      </div>
+      <p className="flex items-center gap-2 text-xs text-muted-foreground"><Info className="h-3.5 w-3.5" /> You must register through our partner link before connecting an account.</p>
+    </Page>
   );
 }
