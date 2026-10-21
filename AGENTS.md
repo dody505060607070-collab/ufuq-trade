@@ -17,3 +17,4 @@
 - AI analysis runs in analyzeMarket (src/lib/ai.functions.ts): reuses any analysis of the same symbol/timeframe from the last 15 min for all users, else calls Google Gemini with GEMINI_API_KEY and falls back to Lovable AI (default ai_models row) when Gemini fails. Why: minimise AI cost.
 - Admin CRUD pages reuse src/components/admin/AdminCrud.tsx. Why: one consistent table/edit UI.
 - Live prices, candles, news and the economic calendar come from free public sources via src/lib/market.server.ts (Yahoo chart API keyed by instruments.yahoo_symbol, RSS feeds, ForexFactory JSON) and also feed the AI analysis prompt. Why: no paid data keys needed.
+- UI text is translated with useT() from src/lib/i18n.tsx: the exact English string is the key, Arabic lives in src/i18n/ar-*.ts and falls back to English; language is saved in the browser and sets html dir=rtl. Why: one source of copy, no key bookkeeping.
