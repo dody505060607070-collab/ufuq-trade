@@ -156,14 +156,14 @@ function Dashboard() {
   autoRef.current = { symbol, tf };
   useEffect(() => {
     if (!auto) return;
-    const id = window.setInterval(() => void runAnalysis(autoRef.current.symbol, autoRef.current.tf, true), 5 * 60_000);
+    const id = window.setInterval(() => void runAnalysis(autoRef.current.symbol, autoRef.current.tf, true), 15 * 60_000);
     return () => window.clearInterval(id);
   }, [auto, runAnalysis]);
   const toggleAuto = () => {
     const v = !auto;
     setAuto(v);
     localStorage.setItem(AUTO_KEY, v ? "on" : "off");
-    toast.success(v ? `Auto analysis on — every 5 minutes for the selected instrument.` : "Auto analysis off.");
+    toast.success(v ? `Auto analysis on — every 15 minutes for the selected instrument.` : "Auto analysis off.");
     if (v) void runAnalysis(symbol, tf, true);
   };
   const useSignal = (s: { symbol: string; direction: string; stop_loss: number | null; take_profit: number | null }) => {
@@ -191,7 +191,7 @@ function Dashboard() {
             <Tip label={onlyCurrent ? "Showing current instrument only" : "Show current instrument only"} side="bottom">
               <button onClick={() => setOnlyCurrent((v) => !v)} aria-label="Filter" className={cn("flex h-7 w-7 items-center justify-center rounded-full border border-border", onlyCurrent && "border-primary text-primary-glow")}><ListFilter className="h-3.5 w-3.5" /></button>
             </Tip>
-            <Tip label={auto ? "Auto analysis every 5 min: ON" : "Auto analysis every 5 min: OFF"} side="bottom">
+            <Tip label={auto ? "Auto analysis every 15 min: ON" : "Auto analysis every 15 min: OFF"} side="bottom">
               <button onClick={toggleAuto} aria-label="Auto analysis" className={cn("flex h-7 w-7 items-center justify-center rounded-full", auto ? "bg-success text-success-foreground" : "border border-border text-muted-foreground")}><Clock className="h-3.5 w-3.5" /></button>
             </Tip>
           </div>
