@@ -124,7 +124,7 @@ export const Route = createFileRoute("/api/public/ea/sync")({
           const v = (x: unknown) => (x == null ? "" : String(x).replace(/[|\n\r]/g, " "));
           const lines = [`OK|${now}`];
           for (const c of cmds ?? []) {
-            const pl = (c.payload ?? {}) as Record<string, unknown>;
+            const pl = (c.payload ?? {}) as { symbol?: unknown; side?: unknown; order_type?: unknown; lot?: unknown; sl?: unknown; tp?: unknown; price?: unknown; count?: unknown; delay_seconds?: unknown; threshold?: unknown; ticket?: unknown; until_no_margin?: unknown };
             lines.push(["C", c.id, c.command, v(pl.symbol), v(pl.side), v(pl.order_type ?? "market"), v(pl.lot), v(pl.sl), v(pl.tp), v(pl.price), v(pl.count ?? 1), v(pl.delay_seconds ?? 0), v(pl.threshold), v(pl.ticket), pl.until_no_margin ? "1" : "0"].join("|"));
           }
           for (const w of watch) lines.push(["W", w.id, v(w.symbol), v(w.price)].join("|"));

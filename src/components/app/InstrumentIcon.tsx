@@ -10,7 +10,7 @@ export function InstrumentIcon({ flag, className }: { flag: string | null | unde
   return <span className={cn(base, "bg-muted text-muted-foreground")}>•</span>;
 }
 
-export function BrokerLogo({ name, color, className }: { name: string | null | undefined; color?: string | null; className?: string }) {
+export function BrokerLogo({ name, color, className }: { name: string | null | undefined; color?: string | null | undefined; className?: string }) {
   const n = name ?? "";
   const text = /exness/i.test(n) ? "ex" : /fxpro/i.test(n) ? "FxPro" : n.slice(0, 2);
   return (

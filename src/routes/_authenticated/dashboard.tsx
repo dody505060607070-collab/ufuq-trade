@@ -357,7 +357,7 @@ function Dashboard() {
   );
 }
 
-function Metric({ label, value, badge, tone }: { label: string; value: string | null; badge?: string; tone?: "up" | "down" }) {
+function Metric({ label, value, badge, tone }: { label: string; value: string | null; badge?: string; tone?: "up" | "down" | undefined }) {
   return (
     <div className="min-w-0 flex-1">
       <p className="flex items-center gap-2 text-[11px] font-semibold tracking-widest text-muted-foreground">{label}{badge && <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] text-primary-foreground">{badge}</span>}</p>
@@ -375,7 +375,7 @@ function NumField({ label, v, on, placeholder, left }: { label: string; v: strin
   );
 }
 
-function AnalysisCard(p: { symbol: string; tag?: string; direction: string; confidence?: number | null; entry: number | null; sl: number | null; tp: number | null; text: string | null; at: string; onUse: () => void }) {
+function AnalysisCard(p: { symbol: string; tag?: string | undefined; direction: string; confidence?: number | null; entry: number | null; sl: number | null; tp: number | null; text: string | null; at: string; onUse: () => unknown }) {
   const d = priceDigits(p.entry);
   return (
     <div className="rounded-2xl bg-card p-4 text-sm">

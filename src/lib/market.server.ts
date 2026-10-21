@@ -36,7 +36,7 @@ export async function fetchQuote(symbol: string, yahoo: string): Promise<Quote> 
 }
 
 export async function fetchCandles(yahoo: string, tf: string, limit = 80): Promise<Candle[]> {
-  const p = TF_PARAMS[tf] ?? TF_PARAMS.H1!;
+  const p = TF_PARAMS[tf] ?? TF_PARAMS["H1"]!;
   const r = await yahooChart(yahoo, p.interval, p.range);
   const q = r.indicators.quote[0]!;
   const raw: Candle[] = [];
