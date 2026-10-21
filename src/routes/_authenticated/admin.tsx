@@ -19,7 +19,7 @@ const tabs = [
 
 function AdminLayout() {
   return (
-    <div>
+    <div className="p-4 md:p-8">
       <h1 className="text-2xl font-semibold tracking-tight">Admin panel</h1>
       <div className="mb-6 mt-4 flex flex-wrap gap-1 border-b border-border">
         {tabs.map(([to, label]) => (

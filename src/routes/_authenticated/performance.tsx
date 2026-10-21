@@ -53,7 +53,7 @@ function Performance() {
                 <span className="flex-1 font-semibold">{p.label}</span>
                 {s.count === 0 ? <span className="text-xs italic text-muted-foreground">No data</span> : (
                   <span className="flex gap-4 text-xs">
-                    <span className="text-muted-foreground">{s.count} trades · {s.winRate.toFixed(0)}% win</span>
+                    <span className="text-muted-foreground">{s.count} {s.count === 1 ? "trade" : "trades"} · {s.winRate.toFixed(0)}% win</span>
                     <span className={cn("font-semibold", s.net >= 0 ? "text-success" : "text-destructive")}>{s.net >= 0 ? "+" : ""}{fmt(s.net)}</span>
                   </span>
                 )}
