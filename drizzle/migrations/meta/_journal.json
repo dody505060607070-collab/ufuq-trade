@@ -15,6 +15,13 @@
       "when": 1792610536407,
       "tag": "0001_app_screens_parity",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792620501963,
+      "tag": "0002_autopilot",
+      "breakpoints": true
     }
   ]
 }

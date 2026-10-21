@@ -24,6 +24,7 @@ import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WebAppInstallTriggerRouteImport } from './routes/web-app-install-trigger'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAutopilotRouteImport } from './routes/_authenticated/autopilot'
 import { Route as AuthenticatedBrokersRouteImport } from './routes/_authenticated/brokers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedHedgeRouteImport } from './routes/_authenticated/hedge'
@@ -46,6 +47,7 @@ import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsPreferencesRouteImport } from './routes/_authenticated/settings.preferences'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 import { Route as AuthenticatedAdminUsersIdRouteImport } from './routes/_authenticated/admin.users.$id'
+import { Route as ApiPublicAutopilotRunRouteImport } from './routes/api/public/autopilot/run'
 import { Route as ApiPublicEaSyncRouteImport } from './routes/api/public/ea/sync'
 
 const IndexRoute = IndexRouteImport.update({
@@ -120,6 +122,11 @@ const WebAppInstallTriggerRoute = WebAppInstallTriggerRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAutopilotRoute = AuthenticatedAutopilotRouteImport.update({
+  id: '/autopilot',
+  path: '/autopilot',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBrokersRoute = AuthenticatedBrokersRouteImport.update({
@@ -247,6 +254,11 @@ const AuthenticatedAdminUsersIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminUsersRoute,
   } as any)
+const ApiPublicAutopilotRunRoute = ApiPublicAutopilotRunRouteImport.update({
+  id: '/api/public/autopilot/run',
+  path: '/api/public/autopilot/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEaSyncRoute = ApiPublicEaSyncRouteImport.update({
   id: '/api/public/ea/sync',
   path: '/api/public/ea/sync',
@@ -268,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brokers': typeof AuthenticatedBrokersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/hedge': typeof AuthenticatedHedgeRoute
@@ -290,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
+  '/api/public/autopilot/run': typeof ApiPublicAutopilotRunRoute
   '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesByTo {
@@ -306,6 +320,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brokers': typeof AuthenticatedBrokersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/hedge': typeof AuthenticatedHedgeRoute
@@ -327,6 +342,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
+  '/api/public/autopilot/run': typeof ApiPublicAutopilotRunRoute
   '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesById {
@@ -346,6 +362,7 @@ export interface FileRoutesById {
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/autopilot': typeof AuthenticatedAutopilotRoute
   '/_authenticated/brokers': typeof AuthenticatedBrokersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/hedge': typeof AuthenticatedHedgeRoute
@@ -368,6 +385,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
+  '/api/public/autopilot/run': typeof ApiPublicAutopilotRunRoute
   '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRouteTypes {
@@ -387,6 +405,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/web-app-install-trigger'
     | '/admin'
+    | '/autopilot'
     | '/brokers'
     | '/dashboard'
     | '/hedge'
@@ -409,6 +428,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/settings/'
     | '/admin/users/$id'
+    | '/api/public/autopilot/run'
     | '/api/public/ea/sync'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -425,6 +445,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/autopilot'
     | '/brokers'
     | '/dashboard'
     | '/hedge'
@@ -446,6 +467,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/settings'
     | '/admin/users/$id'
+    | '/api/public/autopilot/run'
     | '/api/public/ea/sync'
   id:
     | '__root__'
@@ -464,6 +486,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/web-app-install-trigger'
     | '/_authenticated/admin'
+    | '/_authenticated/autopilot'
     | '/_authenticated/brokers'
     | '/_authenticated/dashboard'
     | '/_authenticated/hedge'
@@ -486,6 +509,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/settings/'
     | '/_authenticated/admin/users/$id'
+    | '/api/public/autopilot/run'
     | '/api/public/ea/sync'
   fileRoutesById: FileRoutesById
 }
@@ -504,6 +528,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WebAppInstallTriggerRoute: typeof WebAppInstallTriggerRoute
+  ApiPublicAutopilotRunRoute: typeof ApiPublicAutopilotRunRoute
   ApiPublicEaSyncRoute: typeof ApiPublicEaSyncRoute
 }
 
@@ -612,6 +637,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/autopilot': {
+      id: '/_authenticated/autopilot'
+      path: '/autopilot'
+      fullPath: '/autopilot'
+      preLoaderRoute: typeof AuthenticatedAutopilotRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/brokers': {
@@ -768,6 +800,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersIdRouteImport
       parentRoute: typeof AuthenticatedAdminUsersRoute
     }
+    '/api/public/autopilot/run': {
+      id: '/api/public/autopilot/run'
+      path: '/api/public/autopilot/run'
+      fullPath: '/api/public/autopilot/run'
+      preLoaderRoute: typeof ApiPublicAutopilotRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ea/sync': {
       id: '/api/public/ea/sync'
       path: '/api/public/ea/sync'
@@ -842,6 +881,7 @@ const AuthenticatedSettingsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedAutopilotRoute: typeof AuthenticatedAutopilotRoute
   AuthenticatedBrokersRoute: typeof AuthenticatedBrokersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHedgeRoute: typeof AuthenticatedHedgeRoute
@@ -853,6 +893,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedAutopilotRoute: AuthenticatedAutopilotRoute,
   AuthenticatedBrokersRoute: AuthenticatedBrokersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHedgeRoute: AuthenticatedHedgeRoute,
@@ -881,6 +922,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WebAppInstallTriggerRoute: WebAppInstallTriggerRoute,
+  ApiPublicAutopilotRunRoute: ApiPublicAutopilotRunRoute,
   ApiPublicEaSyncRoute: ApiPublicEaSyncRoute,
 }
 export const routeTree = rootRouteImport

@@ -18,3 +18,4 @@
 - Admin CRUD pages reuse src/components/admin/AdminCrud.tsx. Why: one consistent table/edit UI.
 - Live prices, candles, news and the economic calendar come from free public sources via src/lib/market.server.ts (Yahoo chart API keyed by instruments.yahoo_symbol, RSS feeds, ForexFactory JSON) and also feed the AI analysis prompt. Why: no paid data keys needed.
 - UI text is translated with useT() from src/lib/i18n.tsx: the exact English string is the key, Arabic lives in src/i18n/ar-*.ts and falls back to English; language is saved in the browser and sets html dir=rtl. Why: one source of copy, no key bookkeeping.
+- Auto-Pilot: a scheduled job (every 15 min) calls POST /api/public/autopilot/run (cron-secret auth); it reuses shared analyses via src/lib/analysis.server.ts, applies the pure rules in src/lib/autopilot.ts, and queues open_trade commands (payload.autopilot=true) for accounts with auto_trading on. Why: trading runs 24/7 without a browser open.
