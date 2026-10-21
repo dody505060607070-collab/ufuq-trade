@@ -29,18 +29,19 @@ function Prefs() {
 
   return (
     <Page title={t("Settings")} subtitle={t("Manage your notification and display preferences.")}>
+      <HelpNote>{"Choose how the app notifies you and which dashboard helpers are shown. You can also control whether using a signal copies its Stop Loss and Take Profit into the trade form."}</HelpNote>
       <Card title={t("Notifications")}>
-        <Row title={t("Signal Push Notifications")} desc="Receive OS notifications when a new signal arrives, even when the app is in the background." checked={!!p?.push_notifications} on={togglePush} />
+        <Row title={t("Signal Push Notifications")} desc={t("Receive OS notifications when a new signal arrives, even when the app is in the background.")} checked={!!p?.push_notifications} on={togglePush} />
       </Card>
       <Card title={t("Sound")}>
-        <Row title={t("Voice notifications")} desc="A spoken line when things happen: trades opened, TP / SL hit, trades closed, new signals, connection changes and more. Saved on this device."
+        <Row title={t("Voice notifications")} desc={t("A spoken line when things happen: trades opened, TP / SL hit, trades closed, new signals, connection changes and more. Saved on this device.")}
           checked={voice} on={(v) => { setVoice(v); setVoicePref(v); if (v) speak(t("Voice notifications on")); }} />
       </Card>
       <Card title={t("Display")}>
         <div className="space-y-4">
-          <Row title={t("Dashboard Tooltips")} desc="Show small helper tooltips after hovering an item for 2 seconds." checked={!!p?.show_tooltips} on={(v) => void profile.update({ show_tooltips: v })} />
-          <Row title={t("Copy TP to trading form")} desc='When on, "Use Signal" loads the Take Profit value into the trading form.' checked={!!p?.copy_tp} on={(v) => void profile.update({ copy_tp: v })} />
-          <Row title={t("Copy SL to trading form")} desc='When on, "Use Signal" loads the Stop Loss value into the trading form.' checked={!!p?.copy_sl} on={(v) => void profile.update({ copy_sl: v })} />
+          <Row title={t("Dashboard Tooltips")} desc={t("Show small helper tooltips after hovering an item for 2 seconds.")} checked={!!p?.show_tooltips} on={(v) => void profile.update({ show_tooltips: v })} />
+          <Row title={t("Copy TP to trading form")} desc={t("When on, \"Use Signal\" loads the Take Profit value into the trading form.")} checked={!!p?.copy_tp} on={(v) => void profile.update({ copy_tp: v })} />
+          <Row title={t("Copy SL to trading form")} desc={t("When on, \"Use Signal\" loads the Stop Loss value into the trading form.")} checked={!!p?.copy_sl} on={(v) => void profile.update({ copy_sl: v })} />
         </div>
       </Card>
     </Page>
@@ -53,7 +54,7 @@ function Row({ title, desc, checked, on }: { title: string; desc: string; checke
     <label className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background/40 px-4 py-3">
       <span>
         <span className="block text-sm font-semibold">{title}</span>
-        <span className="block text-xs text-muted-foreground">{desc}</span>
+        <span className="block text-xs text-muted-foreground">{t(desc)}</span>
       </span>
       <Switch checked={checked} onCheckedChange={on} />
     </label>

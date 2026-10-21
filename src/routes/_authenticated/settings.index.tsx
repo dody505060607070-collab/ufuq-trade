@@ -42,6 +42,7 @@ function EaConfig() {
 
   return (
     <Page title={t("MT5 EA Configuration")} subtitle={t("Use these credentials to connect your Arrissa EA to this account.")}>
+      <HelpNote>{"The EA is a small program running inside MetaTrader 5 that connects this site to your broker account and executes trades. Download it, put it in MQL5/Experts, Compile it in MetaEditor, allow WebRequest, then attach it to a chart with your username and API key."}</HelpNote>
       <Card title={t("Download EA")}>
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary-glow"><Download className="h-5 w-5" /></span>
@@ -96,8 +97,8 @@ function CopyRow({ label, value, mono }: { label: string; value: ReactNode; mono
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold tracking-widest text-muted-foreground">{label}</p>
-        <p className={mono ? t("mt-1 break-all font-mono text-sm") : t("mt-1 font-semibold")}>{value}</p>
+        <p className="text-[11px] font-semibold tracking-widest text-muted-foreground">{t(label)}</p>
+        <p className={mono ? "mt-1 break-all font-mono text-sm" : "mt-1 font-semibold"}>{value}</p>
       </div>
       <button aria-label={`Copy ${label}`} onClick={() => { void navigator.clipboard.writeText(String(value)); toast.success(`${label.toLowerCase()} copied.`); }} className="text-muted-foreground hover:text-foreground"><Copy className="h-4 w-4" /></button>
     </div>

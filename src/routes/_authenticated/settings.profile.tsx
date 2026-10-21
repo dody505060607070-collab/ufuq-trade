@@ -60,6 +60,7 @@ function ProfilePage() {
 
   return (
     <Page title={t("Personal Profile")} subtitle={t("Manage your account information and password.")}>
+      <HelpNote>{"Update your personal account information and save your changes here. To change your password, enter your current password and confirm the new one."}</HelpNote>
       <Card title={t("Account Information")}>
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -88,7 +89,7 @@ function Field({ label, icon, children }: { label: string; icon: ReactNode; chil
   const t = useT();
   return (
     <div className="space-y-2">
-      <p className="text-sm">{label}</p>
+      <p className="text-sm">{t(label)}</p>
       <div className="relative">
         <span className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
         {children}
@@ -102,7 +103,7 @@ function Pw({ label, placeholder, v, on }: { label: string; placeholder: string;
   const [show, setShow] = useState(false);
   return (
     <Field label={label} icon={<Lock />}>
-      <Input type={show ? t("text") : t("password")} placeholder={placeholder} value={v} onChange={(e) => on(e.target.value)} className="h-11 rounded-full px-11" autoComplete="new-password" />
+      <Input type={show ? "text" : "password"} placeholder={placeholder} value={v} onChange={(e) => on(e.target.value)} className="h-11 rounded-full px-11" autoComplete="new-password" />
       <button type="button" onClick={() => setShow(!show)} aria-label={show ? t("Hide password") : t("Show password")} className="absolute end-4 top-1/2 -translate-y-1/2 text-muted-foreground">{show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
     </Field>
   );

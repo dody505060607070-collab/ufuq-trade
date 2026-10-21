@@ -116,7 +116,7 @@ function Dashboard() {
       sl: sl ? Number(sl) : null, tp: tp ? Number(tp) : null, price: orderPrice ? Number(orderPrice) : null, ref: price,
     };
     const err = validateOrder(o);
-    if (err) return toast.error(err);
+    if (err) return toast.error(t(err));
     setSending(true);
     const ok = await queueCommand([account], "open_trade", {
       symbol, side, order_type: orderType, lot: o.lot, sl: o.sl, tp: o.tp, price: orderType === "market" ? null : o.price, count: o.count, delay_seconds: o.interval,
@@ -140,13 +140,13 @@ function Dashboard() {
     queryKey: ["signals"],
     queryFn: async () => (await supabase.from("signals").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(10)).data ?? [],
   });
-  const runAnalysis = useCallback(async (sym: string, t: Tf, silent = false) => {
+  const runAnalysis = useCallback(async (sym: string, timeframe: Tf, silent = false) => {
     if (!sym) return;
     setBusy(true);
     try {
-      await analyze({ data: { symbol: sym, timeframe: t, price: null } });
+      await analyze({ data: { symbol: sym, timeframe, price: null } });
       await qc.invalidateQueries({ queryKey: ["analyses"] });
-      if (!silent) toast.success(`Analysis for ${sym} ready.`);
+      if (!silent) toast.success(t("Analysis for {symbol} ready.", { symbol: sym }));
       setAnalysisOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("Analysis failed."));
@@ -165,7 +165,7 @@ function Dashboard() {
     const v = !auto;
     setAuto(v);
     localStorage.setItem(AUTO_KEY, v ? "on" : "off");
-    toast.success(v ? `Auto analysis on — every 15 minutes for the selected instrument.` : t("Auto analysis off."));
+    toast.success(v ? t("Auto analysis on — every {n} minutes for the selected instrument.", { n: 15 }) : t("Auto analysis off."));
     if (v) void runAnalysis(symbol, tf, true);
   };
   const useSignal = (s: { symbol: string; direction: string; stop_loss: number | null; take_profit: number | null }) => {
@@ -183,6 +183,8 @@ function Dashboard() {
   const money = (n: number | null | undefined) => (hide ? "••••••" : `${account?.currency ?? "USD"} ${fmt(n)}`);
 
   return (
+    <>
+      <header className="space-y-3 p-5"><h1 className="text-2xl font-bold">{t("Dashboard")}</h1><HelpNote>{"Use the three columns to review AI analysis, place orders in the trade form, and monitor or manage open trades. Select an account and instrument before trading."}</HelpNote></header>
     <div className="grid min-h-screen xl:grid-cols-[350px_minmax(0,1fr)_350px]">
       {/* LEFT: analysis */}
       <aside className="space-y-4 border-border bg-background p-5 xl:border-e">
@@ -215,7 +217,7 @@ function Dashboard() {
         <div className="flex items-center gap-6 rounded-full bg-gradient-to-r from-card via-card to-accent px-8 py-4">
           <Metric label={t("BALANCE")} value={account ? money(account.balance) : null} />
           <Metric label={t("EQUITY")} value={account ? money(account.equity) : null} />
-          <Metric label={t("PROFIT")} badge={String(accTrades.length)} value={account ? (hide ? "••••••" : `${profit >= 0 ? "+" : ""}${fmt(profit)}`) : null} tone={profit > 0 ? t("up") : profit < 0 ? t("down") : undefined} />
+          <Metric label={t("PROFIT")} badge={String(accTrades.length)} value={account ? (hide ? "••••••" : `${profit >= 0 ? "+" : ""}${fmt(profit)}`) : null} tone={profit > 0 ? "up" : profit < 0 ? "down" : undefined} />
           <div className="ms-auto flex gap-2">
             <Tip label={hide ? t("Show values") : t("Hide values")} side="bottom"><button onClick={() => setHide((v) => !v)} aria-label={t("Hide values")} className="flex h-9 w-9 items-center justify-center rounded-full border border-border">{hide ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button></Tip>
             <Tip label={online ? t("EA connected") : t("EA not connected")} side="bottom"><button onClick={() => !online && setEaModal(true)} aria-label={t("EA status")} className={cn("flex h-9 w-9 items-center justify-center rounded-full border", online ? "border-success text-success" : "border-border")}><Target className="h-4 w-4" /></button></Tip>
@@ -290,7 +292,7 @@ function Dashboard() {
           <NumField label={t("Trades")} v={count} on={setCount} />
           <NumField label={t("Interval (s)")} v={interval} on={setIntervalS} />
         </div>
-        {orderType !== "market" && <NumField label={`${orderType === "limit" ? "Limit" : "Stop"} price`} v={orderPrice} on={setOrderPrice} placeholder={price ? fmt(price, priceDigits(price)) : "0.00"} left />}
+        {orderType !== "market" && <NumField label={(orderType === "limit" ? t("Limit price") : t("Stop price"))} v={orderPrice} on={setOrderPrice} placeholder={price ? fmt(price, priceDigits(price)) : "0.00"} left />}
         <div className="grid gap-3 sm:grid-cols-2">
           <NumField label={t("SL (Optional)")} v={sl} on={setSl} placeholder="0.00" left />
           <NumField label={t("TP (Optional)")} v={tp} on={setTp} placeholder="0.00" left />
@@ -310,16 +312,16 @@ function Dashboard() {
         {!account ? <p className="pt-6 text-center text-sm text-muted-foreground">{t("Add an MT5 account to see trades.")}</p>
           : !online && accTrades.length === 0 ? <p className="pt-6 text-center text-sm text-muted-foreground">{t("Waiting for MT5 EA connection…")}</p>
           : accTrades.length === 0 ? <p className="pt-6 text-center text-sm text-muted-foreground">{t("No open trades.")}</p>
-          : accTrades.map((t) => (
-            <div key={t.id} className="rounded-2xl bg-card p-4 text-sm">
+          : accTrades.map((trade) => (
+            <div key={trade.id} className="rounded-2xl bg-card p-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="font-semibold">{t.symbol} <span className={cn("ms-1 text-xs", t.side === "buy" ? "text-success" : "text-destructive")}>{t.side.toUpperCase()} {t.volume}</span></span>
-                <span className={cn("font-semibold", Number(t.profit) >= 0 ? "text-success" : "text-destructive")}>{fmt(t.profit)}</span>
+                <span className="font-semibold">{trade.symbol} <span className={cn("ms-1 text-xs", trade.side === "buy" ? "text-success" : "text-destructive")}>{t(trade.side.toUpperCase())} {trade.volume}</span></span>
+                <span className={cn("font-semibold", Number(trade.profit) >= 0 ? "text-success" : "text-destructive")}>{fmt(trade.profit)}</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">{t("Open")} {fmt(t.open_price, priceDigits(t.open_price))}  {t("· SL")} {fmt(t.stop_loss, priceDigits(t.open_price))}  {t("· TP")} {fmt(t.take_profit, priceDigits(t.open_price))}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("Open")} {fmt(trade.open_price, priceDigits(trade.open_price))}  {t("· SL")} {fmt(trade.stop_loss, priceDigits(trade.open_price))}  {t("· TP")} {fmt(trade.take_profit, priceDigits(trade.open_price))}</p>
               <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                <span>#{t.ticket}{t.opened_at ? ` · ${timeAgo(t.opened_at)}` : ""}</span>
-                <button className="text-destructive hover:underline" onClick={() => void queueCommand([account], "close_trade", { ticket: t.ticket })}>{t("Close")}</button>
+                <span>#{trade.ticket}{trade.opened_at ? ` · ${timeAgo(trade.opened_at)}` : ""}</span>
+                <button className="text-destructive hover:underline" onClick={() => void queueCommand([account], "close_trade", { ticket: trade.ticket })}>{t("Close")}</button>
               </div>
             </div>
           ))}
@@ -354,7 +356,7 @@ function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </div></>
   );
 }
 
@@ -372,7 +374,7 @@ function NumField({ label, v, on, placeholder, left }: { label: string; v: strin
   const t = useT();
   return (
     <div className="space-y-2">
-      <p className="text-sm font-semibold">{label}</p>
+      <p className="text-sm font-semibold">{t(label)}</p>
       <Input inputMode="decimal" value={v} placeholder={placeholder} onChange={(e) => on(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputCls, left && "px-5 text-start")} />
     </div>
   );
@@ -386,12 +388,12 @@ function AnalysisCard(p: { symbol: string; tag?: string | undefined; direction: 
       <div className="flex items-center justify-between">
         <span className="font-semibold">{p.symbol} {p.tag && <span className="ms-1 text-xs font-normal text-muted-foreground">{p.tag}</span>}</span>
         <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", p.direction === "buy" ? "bg-success/15 text-success" : p.direction === "sell" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground")}>
-          {p.direction === "buy" ? <ArrowUpRight className="h-3 w-3" /> : p.direction === "sell" ? <ArrowDownRight className="h-3 w-3" /> : null}{p.direction.toUpperCase()}
+          {p.direction === "buy" ? <ArrowUpRight className="h-3 w-3" /> : p.direction === "sell" ? <ArrowDownRight className="h-3 w-3" /> : null}{t(p.direction.toUpperCase())}
         </span>
       </div>
       {p.confidence != null && <div className="mt-2 h-1.5 rounded-full bg-muted"><div className="h-1.5 rounded-full bg-gradient-primary" style={{ width: `${p.confidence}%` }} /></div>}
       <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-        {([["Entry", p.entry], ["SL", p.sl], ["TP", p.tp]] as const).map(([l, v]) => <div key={l} className="rounded-lg bg-muted p-1.5"><p className="text-muted-foreground">{l}</p><p className="font-mono">{fmt(v, d)}</p></div>)}
+        {([["Entry", p.entry], ["SL", p.sl], ["TP", p.tp]] as const).map(([l, v]) => <div key={l} className="rounded-lg bg-muted p-1.5"><p className="text-muted-foreground">{t(l)}</p><p className="font-mono">{fmt(v, d)}</p></div>)}
       </div>
       {p.text && <p className="mt-3 line-clamp-4 text-xs leading-relaxed text-muted-foreground">{p.text}</p>}
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
@@ -430,9 +432,9 @@ function GlobalManage({ accounts, current }: { accounts: Account[]; current: Acc
               <button onClick={() => setScope("all")} className={cn("rounded-full py-1.5", scope === "all" ? "bg-background font-semibold" : "text-muted-foreground")}>{t("All accounts (")}{accounts.length})</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="rounded-full" onClick={() => confirmRun("Close ALL open trades?", "close_all")}><XCircle />  {t("Close all")}</Button>
+              <Button variant="outline" className="rounded-full" onClick={() => confirmRun(t("Close ALL open trades?"), "close_all")}><XCircle />  {t("Close all")}</Button>
               <Button variant="outline" className="rounded-full" onClick={() => void run("break_even")}><Scale />  {t("Break even")}</Button>
-              <Button variant="outline" className="rounded-full" onClick={() => confirmRun("Remove the stop loss from all trades?", "delete_sl")}><Eraser />  {t("Delete SL")}</Button>
+              <Button variant="outline" className="rounded-full" onClick={() => confirmRun(t("Remove the stop loss from all trades?"), "delete_sl")}><Eraser />  {t("Delete SL")}</Button>
               <Button variant="outline" className="rounded-full" onClick={() => void run("clear_pending")}><Ban />  {t("Cancel pending")}</Button>
             </div>
             <div className="space-y-2">

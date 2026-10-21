@@ -16,6 +16,7 @@ function Brokers() {
   const brokers = useBrokers();
   return (
     <Page wide title={t("Brokers")} subtitle={t("Partner brokers supported on the Arrissa platform. Open an account through our partner link to connect.")}>
+      <HelpNote>{"Browse supported partner brokers and use their links to open an account. Then add your trading account and connect it through the MT5 EA."}</HelpNote>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {(brokers.data ?? []).map((b) => (
           <div key={b.id} className="flex flex-col rounded-3xl bg-card p-5">

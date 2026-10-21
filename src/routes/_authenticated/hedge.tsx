@@ -25,7 +25,7 @@ function Seg<T extends string>({ value, options, on }: { value: T; options: [T, 
   const t = useT();
   return (
     <div className="grid grid-cols-2 gap-1 rounded-full bg-secondary p-1 text-sm">
-      {options.map(([k, l]) => <button key={k} onClick={() => on(k)} className={cn("rounded-full py-2 font-semibold", value === k ? "bg-background" : "text-muted-foreground")}>{l}</button>)}
+      {options.map(([k, l]) => <button key={k} onClick={() => on(k)} className={cn("rounded-full py-2 font-semibold", value === k ? "bg-background" : "text-muted-foreground")}>{t(l)}</button>)}
     </div>
   );
 }
@@ -81,7 +81,7 @@ function Hedge() {
       trigger_type: when, trigger_at: triggerAt?.toISOString() ?? null, trigger_price: when === "price" ? Number(level) : null,
     });
     if (error) return toast.error(t("Could not arm the hedge."));
-    toast.success(t("Hedge armed."), { description: offline.length ? `${offline.length} account(s) EA offline — they open when the EA reconnects.` : "Your EAs will open it at the trigger." });
+    toast.success(t("Hedge armed."), { description: offline.length ? t("{n} account(s) EA offline — they open when the EA reconnects.", { n: offline.length }) : t("Your EAs will open it at the trigger.") });
     void qc.invalidateQueries({ queryKey: ["hedges"] });
   };
 
@@ -98,7 +98,7 @@ function Hedge() {
               <button onClick={() => setSideA("buy")} className={cn("rounded-full px-3 py-1", sideA === "buy" ? "bg-success text-success-foreground" : "text-muted-foreground")}>{t("BUY")}</button>
               <button onClick={() => setSideA("sell")} className={cn("rounded-full px-3 py-1", sideA === "sell" ? "bg-destructive text-destructive-foreground" : "text-muted-foreground")}>{t("SELL")}</button>
             </div>
-          ) : <span className={cn("rounded-full px-3 py-1 text-xs font-bold", side === "buy" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>{side.toUpperCase()}</span>}
+          ) : <span className={cn("rounded-full px-3 py-1 text-xs font-bold", side === "buy" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>{t(side.toUpperCase())}</span>}
         </div>
         {ids.length === 0 ? <p className="mb-3 text-sm text-muted-foreground">{t("No accounts yet")}</p> : (
           <div className="mb-3 space-y-1">
@@ -121,6 +121,7 @@ function Hedge() {
   const d = priceDigits(quote.data?.price);
   return (
     <Page wide title={t("Hedge")} subtitle={t("Open opposite trades on two groups of your accounts at the same moment — at a time or when price reaches a level.")}>
+      <HelpNote>{"Create a hedge by choosing an instrument and adding accounts to two opposite trading groups. Set the lot size and a time or price trigger, then arm the hedge."}</HelpNote>
       <Card className="p-5">
         <p className="mb-2 text-xs font-semibold tracking-widest text-muted-foreground">{t("INSTRUMENT")}</p>
         <div className="flex items-center gap-3">
@@ -149,7 +150,7 @@ function Hedge() {
             {timeMode === "in" ? (
               <div className="grid grid-cols-2 gap-3">
                 <Input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" className="h-10 rounded-full" aria-label={t("Amount")} />
-                <Select value={unit} onValueChange={(v) => setUnit(v as keyof typeof UNIT)}><SelectTrigger className="h-10 rounded-full"><SelectValue /></SelectTrigger><SelectContent>{Object.keys(UNIT).map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select>
+                <Select value={unit} onValueChange={(v) => setUnit(v as keyof typeof UNIT)}><SelectTrigger className="h-10 rounded-full"><SelectValue /></SelectTrigger><SelectContent>{Object.keys(UNIT).map((u) => <SelectItem key={u} value={u}>{t(u)}</SelectItem>)}</SelectContent></Select>
               </div>
             ) : <Input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} className="h-10 rounded-full" />}
             <p className="text-xs text-muted-foreground">{t("Now:")} {now.toISOString().replace("T", " ").slice(0, 19)}  {t("UTC")}</p>

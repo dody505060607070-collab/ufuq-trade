@@ -45,7 +45,7 @@ export function AddAccountForm({ platform }: { platform: "mt5" | "tradelocker" }
       <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2"><Label htmlFor="label">{t("Nickname")}</Label><Input id="label" name="label" placeholder={t("Main account")} /></div>
         <div className="space-y-2"><Label htmlFor="login">{platform === "mt5" ? t("MT5 login number") : t("TradeLocker account ID")}</Label><Input id="login" name="login" required /></div>
-        <div className="space-y-2"><Label htmlFor="server">{t("Server")}</Label><Input id="server" name="server" required placeholder={platform === "mt5" ? t("Exness-MT5Real8") : t("live.tradelocker.com")} /></div>
+        <div className="space-y-2"><Label htmlFor="server">{t("Server")}</Label><Input id="server" name="server" required placeholder={platform === "mt5" ? "Exness-MT5Real8" : "live.tradelocker.com"} /></div>
         <div className="space-y-2"><Label htmlFor="broker_name">{t("Broker")}</Label>
           <Input id="broker_name" name="broker_name" list="brokers" />
           <datalist id="brokers">{(brokers.data ?? []).map((b) => <option key={b.name} value={b.name} />)}</datalist>

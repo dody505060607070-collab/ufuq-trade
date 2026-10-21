@@ -33,6 +33,7 @@ function Performance() {
       subtitle={t("Closed trade history from your MT5 accounts")}
       actions={
         <div className="flex gap-2">
+      <HelpNote>{"Review closed trades and compare account performance over time. Choose an account or date range to focus the results, and keep the MT5 EA running to receive updates."}</HelpNote>
           <Select value={acc} onValueChange={setAcc}>
             <SelectTrigger className="h-9 w-40 rounded-full"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="all">{t("All Accounts")}</SelectItem>{(accounts.data ?? []).map((a) => <SelectItem key={a.id} value={a.id}>{a.label || a.login} #{a.login}</SelectItem>)}</SelectContent>
@@ -70,13 +71,13 @@ function Performance() {
                       <table className="w-full text-xs">
                         <thead className="text-start text-muted-foreground"><tr><th className="py-1">{t("Symbol")}</th><th>{t("Side")}</th><th>{t("Lots")}</th><th>{t("Open")}</th><th>{t("Close")}</th><th>{t("Closed")}</th><th className="text-end">{t("P/L")}</th></tr></thead>
                         <tbody>
-                          {s.trades.map((t) => (
-                            <tr key={t.id} className="border-t border-border">
-                              <td className="py-1.5 font-semibold">{t.symbol}</td>
-                              <td className={t.side === "buy" ? t("text-success") : t("text-destructive")}>{t.side.toUpperCase()}</td>
-                              <td>{t.volume}</td><td>{fmt(t.open_price, priceDigits(t.open_price))}</td><td>{fmt(t.close_price, priceDigits(t.open_price))}</td>
-                              <td className="text-muted-foreground">{t.closed_at ? new Date(t.closed_at).toLocaleString() : "—"}</td>
-                              <td className={cn("text-end font-semibold", Number(t.profit) >= 0 ? "text-success" : "text-destructive")}>{fmt(t.profit)}</td>
+                          {s.trades.map((trade) => (
+                            <tr key={trade.id} className="border-t border-border">
+                              <td className="py-1.5 font-semibold">{trade.symbol}</td>
+                              <td className={trade.side === "buy" ? "text-success" : "text-destructive"}>{t(trade.side.toUpperCase())}</td>
+                              <td>{trade.volume}</td><td>{fmt(trade.open_price, priceDigits(trade.open_price))}</td><td>{fmt(trade.close_price, priceDigits(trade.open_price))}</td>
+                              <td className="text-muted-foreground">{trade.closed_at ? new Date(trade.closed_at).toLocaleString() : "—"}</td>
+                              <td className={cn("text-end font-semibold", Number(trade.profit) >= 0 ? "text-success" : "text-destructive")}>{fmt(trade.profit)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -95,5 +96,5 @@ function Performance() {
 
 function Stat({ l, v }: { l: string; v: string }) {
   const t = useT();
-  return <div className="rounded-lg bg-muted p-2"><p className="text-muted-foreground">{l}</p><p className="font-semibold">{v}</p></div>;
+  return <div className="rounded-lg bg-muted p-2"><p className="text-muted-foreground">{t(l)}</p><p className="font-semibold">{v}</p></div>;
 }

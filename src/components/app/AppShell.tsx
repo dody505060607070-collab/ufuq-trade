@@ -30,7 +30,7 @@ export function Tip({ label, children, side = "right" }: { label: string; childr
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side={side}>{label}</TooltipContent>
+      <TooltipContent side={side}>{t(label)}</TooltipContent>
     </Tooltip>
   );
 }
@@ -64,8 +64,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             {nav.map((n) => {
               const active = pathname === n.to;
               return (
-                <Tip key={n.to} label={n.label}>
-                  <Link to={n.to} aria-label={n.label} className={cn(railBtn, active && "bg-secondary text-foreground")}>
+                <Tip key={n.to} label={t(n.label)}>
+                  <Link to={n.to} aria-label={t(n.label)} className={cn(railBtn, active && "bg-secondary text-foreground")}>
                     <n.icon className="h-[18px] w-[18px]" />
                   </Link>
                 </Tip>
@@ -80,9 +80,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           </nav>
           <div className="flex flex-col items-center gap-2 border-t border-sidebar-border pt-3">
-            <Tip label={user?.email ?? "Profile"}>
+            <Tip label={user?.email ?? t("Personal Profile")}>
               <Link to="/settings/profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground ring-4 ring-primary/25">{initials}</Link>
             </Tip>
+            <LanguageToggle className="rounded-full border border-border px-2 py-1 text-xs" />
             <Tip label={t("Sign out")}><button onClick={signOut} aria-label={t("Sign out")} className={railBtn}><LogOut className="h-[18px] w-[18px]" /></button></Tip>
             <Tip label={t("Terms")}><Link to="/terms" aria-label={t("Terms")} className={railBtn}><FileText className="h-[18px] w-[18px]" /></Link></Tip>
           </div>
@@ -195,8 +196,8 @@ function LiveAlerts() {
     const now = new Map(trades.data.map((t) => [t.id, { sl: t.stop_loss, tp: t.take_profit, symbol: t.symbol }]));
     const old = prev.current.trades;
     if (old) {
-      for (const [id, t] of now) if (!old.has(id)) speak(`Trade opened on ${t.symbol}`);
-      for (const [id, t] of old) if (!now.has(id)) speak(`Trade closed on ${t.symbol}`);
+      for (const [id, trade] of now) if (!old.has(id)) speak(t("Trade opened on {symbol}", { symbol: trade.symbol }));
+      for (const [id, trade] of old) if (!now.has(id)) speak(t("Trade closed on {symbol}", { symbol: trade.symbol }));
     }
     prev.current.trades = now;
   }, [trades.data]);

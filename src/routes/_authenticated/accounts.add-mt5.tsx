@@ -64,6 +64,7 @@ function AddMt5() {
   const mt5 = (accounts.data ?? []).filter((a) => a.platform === "mt5");
   return (
     <Page title={t("Add MT5 Account")} subtitle={t("Connect a MetaTrader 5 trading account from a supported broker.")}>
+      <HelpNote>{"Choose a supported broker and enter your MT5 account number, server, and default lot size. Attach the EA inside MT5 to connect the account and enable trading."}</HelpNote>
       <div>
         <p className="mb-3 text-sm font-semibold tracking-widest text-muted-foreground">{t("SELECT YOUR BROKER")}</p>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -111,7 +112,7 @@ function AddMt5() {
           <DialogHeader><DialogTitle className="text-center">{t("Connect")} {chosen?.name}  {t("MT5 account")}</DialogTitle></DialogHeader>
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="login">{t("MT5 account number")}</Label><Input id="login" name="login" inputMode="numeric" required className="rounded-full" /></div>
-            <div className="space-y-2"><Label htmlFor="server">{t("Server")}</Label><Input id="server" name="server" required placeholder={chosen?.name === "FxPro" ? t("FxPro-MT5 Live01") : t("Exness-MT5Real8")} className="rounded-full" /></div>
+            <div className="space-y-2"><Label htmlFor="server">{t("Server")}</Label><Input id="server" name="server" required placeholder={chosen?.name === "FxPro" ? "FxPro-MT5 Live01" : "Exness-MT5Real8"} className="rounded-full" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label htmlFor="label">{t("Nickname")}</Label><Input id="label" name="label" placeholder={t("MT5 Account")} className="rounded-full" /></div>
               <div className="space-y-2"><Label htmlFor="lot_size">{t("Default lot")}</Label><Input id="lot_size" name="lot_size" defaultValue="0.01" inputMode="decimal" className="rounded-full" /></div>
