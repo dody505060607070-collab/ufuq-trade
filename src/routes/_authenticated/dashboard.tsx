@@ -187,7 +187,7 @@ function Dashboard() {
       <header className="space-y-3 p-5"><h1 className="text-2xl font-bold">{t("Dashboard")}</h1><HelpNote>{"Use the three columns to review AI analysis, place orders in the trade form, and monitor or manage open trades. Select an account and instrument before trading."}</HelpNote></header>
     <div className="grid min-h-screen xl:grid-cols-[350px_minmax(0,1fr)_350px]">
       {/* LEFT: analysis */}
-      <aside className="space-y-4 border-border bg-background p-5 xl:border-e">
+      <aside className="order-2 space-y-4 border-border xl:order-none bg-background p-5 xl:border-e">
         <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={() => setAnalysisOpen(true)}>{t("Analysis")}</Button>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold tracking-widest text-muted-foreground">{t("RECENT ANALYSIS")}</h2>
@@ -213,7 +213,7 @@ function Dashboard() {
       </aside>
 
       {/* CENTER: trading form */}
-      <section className="min-w-0 space-y-5 bg-surface p-5">
+      <section className="order-1 min-w-0 space-y-5 bg-surface p-4 sm:p-5 xl:order-none">
         <div className="flex items-center gap-6 rounded-full bg-gradient-to-r from-card via-card to-accent px-8 py-4">
           <Metric label={t("BALANCE")} value={account ? money(account.balance) : null} />
           <Metric label={t("EQUITY")} value={account ? money(account.equity) : null} />
@@ -303,7 +303,7 @@ function Dashboard() {
       </section>
 
       {/* RIGHT: open trades */}
-      <aside className="space-y-4 bg-background p-5 xl:border-s xl:border-border">
+      <aside className="order-3 space-y-4 bg-background xl:order-none p-5 xl:border-s xl:border-border">
         <GlobalManage accounts={accounts.data ?? []} current={account} />
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-semibold tracking-widest text-muted-foreground">{t("OPEN TRADES")} <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{accTrades.length}</span></h2>
