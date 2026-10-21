@@ -156,7 +156,7 @@ function Dashboard() {
   autoRef.current = { symbol, tf };
   useEffect(() => {
     if (!auto) return;
-    const id = window.setInterval(() => void runAnalysis(autoRef.current.symbol, autoRef.current.tf, true), 5 * 60_000);
+    const id = window.setInterval(() => void runAnalysis(autoRef.current.symbol, autoRef.current.tf, true), 15 * 60_000);
     return () => window.clearInterval(id);
   }, [auto, runAnalysis]);
   const toggleAuto = () => {
