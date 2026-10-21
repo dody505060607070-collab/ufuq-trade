@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { Panel } from "@/components/app/AppShell";
 import { Switch } from "@/components/ui/switch";

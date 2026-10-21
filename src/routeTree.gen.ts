@@ -23,7 +23,16 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WebAppInstallTriggerRouteImport } from './routes/web-app-install-trigger'
+import { Route as AuthenticatedBrokersRouteImport } from './routes/_authenticated/brokers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedHedgeRouteImport } from './routes/_authenticated/hedge'
+import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedAccountsAddMt5RouteImport } from './routes/_authenticated/accounts.add-mt5'
+import { Route as AuthenticatedAccountsAddTradelockerRouteImport } from './routes/_authenticated/accounts.add-tradelocker'
+import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
+import { Route as AuthenticatedSettingsPreferencesRouteImport } from './routes/_authenticated/settings.preferences'
+import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -94,11 +103,62 @@ const WebAppInstallTriggerRoute = WebAppInstallTriggerRouteImport.update({
   path: '/web-app-install-trigger',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedBrokersRoute = AuthenticatedBrokersRouteImport.update({
+  id: '/brokers',
+  path: '/brokers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHedgeRoute = AuthenticatedHedgeRouteImport.update({
+  id: '/hedge',
+  path: '/hedge',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPerformanceRoute =
+  AuthenticatedPerformanceRouteImport.update({
+    id: '/performance',
+    path: '/performance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAccountsAddMt5Route =
+  AuthenticatedAccountsAddMt5RouteImport.update({
+    id: '/accounts/add-mt5',
+    path: '/accounts/add-mt5',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAccountsAddTradelockerRoute =
+  AuthenticatedAccountsAddTradelockerRouteImport.update({
+    id: '/accounts/add-tradelocker',
+    path: '/accounts/add-tradelocker',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSettingsIndexRoute =
+  AuthenticatedSettingsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsPreferencesRoute =
+  AuthenticatedSettingsPreferencesRouteImport.update({
+    id: '/preferences',
+    path: '/preferences',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsProfileRoute =
+  AuthenticatedSettingsProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -114,7 +174,16 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/brokers': typeof AuthenticatedBrokersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/hedge': typeof AuthenticatedHedgeRoute
+  '/performance': typeof AuthenticatedPerformanceRoute
+  '/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
+  '/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
+  '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -130,7 +199,15 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/brokers': typeof AuthenticatedBrokersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/hedge': typeof AuthenticatedHedgeRoute
+  '/performance': typeof AuthenticatedPerformanceRoute
+  '/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
+  '/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
+  '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -148,7 +225,16 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/_authenticated/brokers': typeof AuthenticatedBrokersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/hedge': typeof AuthenticatedHedgeRoute
+  '/_authenticated/performance': typeof AuthenticatedPerformanceRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
+  '/_authenticated/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
+  '/_authenticated/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
+  '/_authenticated/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
+  '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
+  '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -166,7 +252,16 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/brokers'
     | '/dashboard'
+    | '/hedge'
+    | '/performance'
+    | '/settings'
+    | '/accounts/add-mt5'
+    | '/accounts/add-tradelocker'
+    | '/settings/preferences'
+    | '/settings/profile'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -182,7 +277,15 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/brokers'
     | '/dashboard'
+    | '/hedge'
+    | '/performance'
+    | '/accounts/add-mt5'
+    | '/accounts/add-tradelocker'
+    | '/settings/preferences'
+    | '/settings/profile'
+    | '/settings'
   id:
     | '__root__'
     | '/'
@@ -199,7 +302,16 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/_authenticated/brokers'
     | '/_authenticated/dashboard'
+    | '/_authenticated/hedge'
+    | '/_authenticated/performance'
+    | '/_authenticated/settings'
+    | '/_authenticated/accounts/add-mt5'
+    | '/_authenticated/accounts/add-tradelocker'
+    | '/_authenticated/settings/preferences'
+    | '/_authenticated/settings/profile'
+    | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -319,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WebAppInstallTriggerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/brokers': {
+      id: '/_authenticated/brokers'
+      path: '/brokers'
+      fullPath: '/brokers'
+      preLoaderRoute: typeof AuthenticatedBrokersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -326,15 +445,101 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/hedge': {
+      id: '/_authenticated/hedge'
+      path: '/hedge'
+      fullPath: '/hedge'
+      preLoaderRoute: typeof AuthenticatedHedgeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/performance': {
+      id: '/_authenticated/performance'
+      path: '/performance'
+      fullPath: '/performance'
+      preLoaderRoute: typeof AuthenticatedPerformanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/accounts/add-mt5': {
+      id: '/_authenticated/accounts/add-mt5'
+      path: '/accounts/add-mt5'
+      fullPath: '/accounts/add-mt5'
+      preLoaderRoute: typeof AuthenticatedAccountsAddMt5RouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/accounts/add-tradelocker': {
+      id: '/_authenticated/accounts/add-tradelocker'
+      path: '/accounts/add-tradelocker'
+      fullPath: '/accounts/add-tradelocker'
+      preLoaderRoute: typeof AuthenticatedAccountsAddTradelockerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings/': {
+      id: '/_authenticated/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/preferences': {
+      id: '/_authenticated/settings/preferences'
+      path: '/preferences'
+      fullPath: '/settings/preferences'
+      preLoaderRoute: typeof AuthenticatedSettingsPreferencesRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/profile': {
+      id: '/_authenticated/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AuthenticatedSettingsProfileRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
   }
 }
 
+interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsPreferencesRoute: typeof AuthenticatedSettingsPreferencesRoute
+  AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
+  AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
+}
+
+const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsPreferencesRoute: AuthenticatedSettingsPreferencesRoute,
+  AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
+  AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+}
+
+const AuthenticatedSettingsRouteWithChildren =
+  AuthenticatedSettingsRoute._addFileChildren(
+    AuthenticatedSettingsRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBrokersRoute: typeof AuthenticatedBrokersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedHedgeRoute: typeof AuthenticatedHedgeRoute
+  AuthenticatedPerformanceRoute: typeof AuthenticatedPerformanceRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedAccountsAddMt5Route: typeof AuthenticatedAccountsAddMt5Route
+  AuthenticatedAccountsAddTradelockerRoute: typeof AuthenticatedAccountsAddTradelockerRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBrokersRoute: AuthenticatedBrokersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedHedgeRoute: AuthenticatedHedgeRoute,
+  AuthenticatedPerformanceRoute: AuthenticatedPerformanceRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedAccountsAddMt5Route: AuthenticatedAccountsAddMt5Route,
+  AuthenticatedAccountsAddTradelockerRoute:
+    AuthenticatedAccountsAddTradelockerRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
