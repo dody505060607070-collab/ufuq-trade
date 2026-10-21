@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { isOnline, useAccounts, useProfile } from "@/lib/trading";
-import { notify, speak } from "@/lib/alerts";
+import { alertUser } from "@/lib/alerts";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <TooltipProvider delayDuration={2000}>
       <LiveAlerts />
       <div className="flex min-h-screen">
-        <aside className="sticky top-0 z-40 flex h-screen w-[60px] shrink-0 flex-col items-center border-e border-sidebar-border bg-sidebar py-4">
+        <aside className="sticky top-0 z-40 hidden h-screen w-[60px] shrink-0 flex-col items-center border-e border-sidebar-border bg-sidebar py-4 md:flex">
           <Link to="/dashboard" aria-label={t("Arrissa home")} className="mb-6 text-primary-glow"><Spark /></Link>
           <nav className="flex flex-1 flex-col items-center gap-1">
             {nav.map((n) => {
@@ -88,8 +88,33 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Tip label={t("Terms")}><Link to="/terms" aria-label={t("Terms")} className={railBtn}><FileText className="h-[18px] w-[18px]" /></Link></Tip>
           </div>
         </aside>
-        <main className="min-w-0 flex-1">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Mobile top bar */}
+          <header className="sticky top-0 z-40 flex items-center justify-between border-b border-sidebar-border bg-sidebar/95 px-4 py-2 backdrop-blur md:hidden">
+            <Link to="/dashboard" aria-label={t("Arrissa home")} className="text-primary-glow"><Spark /></Link>
+            <div className="flex items-center gap-2">
+              <LanguageToggle className="rounded-full border border-border px-2 py-1 text-xs" />
+              {isAdmin && <Link to="/admin/overview" aria-label={t("Admin panel")} className={cn(railBtn, "h-9 w-9 text-primary-glow")}><ShieldCheck className="h-4 w-4" /></Link>}
+              <Link to="/settings/profile" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{initials}</Link>
+              <button onClick={signOut} aria-label={t("Sign out")} className={cn(railBtn, "h-9 w-9")}><LogOut className="h-4 w-4" /></button>
+            </div>
+          </header>
+          <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
+        </div>
+        {/* Mobile bottom nav */}
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-sidebar-border bg-sidebar/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+          {nav.map((n) => {
+            const active = pathname === n.to;
+            return (
+              <Link key={n.to} to={n.to} className={cn("flex min-w-[68px] flex-1 flex-col items-center gap-1 px-1 py-2 text-[10px] text-muted-foreground", active && "text-primary-glow")}>
+                <n.icon className="h-5 w-5" />
+                <span className="truncate">{t(n.label)}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
+
     </TooltipProvider>
   );
 }
@@ -196,8 +221,18 @@ function LiveAlerts() {
     const now = new Map(trades.data.map((t) => [t.id, { sl: t.stop_loss, tp: t.take_profit, symbol: t.symbol }]));
     const old = prev.current.trades;
     if (old) {
-      for (const [id, trade] of now) if (!old.has(id)) speak(t("Trade opened on {symbol}", { symbol: trade.symbol }));
-      for (const [id, trade] of old) if (!now.has(id)) speak(t("Trade closed on {symbol}", { symbol: trade.symbol }));
+      for (const [id, trade] of now) if (!old.has(id)) alertUser(t("Trade opened"), t("Trade opened on {symbol}", { symbol: trade.symbol }), "info");
+      const closed = [...old.keys()].filter((id) => !now.has(id));
+      if (closed.length) void supabase.from("trades").select("id,symbol,profit").in("id", closed).then(({ data }) => {
+        for (const c of data ?? []) {
+          const p = Number(c.profit ?? 0);
+          alertUser(p >= 0 ? t("Profit") : t("Loss"), `${t("Trade closed on {symbol}", { symbol: c.symbol })}: ${p >= 0 ? "+" : ""}${p.toFixed(2)}`, p >= 0 ? "win" : "risk");
+        }
+      });
+      for (const [id, trade] of now) {
+        const o = old.get(id);
+        if (o && (o.sl !== trade.sl || o.tp !== trade.tp)) alertUser(t("Trade updated"), `${trade.symbol} SL/TP`, "info");
+      }
     }
     prev.current.trades = now;
   }, [trades.data]);
@@ -206,7 +241,7 @@ function LiveAlerts() {
     if (!commands.data) return;
     const now = new Map(commands.data.map((c) => [c.id, c.status]));
     const old = prev.current.cmds;
-    if (old) for (const c of commands.data) if (old.get(c.id) && old.get(c.id) !== c.status && c.status === "failed") speak(`Command failed: ${c.command.replace(/_/g, " ")}`);
+    if (old) for (const c of commands.data) if (old.get(c.id) && old.get(c.id) !== c.status && c.status === "failed") alertUser(t("Warning"), `Command failed: ${c.command.replace(/_/g, " ")}`, "risk");
     prev.current.cmds = now;
   }, [commands.data]);
 
@@ -214,7 +249,8 @@ function LiveAlerts() {
     if (!accounts.data) return;
     const now = new Map(accounts.data.map((a) => [a.id, isOnline(a)]));
     const old = prev.current.online;
-    if (old) for (const a of accounts.data) if (old.has(a.id) && old.get(a.id) !== now.get(a.id)) speak(now.get(a.id) ? `Account ${a.login} connected` : `Account ${a.login} disconnected`);
+    if (old) for (const a of accounts.data) if (old.has(a.id) && old.get(a.id) !== now.get(a.id))
+      alertUser(t("Connection"), now.get(a.id) ? `Account ${a.login} connected` : `Account ${a.login} disconnected`, now.get(a.id) ? "info" : "risk");
     prev.current.online = now;
   }, [accounts.data]);
 
@@ -222,12 +258,10 @@ function LiveAlerts() {
     if (!signals.data) return;
     const now = new Set(signals.data.map((s) => s.id));
     const old = prev.current.signals;
-    if (old) for (const s of signals.data) if (!old.has(s.id)) {
-      speak(`New signal: ${s.direction} ${s.symbol}`);
-      if (profile.data?.push_notifications) notify(t("New Arrissa signal"), `${s.direction.toUpperCase()} ${s.symbol}${s.entry ? ` @ ${s.entry}` : ""}`);
-    }
+    if (old) for (const s of signals.data) if (!old.has(s.id))
+      alertUser(t("New Arrissa signal"), `${s.direction.toUpperCase()} ${s.symbol}${s.entry ? ` @ ${s.entry}` : ""}`, "win");
     prev.current.signals = now;
-  }, [signals.data, profile.data?.push_notifications]);
+  }, [signals.data]);
 
   return null;
 }
