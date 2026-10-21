@@ -15,4 +15,4 @@
 - [x] Verify in browser
 
 # Arabic language
-- [ ] English/Arabic switch on every page (RTL) + explanation box on each page
+- [x] English/Arabic switch on every page (RTL) + explanation box on each page
