@@ -226,7 +226,7 @@ function Dashboard() {
             <Link to="/accounts/add-mt5" className="flex h-12 flex-1 items-center rounded-full border border-dashed border-border px-4 text-sm text-muted-foreground hover:text-foreground">+ Add an MT5 account to start trading</Link>
           ) : (
             <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger className="h-12 flex-1 rounded-full px-3">
+              <SelectTrigger className="h-12 flex-1 rounded-full px-3 [&>span]:line-clamp-none">
                 {account && (
                   <span className="flex items-center gap-3 text-left">
                     <BrokerLogo name={account.broker_name} color={broker(account)?.brand_color} className="h-7 w-7 text-xs" />
