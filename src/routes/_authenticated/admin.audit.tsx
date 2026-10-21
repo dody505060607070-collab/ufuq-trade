@@ -12,7 +12,7 @@ function Audit() {
       <HelpNote>{"Audit is a log of actions performed in the admin area."}</HelpNote>
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-sm">
-        <thead className="bg-muted/40 text-left text-xs text-muted-foreground"><tr><th className="px-4 py-3">Time</th><th>Action</th><th>Details</th></tr></thead>
+        <thead className="bg-muted/40 text-start text-xs text-muted-foreground"><tr><th className="px-4 py-3">Time</th><th>Action</th><th>Details</th></tr></thead>
         <tbody>
           {(logs.data ?? []).map((l) => (
             <tr key={l.id} className="border-t border-border">

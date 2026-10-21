@@ -20,7 +20,7 @@ function Users() {
       <Input placeholder="Search users…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left text-xs text-muted-foreground"><tr><th className="px-4 py-3">Name</th><th>Email</th><th>Country</th><th>Joined</th></tr></thead>
+          <thead className="bg-muted/40 text-start text-xs text-muted-foreground"><tr><th className="px-4 py-3">Name</th><th>Email</th><th>Country</th><th>Joined</th></tr></thead>
           <tbody>
             {list.map((u) => (
               <tr key={u.id} className="border-t border-border hover:bg-muted/30">
