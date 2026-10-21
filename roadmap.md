@@ -16,3 +16,6 @@
 
 # Arabic language
 - [x] English/Arabic switch on every page (RTL) + explanation box on each page
+
+# Auto-Pilot
+- [x] Settings page, rules, 15-min scheduled runner, activity log
