@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <TooltipProvider delayDuration={2000}>
       <LiveAlerts />
       <div className="flex min-h-screen">
-        <aside className="sticky top-0 z-40 flex h-screen w-[60px] shrink-0 flex-col items-center border-e border-sidebar-border bg-sidebar py-4">
+        <aside className="sticky top-0 z-40 hidden h-screen w-[60px] shrink-0 flex-col items-center border-e border-sidebar-border bg-sidebar py-4 md:flex">
           <Link to="/dashboard" aria-label={t("Arrissa home")} className="mb-6 text-primary-glow"><Spark /></Link>
           <nav className="flex flex-1 flex-col items-center gap-1">
             {nav.map((n) => {
@@ -88,8 +88,33 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Tip label={t("Terms")}><Link to="/terms" aria-label={t("Terms")} className={railBtn}><FileText className="h-[18px] w-[18px]" /></Link></Tip>
           </div>
         </aside>
-        <main className="min-w-0 flex-1">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Mobile top bar */}
+          <header className="sticky top-0 z-40 flex items-center justify-between border-b border-sidebar-border bg-sidebar/95 px-4 py-2 backdrop-blur md:hidden">
+            <Link to="/dashboard" aria-label={t("Arrissa home")} className="text-primary-glow"><Spark /></Link>
+            <div className="flex items-center gap-2">
+              <LanguageToggle className="rounded-full border border-border px-2 py-1 text-xs" />
+              {isAdmin && <Link to="/admin/overview" aria-label={t("Admin panel")} className={cn(railBtn, "h-9 w-9 text-primary-glow")}><ShieldCheck className="h-4 w-4" /></Link>}
+              <Link to="/settings/profile" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{initials}</Link>
+              <button onClick={signOut} aria-label={t("Sign out")} className={cn(railBtn, "h-9 w-9")}><LogOut className="h-4 w-4" /></button>
+            </div>
+          </header>
+          <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
+        </div>
+        {/* Mobile bottom nav */}
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-sidebar-border bg-sidebar/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+          {nav.map((n) => {
+            const active = pathname === n.to;
+            return (
+              <Link key={n.to} to={n.to} className={cn("flex min-w-[68px] flex-1 flex-col items-center gap-1 px-1 py-2 text-[10px] text-muted-foreground", active && "text-primary-glow")}>
+                <n.icon className="h-5 w-5" />
+                <span className="truncate">{t(n.label)}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
+
     </TooltipProvider>
   );
 }
