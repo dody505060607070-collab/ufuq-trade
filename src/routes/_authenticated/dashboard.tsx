@@ -20,6 +20,7 @@ import { analyzeMarket } from "@/lib/ai.functions";
 import { getCalendar, getNews, getQuotes } from "@/lib/market.functions";
 import { fmt, isOnline, priceDigits, queueCommand, timeAgo, useAccounts, useBrokers, useInstruments, useProfile, validateOrder, type Account } from "@/lib/trading";
 import { cn } from "@/lib/utils";
+import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard | Arrissa AI" }, { name: "description", content: "AI analysis, execution and trade management for your MT5 accounts." }] }),
@@ -184,7 +185,7 @@ function Dashboard() {
 
   return (
     <>
-      <header className="space-y-3 p-5"><h1 className="text-2xl font-bold">{t("Dashboard")}</h1><HelpNote>{"Use the three columns to review AI analysis, place orders in the trade form, and monitor or manage open trades. Select an account and instrument before trading."}</HelpNote></header>
+      <header className="space-y-3 p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-bold">{t("Dashboard")}</h1><RestartAutopilotButton /></div><HelpNote>{"Use the three columns to review AI analysis, place orders in the trade form, and monitor or manage open trades. Select an account and instrument before trading."}</HelpNote></header>
     <div className="grid min-h-screen xl:grid-cols-[350px_minmax(0,1fr)_350px]">
       {/* LEFT: analysis */}
       <aside className="order-2 space-y-4 border-border xl:order-none bg-background p-5 xl:border-e">

@@ -357,4 +357,8 @@ export const AR_APP: Record<string, string> = {
   "Scans every 15 minutes": "فحص كل 15 دقيقة",
   "Next scan at": "موعد الفحص القادم",
   "never": "لم يتم بعد",
+  "Restart Auto-Pilot": "إعادة تشغيل الأتمتة",
+  "Auto-Pilot restarted and scanned now": "تم تشغيل الأتمتة وفحص السوق الآن",
+  "trade(s) queued": "صفقة أُرسلت",
+  "Could not restart Auto-Pilot.": "تعذر إعادة تشغيل الأتمتة.",
 };
