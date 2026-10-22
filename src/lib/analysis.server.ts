@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { sanitizeLevels } from "./levels";
 import { fetchCandles, fetchCalendar, fetchNews } from "./market.server";
+import { snapshot, snapshotText } from "./indicators";
 
 type DB = SupabaseClient<Database>;
 export type Levels = { direction: "buy" | "sell" | "neutral"; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null; summary: string };
@@ -19,7 +20,7 @@ const resultSchema = z.object({
 });
 
 const INSTRUCTIONS =
-  "You are a senior FX/CFD market analyst. Base the analysis strictly on the price data, economic calendar and headlines provided. Return ONLY a JSON object with keys: direction (buy|sell|neutral), confidence (0-100 integer), entry (number or null), stop_loss (number or null), take_profit (number or null), summary (max 5 sentences: trend/structure, key support & resistance, upcoming events, sentiment, risk). Entry must be near the current price. For buy: stop_loss < entry < take_profit. For sell: take_profit < entry < stop_loss. Use a risk:reward of at least 1:1.5 and place stops beyond recent structure. If the data is unclear or high-impact news is imminent, return neutral with null levels. If no price data is available, return null levels.";
+  "You are a trading desk of four experts reasoning in one pass: (1) Technical analyst - reads the pre-computed indicators (trend, EMA10/50/200, RSI14, MACD, ATR14, swing levels) and candles; (2) Bull researcher - strongest case to buy; (3) Bear researcher - strongest case to sell and what invalidates the bull case; (4) Risk manager - decides, places stop at about 1.5x ATR beyond the nearest swing level and target at least 1.5x the stop distance. For XAUUSD weight USD drivers heavily (Fed, CPI, NFP, yields, risk sentiment). Trust the computed indicator numbers over your own estimates. Confidence reflects agreement between trend, momentum and news: high only when they align. Return ONLY a JSON object with keys: direction (buy|sell|neutral), confidence (0-100 integer), entry (number or null), stop_loss (number or null), take_profit (number or null), summary (max 5 sentences: verdict, bull vs bear key point, key levels, upcoming USD events, risk). Entry must be near the current price. For buy: stop_loss < entry < take_profit. For sell: take_profit < entry < stop_loss. If signals conflict or high-impact news is imminent, return neutral with null levels. If no price data is available, return null levels.";
 
 /** Latest shared analysis of this symbol/timeframe from any user within the cache window. */
 export async function getCached(admin: DB, symbol: string, timeframe: string) {
@@ -46,7 +47,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   const last = candles[candles.length - 1];
   const price = manualPrice ?? last?.c ?? null;
   const dec = price && price < 5 ? 5 : price && price < 500 ? 3 : 2;
-  const candleText = candles.map((c) => `${new Date(c.t * 1000).toISOString().slice(0, 16)} O${c.o.toFixed(dec)} H${c.h.toFixed(dec)} L${c.l.toFixed(dec)} C${c.c.toFixed(dec)}`).join("\n");
+  const candleText = candles.slice(-40).map((c) => `${new Date(c.t * 1000).toISOString().slice(0, 16)} O${c.o.toFixed(dec)} H${c.h.toFixed(dec)} L${c.l.toFixed(dec)} C${c.c.toFixed(dec)}`).join("\n");
   const now = Date.now();
   const events = calendar
     .filter((e) => (e.impact === "High" || e.impact === "Medium") && Math.abs(new Date(e.date).getTime() - now) < 3 * 86400_000)
@@ -54,7 +55,8 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     .map((e) => `${e.date.slice(0, 16)} ${e.country} ${e.impact} — ${e.title} (f ${e.forecast || "-"}, p ${e.previous || "-"})`)
     .join("\n");
   const heads = news.map((n) => `- ${n.title} (${n.source})`).join("\n");
-  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${events || "none"}\n\nLatest headlines:\n${heads || "none"}\n\nProvide your directional analysis as json.`;
+  const snap = snapshot(candles);
+  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${events || "none"}\n\nLatest headlines:\n${heads || "none"}\n\nProvide your directional analysis as json.`;
 
   const geminiKey = process.env["GEMINI_API_KEY"];
   const text = (geminiKey ? await callGemini(geminiKey, prompt).catch(() => null) : null) ?? (await callLovable(model?.model_id ?? "openai/gpt-6-astra", prompt));
