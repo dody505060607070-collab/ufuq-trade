@@ -22,3 +22,10 @@ export function lotForRisk(balance: number, pct: number, stop = TYPICAL_GOLD_STO
 
 /** Dollars won/lost per $1 move of gold for a lot size. */
 export const dollarsPerMove = (lot: number) => Math.round(lot * 100 * 100) / 100;
+
+/** Inverse of lotForRisk: the risk % a saved lot represents, snapped to 0.25 and clamped to the slider range. */
+export function riskForLot(balance: number, lot: number, stop = TYPICAL_GOLD_STOP): number {
+  if (!(balance > 0) || !(lot > 0)) return RISK_RECOMMENDED;
+  const pct = (lot * stop * 100 * 100) / balance;
+  return Math.min(RISK_MAX, Math.max(RISK_MIN, Math.round(pct * 4) / 4));
+}

@@ -155,11 +155,16 @@ export type Database = {
       autopilot_settings: {
         Row: {
           avoid_news: boolean
+          cooldown_minutes: number
+          daily_target_usd: number
           enabled: boolean
+          giveback_pct: number
+          lock_start_usd: number
           lot_size: number
           max_daily: number
           max_open: number
           min_confidence: number
+          profit_target_usd: number
           symbols: string[]
           timeframe: string
           updated_at: string
@@ -167,11 +172,16 @@ export type Database = {
         }
         Insert: {
           avoid_news?: boolean
+          cooldown_minutes?: number
+          daily_target_usd?: number
           enabled?: boolean
+          giveback_pct?: number
+          lock_start_usd?: number
           lot_size?: number
           max_daily?: number
           max_open?: number
           min_confidence?: number
+          profit_target_usd?: number
           symbols?: string[]
           timeframe?: string
           updated_at?: string
@@ -179,11 +189,16 @@ export type Database = {
         }
         Update: {
           avoid_news?: boolean
+          cooldown_minutes?: number
+          daily_target_usd?: number
           enabled?: boolean
+          giveback_pct?: number
+          lock_start_usd?: number
           lot_size?: number
           max_daily?: number
           max_open?: number
           min_confidence?: number
+          profit_target_usd?: number
           symbols?: string[]
           timeframe?: string
           updated_at?: string
@@ -573,6 +588,7 @@ export type Database = {
           id: string
           open_price: number | null
           opened_at: string | null
+          peak_profit: number | null
           profit: number | null
           side: string
           status: string
@@ -590,6 +606,7 @@ export type Database = {
           id?: string
           open_price?: number | null
           opened_at?: string | null
+          peak_profit?: number | null
           profit?: number | null
           side: string
           status?: string
@@ -607,6 +624,7 @@ export type Database = {
           id?: string
           open_price?: number | null
           opened_at?: string | null
+          peak_profit?: number | null
           profit?: number | null
           side?: string
           status?: string
