@@ -14,7 +14,7 @@ import { useAccounts, useInstruments, isOnline, timeAgo } from "@/lib/trading";
 import { cn } from "@/lib/utils";
 import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton";
 import { Slider } from "@/components/ui/slider";
-import { lotForRisk, riskLevel, dollarsPerMove, RISK_MIN, RISK_MAX, RISK_RECOMMENDED, TYPICAL_GOLD_STOP } from "@/lib/risk";
+import { lotForRisk, riskForLot, riskLevel, dollarsPerMove, RISK_MIN, RISK_MAX, RISK_RECOMMENDED, TYPICAL_GOLD_STOP } from "@/lib/risk";
 
 export const Route = createFileRoute("/_authenticated/autopilot")({
   head: () => ({ meta: [{ title: "Auto-Pilot | Arrissa AI" }, { name: "description", content: "Fully automatic AI trading with strict risk limits." }] }),
@@ -96,7 +96,7 @@ function AutoPilot() {
         <div className="flex flex-wrap gap-2">
           {(instruments.data ?? []).map((i) => {
             const on = s.symbols.includes(i.symbol);
-            return <button key={i.id} onClick={() => setS({ ...s, symbols: on ? s.symbols.filter((x) => x !== i.symbol) : [...s.symbols, i.symbol].slice(0, 6) })}
+            return <button key={i.id} onClick={() => void save({ symbols: on ? s.symbols.filter((x) => x !== i.symbol) : [...s.symbols, i.symbol].slice(0, 6) })}
               className={cn("rounded-full border px-3 py-1 text-xs font-semibold", on ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>{i.symbol}</button>;
           })}
         </div>
@@ -219,6 +219,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 function RiskCard({ balance, lot, onApply }: { balance: number; lot: number; onApply: (lot: number) => void }) {
   const t = useT();
   const [pct, setPct] = useState(RISK_RECOMMENDED);
+  useEffect(() => { if (balance > 0 && lot > 0) setPct(riskForLot(balance, lot)); }, [balance, lot]);
   const level = riskLevel(pct);
   const newLot = lotForRisk(balance, pct);
   const loss = Math.round(dollarsPerMove(newLot) * TYPICAL_GOLD_STOP);
