@@ -385,7 +385,6 @@ export const AR_APP: Record<string, string> = {
   "Auto trading is off on your accounts": "التداول التلقائي مقفول على حساباتك",
   "Market is closed for the weekend — scanning resumes Sunday 22:00 UTC": "السوق مقفول في عطلة نهاية الأسبوع — الفحص يرجع الأحد 22:00 UTC",
   "Everything is running — the AI scans the market on its own": "كل شيء شغّال — الذكاء الاصطناعي يفحص السوق لوحده",
-  "MetaTrader 5": "ميتاتريدر 5",
   "Connected": "متصل",
   "Disconnected": "غير متصل",
   "Last signal": "آخر إشارة",
