@@ -70,7 +70,7 @@ function AutoPilot() {
             <span className={cn("flex h-12 w-12 items-center justify-center rounded-full", s.enabled ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground")}><Bot className="h-6 w-6" /></span>
             <div>
               <div className="text-lg font-semibold">{s.enabled ? t("Auto-Pilot is ON") : t("Auto-Pilot is OFF")}</div>
-              <div className="text-xs text-muted-foreground">{autoAccounts.length} {t("account(s) enabled")} · {autoAccounts.filter(isOnline).length} {t("connected")}</div>
+              <div className="text-xs text-muted-foreground">{autoAccounts.length} {t("account(s) enabled")} · {autoAccounts.filter((a) => isOnline(a)).length} {t("connected")}</div>
             </div>
           </div>
           <div className="flex items-center gap-3"><RestartAutopilotButton /><Switch checked={s.enabled} onCheckedChange={(v) => void save({ enabled: v })} aria-label={t("Auto-Pilot")} /></div>
