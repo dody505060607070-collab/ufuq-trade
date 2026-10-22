@@ -13,6 +13,8 @@ import { useT, HelpNote } from "@/lib/i18n";
 import { useAccounts, useInstruments, isOnline, timeAgo } from "@/lib/trading";
 import { cn } from "@/lib/utils";
 import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton";
+import { Slider } from "@/components/ui/slider";
+import { lotForRisk, riskLevel, dollarsPerMove, RISK_MIN, RISK_MAX, RISK_RECOMMENDED, TYPICAL_GOLD_STOP } from "@/lib/risk";
 
 export const Route = createFileRoute("/_authenticated/autopilot")({
   head: () => ({ meta: [{ title: "Auto-Pilot | Arrissa AI" }, { name: "description", content: "Fully automatic AI trading with strict risk limits." }] }),
@@ -199,4 +201,32 @@ function LiveMonitor({ enabled, events, accountIds }: { enabled: boolean; events
 
 function Stat({ label, value }: { label: string; value: string }) {
   return <div className="rounded-2xl border border-border bg-background/40 px-3 py-2"><div className="text-[11px] text-muted-foreground">{label}</div><div className="font-semibold tabular-nums">{value}</div></div>;
+}
+
+function RiskCard({ balance, lot, onApply }: { balance: number; lot: number; onApply: (lot: number) => void }) {
+  const t = useT();
+  const [pct, setPct] = useState(RISK_RECOMMENDED);
+  const level = riskLevel(pct);
+  const newLot = lotForRisk(balance, pct);
+  const loss = Math.round(dollarsPerMove(newLot) * TYPICAL_GOLD_STOP);
+  const tone = level === "low" ? "text-success" : level === "balanced" ? "text-primary" : "text-destructive";
+  return (
+    <Card title={t("Risk level")}>
+      <div className="flex items-center justify-between text-sm">
+        <span className={cn("text-2xl font-bold", tone)}>{pct.toFixed(1)}%</span>
+        <span className={cn("rounded-full border px-3 py-1 text-xs font-semibold", tone)}>
+          {level === "low" ? t("Low") : level === "balanced" ? `${t("Balanced")} ⭐ ${t("Recommended")}` : t("High")}
+        </span>
+      </div>
+      <Slider className="my-5" min={RISK_MIN} max={RISK_MAX} step={0.25} value={[pct]} onValueChange={(v) => setPct(v[0])} aria-label={t("Risk level")} />
+      <div className="flex justify-between text-xs text-muted-foreground"><span>{t("Low")}</span><span className="text-primary">{t("Recommended")} 1–2%</span><span>{t("High")}</span></div>
+      <div className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-background/40 p-3"><div className="text-xs text-muted-foreground">{t("Lot size per trade")}</div><b>{newLot.toFixed(2)}</b> <span className="text-xs text-muted-foreground">({t("now")} {lot.toFixed(2)})</span></div>
+        <div className="rounded-2xl border border-border bg-background/40 p-3"><div className="text-xs text-muted-foreground">{t("Per $1 gold move")}</div><b>${dollarsPerMove(newLot)}</b></div>
+        <div className="rounded-2xl border border-border bg-background/40 p-3"><div className="text-xs text-muted-foreground">{t("Max loss if Stop Loss hits (~$20 move)")}</div><b className="text-destructive">-${loss}</b></div>
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">{t("Based on balance")} ${balance.toLocaleString()}</p>
+      <Button variant="hero" className="mt-4 rounded-full" onClick={() => onApply(newLot)}>{t("Apply risk level")}</Button>
+    </Card>
+  );
 }
