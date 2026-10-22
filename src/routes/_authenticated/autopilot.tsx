@@ -218,7 +218,7 @@ function RiskCard({ balance, lot, onApply }: { balance: number; lot: number; onA
           {level === "low" ? t("Low") : level === "balanced" ? `${t("Balanced")} ⭐ ${t("Recommended")}` : t("High")}
         </span>
       </div>
-      <Slider className="my-5" min={RISK_MIN} max={RISK_MAX} step={0.25} value={[pct]} onValueChange={(v) => setPct(v[0])} aria-label={t("Risk level")} />
+      <Slider className="my-5" min={RISK_MIN} max={RISK_MAX} step={0.25} value={[pct]} onValueChange={(v) => setPct(v[0] ?? RISK_RECOMMENDED)} aria-label={t("Risk level")} />
       <div className="flex justify-between text-xs text-muted-foreground"><span>{t("Low")}</span><span className="text-primary">{t("Recommended")} 1–2%</span><span>{t("High")}</span></div>
       <div className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
         <div className="rounded-2xl border border-border bg-background/40 p-3"><div className="text-xs text-muted-foreground">{t("Lot size per trade")}</div><b>{newLot.toFixed(2)}</b> <span className="text-xs text-muted-foreground">({t("now")} {lot.toFixed(2)})</span></div>
