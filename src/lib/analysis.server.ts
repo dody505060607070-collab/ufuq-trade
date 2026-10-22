@@ -110,7 +110,8 @@ async function callLovable(modelId: string, prompt: string): Promise<string> {
     instructions: INSTRUCTIONS,
     messages: [{ role: "user", content: prompt }],
     providerOptions: {
-      openai: { forceReasoning: true, reasoningEffort: "high", reasoningSummary: "auto", store: false, include: ["reasoning.encrypted_content"] },
+      // Low effort: indicators/ICT are pre-computed, so deep reasoning mostly added cost.
+      openai: { forceReasoning: true, reasoningEffort: "low", store: false },
     },
   });
   try {

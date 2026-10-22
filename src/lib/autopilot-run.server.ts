@@ -6,6 +6,9 @@ import type { Database } from "@/integrations/supabase/types";
 /** One Auto-Pilot cycle: analyses each enabled symbol once and queues trades. Pass onlyUser to run for a single user. */
 export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: string) {
   const { getCached, runAI, newsNearby } = await import("@/lib/analysis.server");
+  // Forex/gold markets are closed Fri 21:00 → Sun 22:00 UTC: skip paid AI analysis then.
+  const n = new Date(), d = n.getUTCDay(), h = n.getUTCHours();
+  if ((d === 5 && h >= 21) || d === 6 || (d === 0 && h < 22)) return { ok: true, users: 0, queued: 0, closed: true };
   let sq = db.from("autopilot_settings").select("*").eq("enabled", true);
   if (onlyUser) sq = sq.eq("user_id", onlyUser);
   const { data: users } = await sq;
