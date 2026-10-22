@@ -31,7 +31,9 @@ export function useAccounts() {
       if (error) throw error;
       return data;
     },
-    refetchInterval: 15_000,
+    refetchInterval: 10_000,
+    // New object every poll so "connected/disconnected" is re-evaluated even when the row didn't change.
+    structuralSharing: false,
   });
 }
 
@@ -74,8 +76,10 @@ export function useProfile() {
   return { ...q, update };
 }
 
-export function isOnline(a: Pick<Account, "last_seen_at">) {
-  return !!a.last_seen_at && Date.now() - new Date(a.last_seen_at).getTime() < 2 * 60_000;
+/** The EA syncs every ~2s, so 30s of silence means MT5 is closed or offline. */
+export const ONLINE_WINDOW_MS = 30_000;
+export function isOnline(a: Pick<Account, "last_seen_at">, now = Date.now()) {
+  return !!a.last_seen_at && now - new Date(a.last_seen_at).getTime() < ONLINE_WINDOW_MS;
 }
 
 export async function queueCommand(accounts: Account[], command: CommandName, payload: Json = {}) {
