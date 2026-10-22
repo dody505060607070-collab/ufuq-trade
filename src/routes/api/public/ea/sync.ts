@@ -137,7 +137,7 @@ export const Route = createFileRoute("/api/public/ea/sync")({
   },
 });
 
-type Pos = { ticket: string; profit?: number; symbol: string };
+type Pos = { ticket: string; profit?: number | undefined; symbol: string };
 /** Tracks each trade's peak profit and queues close_trade when the user's profit-lock rules fire. */
 async function lockProfits(db: import("@supabase/supabase-js").SupabaseClient<import("@/integrations/supabase/types").Database>, acc: { id: string; user_id: string }, positions: Pos[]) {
   if (!positions.length) return;
