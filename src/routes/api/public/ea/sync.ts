@@ -136,3 +136,26 @@ export const Route = createFileRoute("/api/public/ea/sync")({
     },
   },
 });
+
+type Pos = { ticket: string; profit?: number; symbol: string };
+/** Tracks each trade's peak profit and queues close_trade when the user's profit-lock rules fire. */
+async function lockProfits(db: import("@supabase/supabase-js").SupabaseClient<import("@/integrations/supabase/types").Database>, acc: { id: string; user_id: string }, positions: Pos[]) {
+  if (!positions.length) return;
+  const { lockReason } = await import("@/lib/profitlock");
+  const { data: s } = await db.from("autopilot_settings").select("*").eq("user_id", acc.user_id).maybeSingle();
+  if (!s?.enabled) return;
+  const rules = s as unknown as { profit_target_usd?: number; lock_start_usd?: number; giveback_pct?: number };
+  const { data: rows } = await db.from("trades").select("*").eq("account_id", acc.id).eq("status", "open");
+  const { data: pending } = await db.from("trade_commands").select("payload").eq("account_id", acc.id).eq("command", "close_trade").in("status", ["queued", "sent"]);
+  const busy = new Set((pending ?? []).map((c) => String((c.payload as { ticket?: unknown })?.ticket)));
+  for (const pos of positions) {
+    const row = (rows ?? []).find((r) => r.ticket === pos.ticket) as { id: string; peak_profit?: number | null } | undefined;
+    if (!row || pos.profit == null) continue;
+    const peak = Math.max(Number(row.peak_profit ?? pos.profit), pos.profit);
+    if (peak !== Number(row.peak_profit)) await db.from("trades").update({ peak_profit: peak } as never).eq("id", row.id);
+    const why = lockReason(pos.profit, peak, { profit_target_usd: Number(rules.profit_target_usd ?? 0), lock_start_usd: Number(rules.lock_start_usd ?? 0), giveback_pct: Number(rules.giveback_pct ?? 40) });
+    if (!why || busy.has(pos.ticket)) continue;
+    await db.from("trade_commands").insert({ user_id: acc.user_id, account_id: acc.id, command: "close_trade", payload: { ticket: pos.ticket, autopilot: true } });
+    await db.from("autopilot_events").insert({ user_id: acc.user_id, symbol: pos.symbol, action: "closed", detail: `#${pos.ticket} — ${why}` });
+  }
+}
