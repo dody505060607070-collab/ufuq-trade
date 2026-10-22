@@ -5,6 +5,7 @@ import { sanitizeLevels } from "./levels";
 import { fetchCandles, fetchCalendar, fetchNews } from "./market.server";
 import { snapshot, snapshotText } from "./indicators";
 import { ictText } from "./ict";
+import { memoryText } from "./profitlock";
 
 type DB = SupabaseClient<Database>;
 export type Levels = { direction: "buy" | "sell" | "neutral"; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null; summary: string };
@@ -21,7 +22,7 @@ const resultSchema = z.object({
 });
 
 const INSTRUCTIONS =
-  "You are a trading desk of five experts reasoning in one pass: (1) Technical analyst - reads the pre-computed indicators (trend, EMA10/50/200, RSI14, MACD, ATR14, swing levels) and candles; (2) Bull researcher - strongest case to buy; (3) Bear researcher - strongest case to sell and what invalidates the bull case; (4) Smart-money analyst - reads the pre-computed ICT/SMC context (structure BOS/CHoCH, premium/discount, unfilled FVGs, order blocks, liquidity sweeps, kill zone) and favours entries at a discount FVG/order block in a bullish structure (or premium in bearish); (5) Risk manager - decides, places stop at about 1.5x ATR beyond the nearest swing level and target at least 1.5x the stop distance. For XAUUSD weight USD drivers heavily (Fed, CPI, NFP, yields, risk sentiment). Trust the computed indicator numbers over your own estimates. Confidence reflects agreement between trend, momentum and news: high only when they align. Return ONLY a JSON object with keys: direction (buy|sell|neutral), confidence (0-100 integer), entry (number or null), stop_loss (number or null), take_profit (number or null), summary (max 5 sentences: verdict, bull vs bear key point, key levels, upcoming USD events, risk). Entry must be near the current price. For buy: stop_loss < entry < take_profit. For sell: take_profit < entry < stop_loss. If signals conflict or high-impact news is imminent, return neutral with null levels. If no price data is available, return null levels.";
+  "You are a trading desk of five experts reasoning in one pass: (1) Technical analyst - reads the pre-computed indicators (trend, EMA10/50/200, RSI14, MACD, ATR14, swing levels) and candles; (2) Bull researcher - strongest case to buy; (3) Bear researcher - strongest case to sell and what invalidates the bull case; (4) Smart-money analyst - reads the pre-computed ICT/SMC context (structure BOS/CHoCH, premium/discount, unfilled FVGs, order blocks, liquidity sweeps, kill zone) and favours entries at a discount FVG/order block in a bullish structure (or premium in bearish); (5) Risk manager - capital preservation is the top priority: a loss is far worse than a missed trade, so only approve setups with clear confluence and prefer small realistic targets (about 1-1.5x ATR) that are likely to be hit; decides, places stop at about 1.5x ATR beyond the nearest swing level and target at least 1.5x the stop distance. For XAUUSD weight USD drivers heavily (Fed, CPI, NFP, yields, risk sentiment). Trust the computed indicator numbers over your own estimates. Confidence reflects agreement between trend, momentum and news: high only when they align. Return ONLY a JSON object with keys: direction (buy|sell|neutral), confidence (0-100 integer), entry (number or null), stop_loss (number or null), take_profit (number or null), summary (max 5 sentences: verdict, bull vs bear key point, key levels, upcoming USD events, risk). Entry must be near the current price. For buy: stop_loss < entry < take_profit. For sell: take_profit < entry < stop_loss. If signals conflict or high-impact news is imminent, return neutral with null levels. If no price data is available, return null levels.";
 
 /** Latest shared analysis of this symbol/timeframe from any user within the cache window. */
 export async function getCached(admin: DB, symbol: string, timeframe: string) {
@@ -40,10 +41,11 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     db.from("ai_models").select("model_id").eq("is_default", true).eq("is_active", true).maybeSingle(),
     db.from("instruments").select("name,yahoo_symbol").eq("symbol", symbol).maybeSingle(),
   ]);
-  const [candles, calendar, news] = await Promise.all([
+  const [candles, calendar, news, past] = await Promise.all([
     inst?.yahoo_symbol ? fetchCandles(inst.yahoo_symbol, timeframe, 80).catch(() => []) : Promise.resolve([]),
     fetchCalendar(),
     fetchNews(15),
+    db.from("trades").select("side,profit,closed_at").ilike("symbol", `${symbol}%`).eq("status", "closed").order("closed_at", { ascending: false }).limit(10).then((r) => r.data ?? []),
   ]);
   const last = candles[candles.length - 1];
   const price = manualPrice ?? last?.c ?? null;
@@ -57,7 +59,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     .join("\n");
   const heads = news.map((n) => `- ${n.title} (${n.source})`).join("\n");
   const snap = snapshot(candles);
-  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${events || "none"}\n\nLatest headlines:\n${heads || "none"}\n\nProvide your directional analysis as json.`;
+  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${events || "none"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nProvide your directional analysis as json.`;
 
   const geminiKey = process.env["GEMINI_API_KEY"];
   const text = (geminiKey ? await callGemini(geminiKey, prompt).catch(() => null) : null) ?? (await callLovable(model?.model_id ?? "openai/gpt-6-astra", prompt));
