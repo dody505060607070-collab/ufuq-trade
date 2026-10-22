@@ -42,7 +42,16 @@ export function displacement(bars: Bar[]): "bullish" | "bearish" | null {
 export function dailyContext(daily: Bar[]) {
   if (daily.length < 3) return null;
   const prev = daily[daily.length - 2]!;
-  return { bias: marketStructure(daily).bias, pdh: prev.h, pdl: prev.l };
+  return { bias: marketStructure(daily).bias, pdh: prev.h, pdl: prev.l, prevDay: prev.c > prev.o ? "bullish" : "bearish" } as const;
+}
+
+/** PDH/PDL sweep (ikeawesom/xauusd-backtest): price wicked beyond yesterday's high/low and closed back inside. */
+export function pdSweep(bars: Bar[], pdh: number, pdl: number): "PDH swept (sell setup)" | "PDL swept (buy setup)" | null {
+  for (const b of bars.slice(-3).reverse()) {
+    if (b.h > pdh && b.c < pdh) return "PDH swept (sell setup)";
+    if (b.l < pdl && b.c > pdl) return "PDL swept (buy setup)";
+  }
+  return null;
 }
 
 export function priceActionText(bars: Bar[], daily: Bar[], dec: number): string {
@@ -53,6 +62,7 @@ export function priceActionText(bars: Bar[], daily: Bar[], dec: number): string 
     `Last candle pattern: ${candlePattern(bars) ?? "none"}`,
     `Displacement (last 3 bars): ${disp ?? "none"}`,
     `Liquidity pools: BSL (equal highs) ${pools.bsl != null ? f(pools.bsl) : "none"}; SSL (equal lows) ${pools.ssl != null ? f(pools.ssl) : "none"} — price often sweeps these before reversing`,
-    d ? `Daily (higher timeframe) bias: ${d.bias}; previous day high ${f(d.pdh)}, low ${f(d.pdl)} — trade WITH the daily bias unless a sweep + CHoCH confirms reversal` : "Daily context: unavailable",
+    d ? `Daily (higher timeframe) bias: ${d.bias}; previous day was ${d.prevDay}; previous day high ${f(d.pdh)}, low ${f(d.pdl)} — trade WITH the daily bias unless a sweep + CHoCH confirms reversal` : "Daily context: unavailable",
+    d ? `Previous-day sweep: ${pdSweep(bars, d.pdh, d.pdl) ?? "none"} — high-probability when it agrees with the previous day's direction (bullish day + PDL sweep = buy, bearish day + PDH sweep = sell)` : "Previous-day sweep: unavailable",
   ].join("\n");
 }

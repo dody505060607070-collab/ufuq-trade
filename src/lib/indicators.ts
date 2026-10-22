@@ -38,10 +38,34 @@ export function atr(bars: Bar[], period = 14): number | null {
   return a;
 }
 
+/** Wilder ADX: trend strength. <20 ranging, >25 trending (filter idea from XAUUSD strategy repos). */
+export function adx(bars: Bar[], period = 14): number | null {
+  if (bars.length < period * 2 + 1) return null;
+  const tr: number[] = [], pdm: number[] = [], ndm: number[] = [];
+  for (let i = 1; i < bars.length; i++) {
+    const b = bars[i]!, p = bars[i - 1]!;
+    const up = b.h - p.h, dn = p.l - b.l;
+    pdm.push(up > dn && up > 0 ? up : 0); ndm.push(dn > up && dn > 0 ? dn : 0);
+    tr.push(Math.max(b.h - b.l, Math.abs(b.h - p.c), Math.abs(b.l - p.c)));
+  }
+  const sum = (a: number[]) => a.slice(0, period).reduce((s, x) => s + x, 0);
+  let t = sum(tr), pp = sum(pdm), nn = sum(ndm);
+  const dx: number[] = [];
+  for (let i = period; i <= tr.length; i++) {
+    if (i > period) { t = t - t / period + tr[i - 1]!; pp = pp - pp / period + pdm[i - 1]!; nn = nn - nn / period + ndm[i - 1]!; }
+    const pdi = t ? (100 * pp) / t : 0, ndi = t ? (100 * nn) / t : 0;
+    dx.push(pdi + ndi ? (100 * Math.abs(pdi - ndi)) / (pdi + ndi) : 0);
+  }
+  if (dx.length < period) return null;
+  let a = dx.slice(0, period).reduce((s, x) => s + x, 0) / period;
+  for (let i = period; i < dx.length; i++) a = (a * (period - 1) + dx[i]!) / period;
+  return a;
+}
+
 export type Snapshot = {
   price: number; rsi14: number | null; atr14: number | null;
   ema10: number; ema50: number; ema200: number | null;
-  macd: number; macdSignal: number; trend: "up" | "down" | "range";
+  macd: number; macdSignal: number; trend: "up" | "down" | "range"; adx14: number | null;
   swingHigh: number; swingLow: number;
 };
 
@@ -58,7 +82,7 @@ export function snapshot(bars: Bar[]): Snapshot | null {
   return {
     price, rsi14: rsi(closes), atr14: atr(bars),
     ema10: t10, ema50: t50, ema200: closes.length >= 200 ? ema(closes, 200)[n]! : null,
-    macd: macdLine[n]!, macdSignal: sig[n]!, trend,
+    macd: macdLine[n]!, macdSignal: sig[n]!, trend, adx14: adx(bars),
     swingHigh: Math.max(...recent.map((b) => b.h)), swingLow: Math.min(...recent.map((b) => b.l)),
   };
 }
@@ -69,6 +93,7 @@ export function snapshotText(s: Snapshot, dec: number): string {
     `Price ${f(s.price)} | Trend (EMA10 vs EMA50): ${s.trend}`,
     `EMA10 ${f(s.ema10)} | EMA50 ${f(s.ema50)} | EMA200 ${f(s.ema200)}`,
     `RSI14 ${s.rsi14?.toFixed(1) ?? "n/a"} | MACD ${s.macd.toFixed(dec)} vs signal ${s.macdSignal.toFixed(dec)} (${s.macd > s.macdSignal ? "bullish" : "bearish"} momentum)`,
+    `ADX14 ${s.adx14?.toFixed(1) ?? "n/a"} (${s.adx14 == null ? "n/a" : s.adx14 < 20 ? "ranging — fade extremes, small targets" : s.adx14 > 25 ? "strong trend — trade with it" : "moderate trend"})`,
     `ATR14 ${f(s.atr14)} → suggested stop distance 1.5×ATR = ${f(s.atr14 && s.atr14 * 1.5)}`,
     `20-bar swing high ${f(s.swingHigh)} / swing low ${f(s.swingLow)}`,
   ].join("\n");
