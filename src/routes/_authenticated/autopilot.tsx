@@ -101,6 +101,8 @@ function AutoPilot() {
         <p className="mt-2 text-xs text-muted-foreground">{t("Up to 6 instruments.")}</p>
       </Card>
 
+      <RiskCard balance={Number(autoAccounts[0]?.balance ?? accounts.data?.[0]?.balance ?? 0)} lot={s.lot_size} onApply={(lot) => void save({ lot_size: lot })} />
+
       <Card title={t("Safety rules")}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("Timeframe")}>
