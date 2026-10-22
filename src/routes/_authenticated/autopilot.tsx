@@ -21,8 +21,8 @@ export const Route = createFileRoute("/_authenticated/autopilot")({
   component: AutoPilot,
 });
 
-type Settings = { enabled: boolean; symbols: string[]; timeframe: string; min_confidence: number; lot_size: number; max_open: number; max_daily: number; avoid_news: boolean };
-const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: 0.01, max_open: 2, max_daily: 4, avoid_news: true };
+type Settings = { enabled: boolean; symbols: string[]; timeframe: string; min_confidence: number; lot_size: number; max_open: number; max_daily: number; avoid_news: boolean; profit_target_usd: number; lock_start_usd: number; giveback_pct: number; cooldown_minutes: number; daily_target_usd: number };
+const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: 0.01, max_open: 2, max_daily: 4, avoid_news: true, profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40, cooldown_minutes: 30, daily_target_usd: 0 };
 
 function AutoPilot() {
   const t = useT();
@@ -39,14 +39,14 @@ function AutoPilot() {
     queryFn: async () => (await supabase.from("autopilot_events").select("*").order("created_at", { ascending: false }).limit(40)).data ?? [],
   });
   const [s, setS] = useState<Settings>(DEFAULTS);
-  useEffect(() => { if (q.data) setS({ ...q.data, lot_size: Number(q.data.lot_size) }); }, [q.data]);
+  useEffect(() => { if (q.data) { const d = q.data as unknown as Settings; setS({ ...DEFAULTS, ...d, lot_size: Number(d.lot_size), profit_target_usd: Number(d.profit_target_usd ?? 20), lock_start_usd: Number(d.lock_start_usd ?? 10), daily_target_usd: Number(d.daily_target_usd ?? 0) }); }; }, [q.data]);
 
   const save = async (patch: Partial<Settings> = {}) => {
     const next = { ...s, ...patch };
     if (!(next.lot_size >= 0.01 && next.lot_size <= 10)) return toast.error(t("Lot size must be between 0.01 and 10."));
     if (!next.symbols.length) return toast.error(t("Pick at least one instrument."));
     setS(next);
-    const { error } = await supabase.from("autopilot_settings").upsert({ user_id: user!.id, ...next, updated_at: new Date().toISOString() });
+    const { error } = await supabase.from("autopilot_settings").upsert({ user_id: user!.id, ...next, updated_at: new Date().toISOString() } as never);
     if (error) return toast.error(t("Could not save."));
     toast.success(next.enabled ? t("Auto-Pilot is ON") : t("Auto-Pilot settings saved"));
     void qc.invalidateQueries({ queryKey: ["autopilot"] });
@@ -119,6 +119,19 @@ function AutoPilot() {
             <Switch checked={s.avoid_news} onCheckedChange={(v) => setS({ ...s, avoid_news: v })} />
           </label>
         </div>
+        <Button variant="hero" className="mt-4 rounded-full" onClick={() => void save()}>{t("Save settings")}</Button>
+      </Card>
+
+      <Card title={t("Profit lock & rest")}>
+        <p className="mb-4 text-sm text-muted-foreground">{t("Banks floating profit automatically: closes the trade at your dollar target, or when profit falls back after a peak. Then rests before the next trade.")}</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={t("Close trade at profit ($, 0 = off)")}><Input type="number" min={0} value={s.profit_target_usd} onChange={(e) => num("profit_target_usd", e.target.value)} /></Field>
+          <Field label={t("Start protecting profit from ($)")}><Input type="number" min={0} value={s.lock_start_usd} onChange={(e) => num("lock_start_usd", e.target.value)} /></Field>
+          <Field label={t("Close if profit falls back from peak (%)")}><Input type="number" min={10} max={90} value={s.giveback_pct} onChange={(e) => num("giveback_pct", e.target.value)} /></Field>
+          <Field label={t("Rest after a close (minutes)")}><Input type="number" min={0} max={240} value={s.cooldown_minutes} onChange={(e) => num("cooldown_minutes", e.target.value)} /></Field>
+          <Field label={t("Stop for the day after earning ($, 0 = off)")}><Input type="number" min={0} value={s.daily_target_usd} onChange={(e) => num("daily_target_usd", e.target.value)} /></Field>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">{t("The AI also remembers its last 10 closed gold trades and learns from wins and losses before deciding.")}</p>
         <Button variant="hero" className="mt-4 rounded-full" onClick={() => void save()}>{t("Save settings")}</Button>
       </Card>
 
