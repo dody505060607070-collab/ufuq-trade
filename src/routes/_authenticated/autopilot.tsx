@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { useT, HelpNote } from "@/lib/i18n";
 import { useAccounts, useInstruments, isOnline, timeAgo } from "@/lib/trading";
 import { cn } from "@/lib/utils";
+import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton";
 
 export const Route = createFileRoute("/_authenticated/autopilot")({
   head: () => ({ meta: [{ title: "Auto-Pilot | Arrissa AI" }, { name: "description", content: "Fully automatic AI trading with strict risk limits." }] }),
@@ -70,7 +71,7 @@ function AutoPilot() {
               <div className="text-xs text-muted-foreground">{autoAccounts.length} {t("account(s) enabled")} · {autoAccounts.filter(isOnline).length} {t("connected")}</div>
             </div>
           </div>
-          <Switch checked={s.enabled} onCheckedChange={(v) => void save({ enabled: v })} aria-label={t("Auto-Pilot")} />
+          <div className="flex items-center gap-3"><RestartAutopilotButton /><Switch checked={s.enabled} onCheckedChange={(v) => void save({ enabled: v })} aria-label={t("Auto-Pilot")} /></div>
         </div>
       </Card>
 
