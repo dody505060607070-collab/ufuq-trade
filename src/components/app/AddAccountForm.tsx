@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { defined } from "@/lib/utils";
+import { DEFAULT_TRADE_LOT } from "@/lib/lot-settings";
 
 const schema = z.object({
   label: z.string().trim().max(60).optional(),
@@ -50,7 +51,7 @@ export function AddAccountForm({ platform }: { platform: "mt5" | "tradelocker" }
           <Input id="broker_name" name="broker_name" list="brokers" />
           <datalist id="brokers">{(brokers.data ?? []).map((b) => <option key={b.name} value={b.name} />)}</datalist>
         </div>
-        <div className="space-y-2"><Label htmlFor="lot_size">{t("Default lot size")}</Label><Input id="lot_size" name="lot_size" defaultValue="0.01" inputMode="decimal" /></div>
+        <div className="space-y-2"><Label htmlFor="lot_size">{t("Default lot size")}</Label><Input id="lot_size" name="lot_size" defaultValue={String(DEFAULT_TRADE_LOT)} inputMode="decimal" /></div>
         <div className="sm:col-span-2"><Button type="submit" variant="hero" disabled={busy}>{busy ? t("Adding…") : t("Add account")}</Button></div>
       </form>
     </Panel>

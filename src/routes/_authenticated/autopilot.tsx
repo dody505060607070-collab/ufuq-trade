@@ -15,14 +15,18 @@ import { cn } from "@/lib/utils";
 import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton";
 import { Slider } from "@/components/ui/slider";
 import { lotForRisk, riskForLot, riskLevel, dollarsPerMove, RISK_MIN, RISK_MAX, RISK_RECOMMENDED, TYPICAL_GOLD_STOP } from "@/lib/risk";
+import { DEFAULT_TRADE_LOT, validAutopilotLot } from "@/lib/lot-settings";
+import { seo } from "@/lib/seo";
+import { useWebMCP } from "use-webmcp-tool";
+import { runWebMCPTool } from "@/lib/webmcp-telemetry";
 
 export const Route = createFileRoute("/_authenticated/autopilot")({
-  head: () => ({ meta: [{ title: "Auto-Pilot | Arrissa AI" }, { name: "description", content: "Fully automatic AI trading with strict risk limits." }] }),
+  head: () => seo("Auto-Pilot", "Automatic AI trading with configurable risk limits."),
   component: AutoPilot,
 });
 
 type Settings = { enabled: boolean; symbols: string[]; timeframe: string; min_confidence: number; lot_size: number; max_open: number; max_daily: number; avoid_news: boolean; profit_target_usd: number; lock_start_usd: number; giveback_pct: number; cooldown_minutes: number; daily_target_usd: number };
-const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: 0.01, max_open: 2, max_daily: 4, avoid_news: true, profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40, cooldown_minutes: 30, daily_target_usd: 0 };
+const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: DEFAULT_TRADE_LOT, max_open: 2, max_daily: 4, avoid_news: true, profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40, cooldown_minutes: 30, daily_target_usd: 0 };
 
 function AutoPilot() {
   const t = useT();
@@ -32,22 +36,36 @@ function AutoPilot() {
   const instruments = useInstruments();
   const q = useQuery({
     queryKey: ["autopilot", user?.id], enabled: !!user,
-    queryFn: async () => (await supabase.from("autopilot_settings").select("*").eq("user_id", user!.id).maybeSingle()).data,
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase.from("autopilot_settings").select("*").eq("user_id", user.id).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
   });
   const events = useQuery({
     queryKey: ["autopilot-events"], refetchInterval: 30_000,
     queryFn: async () => (await supabase.from("autopilot_events").select("*").order("created_at", { ascending: false }).limit(40)).data ?? [],
   });
   const [s, setS] = useState<Settings>(DEFAULTS);
+  const [saving, setSaving] = useState(false);
+  useWebMCP({
+    name: "read_visible_autopilot", description: "Read the Auto-Pilot settings currently visible on this page.",
+    annotations: { readOnlyHint: true }, enabled: !!user && !q.isPending && !q.isError,
+    execute: () => runWebMCPTool("read_visible_autopilot", () => `Auto-Pilot ${s.enabled ? "ON" : "OFF"}; lot ${s.lot_size}; confidence ${s.min_confidence}%; max open ${s.max_open}; daily limit ${s.max_daily}.`),
+  });
   useEffect(() => { if (q.data) { const d = q.data as unknown as Settings; setS({ ...DEFAULTS, ...d, lot_size: Number(d.lot_size), profit_target_usd: Number(d.profit_target_usd ?? 20), lock_start_usd: Number(d.lock_start_usd ?? 10), daily_target_usd: Number(d.daily_target_usd ?? 0) }); }; }, [q.data]);
 
   const save = async (patch: Partial<Settings> = {}) => {
+    if (!user || saving || q.isPending || q.isError) return;
     const next = { ...s, ...patch };
-    if (!(next.lot_size >= 0.01 && next.lot_size <= 10)) return toast.error(t("Lot size must be between 0.01 and 10."));
+    if (!validAutopilotLot(next.lot_size)) return toast.error(t("Lot size must be between 0.01 and 10."));
     if (!next.symbols.length) return toast.error(t("Pick at least one instrument."));
+    setSaving(true);
+    const { error } = await supabase.from("autopilot_settings").upsert({ user_id: user.id, ...next, updated_at: new Date().toISOString() } as never);
+    setSaving(false);
+    if (error) { void qc.invalidateQueries({ queryKey: ["autopilot"] }); return toast.error(t("Could not save.")); }
     setS(next);
-    const { error } = await supabase.from("autopilot_settings").upsert({ user_id: user!.id, ...next, updated_at: new Date().toISOString() } as never);
-    if (error) return toast.error(t("Could not save."));
     toast.success(next.enabled ? t("Auto-Pilot is ON") : t("Auto-Pilot settings saved"));
     void qc.invalidateQueries({ queryKey: ["autopilot"] });
   };
@@ -111,7 +129,7 @@ function AutoPilot() {
             <div className="flex gap-1">{["M15", "H1", "H4"].map((tf) => <button key={tf} onClick={() => setS({ ...s, timeframe: tf })} className={cn("flex-1 rounded-full border px-3 py-1.5 text-xs", s.timeframe === tf ? "border-primary bg-primary text-primary-foreground" : "border-border")}>{tf}</button>)}</div>
           </Field>
           <Field label={t("Minimum AI confidence (%)")}><Input type="number" min={50} max={95} value={s.min_confidence} onChange={(e) => num("min_confidence", e.target.value)} /></Field>
-          <Field label={t("Lot size per trade")}><Input type="number" step={0.01} min={0.01} value={s.lot_size} onChange={(e) => num("lot_size", e.target.value)} /></Field>
+          <Field label={t("Lot size per trade")}><Input aria-label={t("Lot size per trade")} type="number" step={0.01} min={0.01} max={10} disabled={saving || q.isPending || q.isError} value={s.lot_size} onChange={(e) => num("lot_size", e.target.value)} onBlur={(e) => { const lot = Number(e.currentTarget.value); if (validAutopilotLot(lot) && lot !== Number(q.data?.lot_size)) void save({ lot_size: lot }); }} /></Field>
           <Field label={t("Max open trades per account")}><Input type="number" min={1} max={10} value={s.max_open} onChange={(e) => num("max_open", e.target.value)} /></Field>
           <Field label={t("Max auto trades per day (0 = unlimited)")}><Input type="number" min={0} max={100} value={s.max_daily} onChange={(e) => num("max_daily", e.target.value)} /></Field>
           <label className="flex items-center justify-between rounded-2xl border border-border bg-background/40 px-4 py-3">
