@@ -17,6 +17,7 @@ import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MarketsRouteImport } from './routes/markets'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -27,6 +28,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WebAppInstallTriggerRouteImport } from './routes/web-app-install-trigger'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAutopilotRouteImport } from './routes/_authenticated/autopilot'
 import { Route as AuthenticatedBrainRouteImport } from './routes/_authenticated/brain'
@@ -97,6 +99,11 @@ const MarketsRoute = MarketsRouteImport.update({
   path: '/markets',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PendingRoute = PendingRouteImport.update({
   id: '/pending',
   path: '/pending',
@@ -147,6 +154,12 @@ const WebAppInstallTriggerRoute = WebAppInstallTriggerRouteImport.update({
   path: '/web-app-install-trigger',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -322,6 +335,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
+  '/mcp': typeof McpRoute
   '/pending': typeof PendingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -332,6 +346,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
@@ -371,6 +386,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
+  '/mcp': typeof McpRoute
   '/pending': typeof PendingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -381,6 +397,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
   '/brokers': typeof AuthenticatedBrokersRoute
@@ -420,6 +437,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
+  '/mcp': typeof McpRoute
   '/pending': typeof PendingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -430,6 +448,7 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/autopilot': typeof AuthenticatedAutopilotRoute
   '/_authenticated/brain': typeof AuthenticatedBrainRoute
@@ -471,6 +490,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/markets'
+    | '/mcp'
     | '/pending'
     | '/pricing'
     | '/privacy'
@@ -481,6 +501,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/autopilot'
     | '/brain'
@@ -520,6 +541,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/markets'
+    | '/mcp'
     | '/pending'
     | '/pricing'
     | '/privacy'
@@ -530,6 +552,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/.well-known/oauth-protected-resource'
     | '/autopilot'
     | '/brain'
     | '/brokers'
@@ -568,6 +591,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/markets'
+    | '/mcp'
     | '/pending'
     | '/pricing'
     | '/privacy'
@@ -578,6 +602,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
     | '/_authenticated/autopilot'
     | '/_authenticated/brain'
@@ -619,6 +644,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   MarketsRoute: typeof MarketsRoute
+  McpRoute: typeof McpRoute
   PendingRoute: typeof PendingRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -629,6 +655,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WebAppInstallTriggerRoute: typeof WebAppInstallTriggerRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiPublicAutopilotRunRoute: typeof ApiPublicAutopilotRunRoute
   ApiPublicEaSyncRoute: typeof ApiPublicEaSyncRoute
 }
@@ -689,6 +716,13 @@ declare module '@tanstack/react-router' {
       path: '/markets'
       fullPath: '/markets'
       preLoaderRoute: typeof MarketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pending': {
@@ -759,6 +793,13 @@ declare module '@tanstack/react-router' {
       path: '/web-app-install-trigger'
       fullPath: '/web-app-install-trigger'
       preLoaderRoute: typeof WebAppInstallTriggerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -1081,6 +1122,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   MarketsRoute: MarketsRoute,
+  McpRoute: McpRoute,
   PendingRoute: PendingRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
@@ -1091,6 +1133,8 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WebAppInstallTriggerRoute: WebAppInstallTriggerRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiPublicAutopilotRunRoute: ApiPublicAutopilotRunRoute,
   ApiPublicEaSyncRoute: ApiPublicEaSyncRoute,
 }
