@@ -207,7 +207,7 @@ function DataNodes({ items, globe, overlay }: { items: Callout[]; globe: Mutable
       label.style.opacity = String(o);
       label.style.pointerEvents = o > 0.4 ? "auto" : "none";
       label.style.transform = `translate(${lx + (left ? -10 : 10)}px, ${ly}px) translate(${left ? "-100%" : "0"}, -50%)`;
-      label.style.textAlign = left ? "right" : "left";
+      label.dataset.side = left ? "left" : "right";
       line.setAttribute("d", `M${sx},${sy} L${lx - dx * 6},${ly - dy * 6} L${lx},${ly}`);
       line.style.opacity = String(o * 0.85);
       dot.setAttribute("cx", String(sx)); dot.setAttribute("cy", String(sy)); dot.style.opacity = String(o);
@@ -259,14 +259,14 @@ export default function NeuralGalaxy({ items, onPick, spin = true }: { items: Ca
       </svg>
       {items.map((it, i) => (
         <div key={it.id} ref={(el) => { overlay.current.labels[i] = el; }} onClick={() => onPick?.(it)}
-          className="absolute left-0 top-0 cursor-pointer select-none whitespace-nowrap rounded-lg px-2 py-1 transition-colors hover:bg-card/60"
+          className="group absolute left-0 top-0 cursor-pointer data-[side=left]:text-right select-none whitespace-nowrap rounded-lg px-2 py-1 transition-colors hover:bg-card/60"
           style={{ opacity: 0 }}>
-          <div className="flex items-center gap-2" style={{ flexDirection: "inherit" }}>
+          <div className="flex items-center gap-2 group-data-[side=left]:flex-row-reverse">
             <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2" style={{ borderColor: KIND_COLOR[it.kind], boxShadow: `0 0 10px ${KIND_COLOR[it.kind]}`, background: `radial-gradient(circle, ${KIND_COLOR[it.kind]} 35%, transparent 40%)` }} />
             <span className="text-[11px] font-semibold tracking-wide" style={{ color: it.kind === "win" ? KIND_COLOR.win : it.kind === "loss" ? KIND_COLOR.loss : undefined }}>{it.title}</span>
           </div>
-          {it.sub && <p className="ps-5 text-[11px] text-muted-foreground">{it.sub}</p>}
-          {it.value && <p className={`ps-5 text-[11px] font-medium ${it.tone === "down" ? "text-destructive" : "text-success"}`}>{it.value}</p>}
+          {it.sub && <p className="px-5 text-[11px] text-muted-foreground">{it.sub}</p>}
+          {it.value && <p className={`px-5 text-[11px] font-medium ${it.tone === "down" ? "text-destructive" : "text-success"}`}>{it.value}</p>}
         </div>
       ))}
     </div>
