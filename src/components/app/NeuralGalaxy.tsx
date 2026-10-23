@@ -83,21 +83,21 @@ function buildGlobe() {
 
   // 1) inner nebula: clustered soft clouds (purple / magenta / blue)
   const neb = { pos: [] as number[], col: [] as number[], size: [] as number[] };
-  const clouds = Array.from({ length: 12 }, () => ({ c: new THREE.Vector3().randomDirection().multiplyScalar(R * (0.25 + rand() * 0.55)), r: R * (0.12 + rand() * 0.16), color: ["#c026d3", "#7c3aed", "#9333ea", "#2563eb", "#db2777", "#6d28d9", "#a21caf", "#1d4ed8", "#8b5cf6"][Math.floor(rand() * 9)]! }));
-  for (let i = 0; i < 2600; i++) {
+  const clouds = Array.from({ length: 12 }, () => ({ c: new THREE.Vector3().randomDirection().multiplyScalar(R * (0.25 + rand() * 0.55)), r: R * (0.16 + rand() * 0.22), color: ["#c026d3", "#7c3aed", "#9333ea", "#2563eb", "#db2777", "#6d28d9", "#a21caf", "#1d4ed8", "#8b5cf6"][Math.floor(rand() * 9)]! }));
+  for (let i = 0; i < 3600; i++) {
     const cl = clouds[i % clouds.length]!;
     const v = new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5) * 2, (rand() - 0.5) * 2).multiplyScalar(cl.r * Math.pow(rand(), 0.6)).add(cl.c);
     if (v.length() > R * 0.96) v.setLength(R * (0.6 + rand() * 0.35));
     neb.pos.push(v.x, v.y, v.z);
-    c.set(rand() < 0.75 ? cl.color : pick()).multiplyScalar(0.35 + rand() * 0.4); neb.col.push(c.r, c.g, c.b);
+    c.set(rand() < 0.75 ? cl.color : pick()).multiplyScalar(0.28 + rand() * 0.32); neb.col.push(c.r, c.g, c.b);
     neb.size.push(rand() < 0.85 ? 0.8 + rand() * 2.2 : 0.3 + rand() * 0.4);
   }
   // 2) surface dust (dense shell, bright rim through additive overlap)
   const dust = { pos: [] as number[], col: [] as number[], size: [] as number[] };
-  for (let i = 0; i < 6000; i++) {
-    const v = fib(i, 6000).multiplyScalar(R * (0.975 + rand() * 0.05));
+  for (let i = 0; i < 3200; i++) {
+    const v = fib(i, 3200).multiplyScalar(R * (0.975 + rand() * 0.05));
     dust.pos.push(v.x, v.y, v.z);
-    c.set(pick([2, 3, 2, 1, 1, 3, 3, 2, 3])).multiplyScalar(0.18 + rand() * 0.35); dust.col.push(c.r, c.g, c.b);
+    c.set(pick([2, 3, 2, 1, 1, 3, 3, 2, 3])).multiplyScalar(0.15 + rand() * 0.3); dust.col.push(c.r, c.g, c.b);
     dust.size.push(0.1 + rand() * 0.22);
   }
   // 3) neural web: nodes on the shell + inner layer, joined to nearest neighbours
@@ -154,7 +154,7 @@ const fresnelVS = "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = mode
 function Atmosphere() {
   const rim = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: fresnelVS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(vN,vV)); vec3 a = vec3(0.55,0.2,1.0); vec3 b = vec3(0.55,0.8,1.0); vec3 c = mix(a, b, pow(f,6.0)); gl_FragColor = vec4(c, pow(f,5.0)*0.75); }",
+    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(vN,vV)); vec3 a = vec3(0.55,0.2,1.0); vec3 b = vec3(0.55,0.8,1.0); vec3 c = mix(a, b, pow(f,6.0)); gl_FragColor = vec4(c, pow(f,7.0)*0.6); }",
   }), []);
   const halo = useMemo(() => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -165,7 +165,6 @@ function Atmosphere() {
   return (
     <>
       <Billboard><mesh material={halo} renderOrder={-1}><planeGeometry args={[R * 3, R * 3]} /></mesh></Billboard>
-      <mesh material={core} renderOrder={-2}><sphereGeometry args={[R * 0.8, 48, 48]} /></mesh>
       <mesh material={rim}><sphereGeometry args={[R * 1.005, 96, 96]} /></mesh>
     </>
   );
@@ -249,7 +248,7 @@ export default function NeuralGalaxy({ items, onPick, spin = true }: { items: Ca
         <Globe items={items} overlay={overlay} spin={spin} />
         <OrbitControls enablePan={false} enableDamping dampingFactor={0.06} rotateSpeed={0.6} minDistance={14} maxDistance={45} />
         <EffectComposer multisampling={0}>
-          <Bloom mipmapBlur intensity={0.9} luminanceThreshold={0.45} luminanceSmoothing={0.3} radius={0.75} />
+          <Bloom mipmapBlur intensity={0.85} luminanceThreshold={0.55} luminanceSmoothing={0.3} radius={0.75} />
         </EffectComposer>
       </Canvas>
 
