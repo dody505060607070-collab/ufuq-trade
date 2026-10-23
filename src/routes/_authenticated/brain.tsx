@@ -105,11 +105,13 @@ function BrainPage() {
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-background/80 to-transparent px-4 pb-8 pt-3 md:px-6">
           <div className="pointer-events-auto flex flex-wrap items-center gap-2">
             <p className="me-2 flex items-center gap-2 text-xs font-medium tracking-[0.35em]"><Brain className="h-5 w-5 text-primary-glow" />AI BRAIN</p>
-            <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
               <Stat icon={<Brain className="h-4 w-4" />} label={t("Lessons learned")} value={String(L.length)} sub={`+${today} ${t("today")}`} tone={undefined} />
               <Stat icon={<TrendingUp className="h-4 w-4" />} label={t("Win rate")} value={L.length ? `${((wins / L.length) * 100).toFixed(0)}%` : "—"} sub={`${wins}W / ${losses}L`} tone={L.length ? (wins / L.length >= 0.5 ? "up" : "down") : undefined} />
               <Stat icon={<Clock className="h-4 w-4" />} label={t("Best hour")} value={hh(best)} sub={best ? `${money(best.net)} UTC` : t("No data yet")} />
               <Stat icon={<AlertTriangle className="h-4 w-4" />} label={t("Worst hour")} value={hh(worst)} sub={worst ? `${money(worst.net)} UTC` : t("No data yet")} />
+              <Stat icon={<TrendingUp className="h-4 w-4" />} label={t("Missed by early exit")} value={money(L.reduce((a, l) => a + Number(l.missed_profit ?? 0), 0))} sub={`${L.filter((l) => l.exit_verdict === "early").length} ${t("early exits")}`} tone={undefined} />
+              <Stat icon={<AlertTriangle className="h-4 w-4" />} label={t("Given back from peak")} value={money(L.reduce((a, l) => a + Number(l.giveback_usd ?? 0), 0))} sub={`${L.filter((l) => l.exit_verdict === "late").length} ${t("late exits")}`} tone={undefined} />
             </div>
             <span className={cn("flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px]", online ? "border-success/40 text-success" : "border-destructive/40 text-destructive")}>
               {online ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}{online ? t("MT5 connected") : t("MT5 offline")}
