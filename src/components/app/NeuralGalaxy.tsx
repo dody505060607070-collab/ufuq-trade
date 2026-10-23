@@ -159,7 +159,7 @@ function Atmosphere() {
   const halo = useMemo(() => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
-    fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv-0.5)*2.0*1.5; float out_ = smoothstep(0.93,1.0,d); float g = out_*exp(-(d-1.0)*5.0); float inner = smoothstep(0.55,1.0,d)*(1.0-out_)*0.12; vec3 c = mix(vec3(0.35,0.25,1.0), vec3(0.6,0.75,1.0), exp(-(d-1.0)*12.0)); gl_FragColor = vec4(c*(g*0.9+inner), g*0.9+inner); }",
+    fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv-0.5)*2.0*1.5; float out_ = smoothstep(0.93,1.0,d); float g = out_*exp(-(d-1.0)*5.0); float inner = 0.0; vec3 c = mix(vec3(0.35,0.25,1.0), vec3(0.6,0.75,1.0), exp(-(d-1.0)*12.0)); gl_FragColor = vec4(c*(g*0.9+inner), g*0.9+inner); }",
   }), []);
   const core = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0d0733", transparent: true, opacity: 0.5, depthWrite: false }), []);
   return (
@@ -239,11 +239,33 @@ function Globe({ items, overlay, spin }: { items: Callout[]; overlay: MutableRef
   );
 }
 
+/* nebula gradient painted on a huge camera-facing plane behind everything */
+function SpaceBackdrop() {
+  const mat = useMemo(() => new THREE.ShaderMaterial({
+    depthWrite: false,
+    vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+    fragmentShader: `varying vec2 vUv;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+      float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
+      float fbm(vec2 p){ float v=0., a=.5; for(int i=0;i<5;i++){ v+=a*n(p); p*=2.03; a*=.5; } return v; }
+      void main(){
+        vec2 p = vUv*4.0; float f = fbm(p + fbm(p*0.7));
+        vec3 base = vec3(0.027,0.02,0.08);
+        vec3 neb = mix(vec3(0.16,0.06,0.32), vec3(0.06,0.1,0.32), smoothstep(0.3,0.8,vUv.x));
+        float m = smoothstep(0.45,0.85,f) * (0.6 + 0.4*smoothstep(0.9,0.2,length(vUv-0.5)));
+        gl_FragColor = vec4(base + neb*m*0.9, 1.0);
+      }`,
+  }), []);
+  return <Billboard position={[0, 0, -60]}><mesh material={mat} renderOrder={-10}><planeGeometry args={[260, 160]} /></mesh></Billboard>;
+}
+
 export default function NeuralGalaxy({ items, onPick, spin = true }: { items: Callout[]; onPick?: (c: Callout) => void; spin?: boolean }) {
   const overlay = useRef<Overlay>({ labels: [], lines: [], dots: [] });
   return (
     <div className="absolute inset-0">
-      <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: true }} camera={{ position: [0, 0, 30], fov: 45 }}>
+      <Canvas dpr={[1, 2]} gl={{ antialias: true }} camera={{ position: [0, 0, 30], fov: 45 }}>
+        <color attach="background" args={["#070514"]} />
+        <SpaceBackdrop />
         <Stars radius={90} depth={50} count={3500} factor={3.2} saturation={0.6} fade speed={0.5} />
         <Globe items={items} overlay={overlay} spin={spin} />
         <OrbitControls enablePan={false} enableDamping dampingFactor={0.06} rotateSpeed={0.6} minDistance={14} maxDistance={45} />
