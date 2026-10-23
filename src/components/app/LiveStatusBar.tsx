@@ -45,11 +45,11 @@ export function LiveStatusBar() {
   const ev = last.data;
 
   const working = online.length > 0 && enabled && autoAccs.length > 0 && !closed;
-  const headline = !accs.length ? t("No MT5 account connected yet")
+  const headline = closed ? t("Market is closed for the weekend — scanning resumes Sunday 22:00 UTC")
+    : !accs.length ? t("No MT5 account connected yet")
     : !online.length ? t("MetaTrader is closed or disconnected — no trades can be placed")
     : !enabled ? t("Auto-Pilot is off — it will not trade")
     : !autoAccs.length ? t("Auto trading is off on your accounts")
-    : closed ? t("Market is closed for the weekend — scanning resumes Sunday 22:00 UTC")
     : t("Everything is running — the AI scans the market on its own");
 
   return (
