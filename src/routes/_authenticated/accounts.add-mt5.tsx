@@ -15,9 +15,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { isOnline, useAccounts, useBrokers } from "@/lib/trading";
 import { cn, defined } from "@/lib/utils";
+import { DEFAULT_TRADE_LOT } from "@/lib/lot-settings";
+import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/accounts/add-mt5")({
-  head: () => ({ meta: [{ title: "Add MT5 Account | Arrissa AI" }, { name: "description", content: "Connect a MetaTrader 5 trading account from a supported broker." }] }),
+  head: () => seo("Add MT5 Account", "Connect a MetaTrader 5 trading account from a supported broker."),
   component: AddMt5,
 });
 
@@ -115,7 +117,7 @@ function AddMt5() {
             <div className="space-y-2"><Label htmlFor="server">{t("Server")}</Label><Input id="server" name="server" required placeholder={chosen?.name === "FxPro" ? "FxPro-MT5 Live01" : "Exness-MT5Real8"} className="rounded-full" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label htmlFor="label">{t("Nickname")}</Label><Input id="label" name="label" placeholder={t("MT5 Account")} className="rounded-full" /></div>
-              <div className="space-y-2"><Label htmlFor="lot_size">{t("Default lot")}</Label><Input id="lot_size" name="lot_size" defaultValue="0.01" inputMode="decimal" className="rounded-full" /></div>
+              <div className="space-y-2"><Label htmlFor="lot_size">{t("Default lot")}</Label><Input id="lot_size" name="lot_size" defaultValue={String(DEFAULT_TRADE_LOT)} inputMode="decimal" className="rounded-full" /></div>
             </div>
             <p className="text-xs text-muted-foreground">{t("Your MT5 password is never needed. Trades run through the Arrissa EA inside your own MT5.")}</p>
             <Button type="submit" variant="hero" className="h-11 w-full rounded-full" disabled={busy}>{busy ? t("Adding…") : t("Add account")}</Button>
