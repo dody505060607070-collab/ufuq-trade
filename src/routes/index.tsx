@@ -181,7 +181,7 @@ function Landing() {
           </div>
           <div className="relative overflow-hidden rounded-3xl border border-primary/30">
             <img src={sleepImg} alt={t("Trader sleeping while the AI trades")} loading="lazy" width={1024} height={640} className="h-full min-h-[260px] w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/60 to-transparent rtl:bg-gradient-to-l" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/30 to-transparent rtl:bg-gradient-to-l" />
             <div className="absolute inset-y-0 start-0 flex max-w-[60%] flex-col justify-center p-6">
               <Moon className="h-6 w-6 text-primary-glow" />
               <p className="mt-3 text-2xl font-bold leading-tight">{t("You Sleep...")}<br />{t("It Trades.")}</p>
@@ -212,9 +212,9 @@ function Landing() {
       <section id="pricing" className="py-16">
         <div className="mx-auto max-w-5xl px-4">
           <Head tag="PRICING" title="AI Trading at Zero Cost" sub="We partnered with various brokers to provide full access with no subscription fees. Open through partner links to unlock all features." />
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
             {(brokers.data ?? []).map((b) => (
-              <div key={b.id} className="rounded-2xl border border-border/70 bg-card/50 p-5 text-center">
+              <div key={b.id} className="w-full max-w-xs rounded-2xl border border-border/70 bg-card/50 p-5 text-center">
                 <BrokerLogo name={b.name} color={b.brand_color} className="mx-auto h-14 w-14" />
                 <p className="mt-3 text-sm font-semibold">{b.name}</p>
                 <ul className="mt-3 space-y-1 text-start text-xs text-muted-foreground">{b.features.map((f) => <li key={f} className="flex items-center gap-2"><Check className="h-3 w-3 text-success" />{f}</li>)}</ul>
