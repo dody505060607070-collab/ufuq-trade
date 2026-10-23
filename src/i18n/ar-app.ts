@@ -458,4 +458,9 @@ export const AR_APP: Record<string, string> = {
   "Coming soon": "قريبًا",
   "Needs your TradeLocker API details to connect.": "محتاج بيانات TradeLocker API بتاعتك للربط.",
   "Crypto 24/7. Starts on the free test network first.": "كريبتو 24/7. هيبدأ على شبكة التجربة المجانية الأول.",
+  "analyses in 24h": "تحليل في 24 ساعة",
+  "Offline": "غير متصل",
+  "MT5 connected": "MT5 متصل",
+  "MT5 offline": "MT5 غير متصل",
+  "Last analysis": "آخر تحليل"
 };
