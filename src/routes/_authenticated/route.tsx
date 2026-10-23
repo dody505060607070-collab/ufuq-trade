@@ -7,6 +7,8 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/login", search: { redirect: location.href } });
+    const { data: ok } = await supabase.rpc("is_approved", { _user_id: data.user.id });
+    if (!ok) throw redirect({ to: "/pending" });
   },
   component: () => (
     <AppShell>

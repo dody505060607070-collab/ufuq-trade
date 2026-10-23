@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 const tabs = [
-  ["/admin/overview", "Overview"], ["/admin/users", "Users"], ["/admin/brokers", "Brokers"], ["/admin/instruments", "Instruments"],
+  ["/admin/overview", "Overview"], ["/admin/approvals", "Sign-up requests"], ["/admin/users", "Users"], ["/admin/brokers", "Brokers"], ["/admin/instruments", "Instruments"],
   ["/admin/models", "AI Models"], ["/admin/signals", "Signals"], ["/admin/ea-releases", "EA Releases"], ["/admin/campaign", "Campaign"],
   ["/admin/audit", "Audit"], ["/admin/settings", "Settings"],
 ] as const;
