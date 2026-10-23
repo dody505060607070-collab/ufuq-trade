@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { buildGalaxy, type GNode } from "@/lib/galaxy";
+
+const NeuralGalaxy = lazy(() => import("@/components/app/NeuralGalaxy"));
 import { Brain, Trash2 } from "lucide-react";
 import { Page } from "@/components/app/AppShell";
 import { Input } from "@/components/ui/input";
@@ -42,6 +45,8 @@ function BrainPage() {
   const best = [...hours].sort((a, b) => b.net - a.net)[0];
   const worst = [...hours].sort((a, b) => a.net - b.net)[0];
   const shown = L.filter((l) => (f === "all" || l.outcome === f) && (!q || `${l.symbol} ${l.lesson ?? ""} ${l.reason ?? ""}`.toLowerCase().includes(q.toLowerCase())));
+  const [picked, setPicked] = useState<GNode | null>(null);
+  const galaxy = useMemo(() => buildGalaxy(L, rules.data ?? [], ["XAUUSD", "USOIL", "EURUSD"]), [L, rules.data]);
   const hh = (h?: { hour: number }) => (h ? `${String(h.hour).padStart(2, "0")}:00 UTC` : "—");
 
   const toggle = async (id: string, is_active: boolean) => { await supabase.from("learned_rules").update({ is_active }).eq("id", id); void qc.invalidateQueries({ queryKey: ["rules"] }); };
@@ -55,6 +60,39 @@ function BrainPage() {
         <Stat label={t("Best hour")} value={hh(best)} tone="up" />
         <Stat label={t("Worst hour")} value={hh(worst)} tone="down" />
       </div>
+
+      <section className="overflow-hidden rounded-2xl border border-primary/30 bg-card">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border/60 p-4">
+          <div className="flex-1">
+            <h2 className="font-semibold">{t("Neural Galaxy")}</h2>
+            <p className="text-xs text-muted-foreground">{t("Drag to rotate 360°, scroll to zoom, click a star to read it.")}</p>
+          </div>
+          <div className="flex flex-wrap gap-3 text-xs">
+            {([["bg-primary", "Rule"], ["bg-success", "Winning trade"], ["bg-destructive", "Losing trade"], ["bg-warning", "Instrument"]] as const).map(([c, l]) => (
+              <span key={l} className="flex items-center gap-1.5"><span className={cn("h-2.5 w-2.5 rounded-full", c)} />{t(l)}</span>
+            ))}
+          </div>
+        </div>
+        <div className="relative h-[520px]">
+          <ClientOnly fallback={<div className="h-full animate-pulse bg-muted/20" />}>
+            <Suspense fallback={<div className="h-full animate-pulse bg-muted/20" />}>
+              <NeuralGalaxy nodes={galaxy.nodes} edges={galaxy.edges} onPick={setPicked} labels={{ rule: t("Rule"), win: t("Winning trade"), loss: t("Losing trade"), breakeven: t("Breakeven trade"), symbol: t("Instrument"), core: t("AI Brain") }} />
+            </Suspense>
+          </ClientOnly>
+          {!L.length && !(rules.data ?? []).length && (
+            <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-sm text-muted-foreground">{t("The galaxy grows with every closed trade.")}</p>
+          )}
+          {picked && picked.kind !== "core" && (
+            <div className="absolute bottom-4 start-4 max-w-sm rounded-xl border border-border bg-popover/95 p-4 text-sm shadow-xl backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">{t(picked.kind === "rule" ? "Rule" : picked.kind === "symbol" ? "Instrument" : picked.kind === "win" ? "Winning trade" : picked.kind === "loss" ? "Losing trade" : "Breakeven trade")}</p>
+              <p className="mt-1 font-medium">{picked.label}</p>
+              {picked.kind === "rule" && <p className="mt-1 text-xs text-muted-foreground">{t("seen")} {picked.detail}×</p>}
+              {picked.kind === "symbol" && <p className="mt-1 text-xs text-muted-foreground">{picked.detail} {t("Lessons learned")}</p>}
+              {picked.detail && picked.kind !== "rule" && picked.kind !== "symbol" && <p className="mt-1 text-muted-foreground">{picked.detail}</p>}
+            </div>
+          )}
+        </div>
+      </section>
 
       {review.data && (
         <div className="rounded-2xl border border-primary/40 bg-accent/40 p-5">
