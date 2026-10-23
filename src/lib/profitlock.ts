@@ -1,12 +1,30 @@
 /** Pure profit-lock rules: decide when an open trade's floating profit should be banked. */
 export type LockRules = { profit_target_usd: number; lock_start_usd: number; giveback_pct: number };
 
-/** Returns the close reason, or null to keep the trade open. */
-export function lockReason(profit: number, peak: number, r: LockRules): string | null {
-  if (r.profit_target_usd > 0 && profit >= r.profit_target_usd) return `Target $${r.profit_target_usd} reached ($${profit.toFixed(2)})`;
-  if (r.lock_start_usd > 0 && peak >= r.lock_start_usd && profit > 0 && profit <= peak * (1 - r.giveback_pct / 100))
-    return `Locked $${profit.toFixed(2)} after peak $${peak.toFixed(2)}`;
+/** Allowed giveback shrinks as the peak grows; never looser than the user's setting. */
+export function givebackFor(peak: number, userPct: number): number {
+  const tier = peak < 15 ? 40 : peak < 30 ? 25 : 20;
+  return Math.min(userPct, tier);
+}
+
+/** Returns the close reason, or null to keep the trade open. strongTrend lets a winner run past the target on a tight trail. */
+export function lockReason(profit: number, peak: number, r: LockRules, strongTrend = false): string | null {
+  const hitTarget = r.profit_target_usd > 0 && peak >= r.profit_target_usd;
+  if (hitTarget && !strongTrend && profit >= r.profit_target_usd) return `Target $${r.profit_target_usd} reached ($${profit.toFixed(2)})`;
+  const pct = hitTarget && strongTrend ? 15 : givebackFor(peak, r.giveback_pct);
+  const start = r.lock_start_usd > 0 ? r.lock_start_usd : hitTarget ? r.profit_target_usd : 0;
+  if (start > 0 && peak >= start && profit > 0 && profit <= peak * (1 - pct / 100))
+    return `Locked $${profit.toFixed(2)} after peak $${peak.toFixed(2)}${hitTarget && strongTrend ? " (runner)" : ""}`;
   return null;
+}
+
+export type ExitVerdict = "early" | "late" | "good";
+/** Judges an exit: missed = extra profit price reached within 2h after close; giveback = peak minus realised. */
+export function exitReview(profit: number, peak: number, missed: number): { verdict: ExitVerdict; giveback: number } {
+  const giveback = Math.max(0, peak - profit);
+  if (missed > Math.max(10, Math.abs(profit))) return { verdict: "early", giveback };
+  if (peak > 0 && giveback > Math.max(5, peak * 0.35)) return { verdict: "late", giveback };
+  return { verdict: "good", giveback };
 }
 
 /** Blocks new trades during cooldown after a close, or once the daily profit goal is met. */

@@ -619,9 +619,13 @@ export type Database = {
       trade_lessons: {
         Row: {
           created_at: string
+          exit_verdict: string | null
+          giveback_usd: number | null
           id: string
           lesson: string | null
+          missed_profit: number | null
           outcome: string
+          peak_profit: number | null
           profit: number
           reason: string | null
           rule: string | null
@@ -633,9 +637,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          exit_verdict?: string | null
+          giveback_usd?: number | null
           id?: string
           lesson?: string | null
+          missed_profit?: number | null
           outcome: string
+          peak_profit?: number | null
           profit?: number
           reason?: string | null
           rule?: string | null
@@ -647,9 +655,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          exit_verdict?: string | null
+          giveback_usd?: number | null
           id?: string
           lesson?: string | null
+          missed_profit?: number | null
           outcome?: string
+          peak_profit?: number | null
           profit?: number
           reason?: string | null
           rule?: string | null
