@@ -6,6 +6,12 @@ import type { Database } from "@/integrations/supabase/types";
 /** One Auto-Pilot cycle: analyses each enabled symbol once and queues trades. Pass onlyUser to run for a single user. */
 export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: string) {
   const { getCached, runAI, newsNearby } = await import("@/lib/analysis.server");
+  if (!onlyUser) {
+    const b = await import("@/lib/brain.server");
+    await b.processLessons(db).catch((e) => console.error("lessons", e));
+    if (new Date().getUTCDay() === 1) await b.weeklyReviews(db).catch((e) => console.error("weekly", e));
+    await b.refreshCot(db).catch((e) => console.error("cot", e));
+  }
   // Forex/gold markets are closed Fri 21:00 → Sun 22:00 UTC: skip paid AI analysis then.
   const n = new Date(), d = n.getUTCDay(), h = n.getUTCHours();
   if ((d === 5 && h >= 21) || d === 6 || (d === 0 && h < 22)) return { ok: true, users: 0, queued: 0, closed: true };
