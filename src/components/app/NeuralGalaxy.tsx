@@ -162,12 +162,12 @@ const fresnelVS = "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = mode
 function Atmosphere() {
   const rim = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: fresnelVS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(vN,vV)); vec3 a = vec3(0.55,0.2,1.0); vec3 b = vec3(0.55,0.8,1.0); vec3 c = mix(a, b, pow(f,6.0)); gl_FragColor = vec4(c, pow(f,7.0)*0.6); }",
+    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(vN,vV)); vec3 a = vec3(0.55,0.2,1.0); vec3 b = vec3(0.55,0.8,1.0); vec3 c = mix(a, b, pow(f,6.0)); gl_FragColor = vec4(c, pow(f,6.0)*0.5); }",
   }), []);
   const halo = useMemo(() => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
-    fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv-0.5)*2.0*1.5; float out_ = smoothstep(0.93,1.0,d); float g = out_*exp(-(d-1.0)*5.0); float inner = 0.0; vec3 c = mix(vec3(0.35,0.25,1.0), vec3(0.6,0.75,1.0), exp(-(d-1.0)*12.0)); gl_FragColor = vec4(c*(g*0.9+inner), g*0.9+inner); }",
+    fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv-0.5)*2.0*1.5; float out_ = smoothstep(0.93,1.0,d); float g = out_*exp(-(d-1.0)*5.0); float inner = 0.0; vec3 c = mix(vec3(0.35,0.25,1.0), vec3(0.6,0.75,1.0), exp(-(d-1.0)*12.0)); gl_FragColor = vec4(c*g*0.5, g*0.5); }",
   }), []);
   const core = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0d0733", transparent: true, opacity: 0.5, depthWrite: false }), []);
   return (
@@ -261,7 +261,7 @@ function SpaceBackdrop() {
         vec3 base = vec3(0.027,0.02,0.08);
         vec3 neb = mix(vec3(0.16,0.06,0.32), vec3(0.06,0.1,0.32), smoothstep(0.3,0.8,vUv.x));
         float m = smoothstep(0.45,0.85,f) * (0.6 + 0.4*smoothstep(0.9,0.2,length(vUv-0.5)));
-        gl_FragColor = vec4(base + neb*m*0.32, 1.0);
+        vec3 col = base + neb*m*0.5; gl_FragColor = vec4(pow(col, vec3(2.2)), 1.0);
       }`,
   }), []);
   return <Billboard position={[0, 0, -60]}><mesh material={mat} renderOrder={-10}><planeGeometry args={[260, 160]} /></mesh></Billboard>;
