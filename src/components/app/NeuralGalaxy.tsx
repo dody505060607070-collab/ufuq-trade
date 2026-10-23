@@ -62,7 +62,7 @@ function Sprites({ pos, col, size, ring = 0 }: { pos: number[]; col: number[]; s
     g.setAttribute("phase", new THREE.Float32BufferAttribute(size.map((_, i) => (i * 0.6180339) % 1), 1));
     return g;
   }, [pos, col, size]);
-  useFrame(({ clock }) => { mat.uniforms.uTime!.value = clock.elapsedTime; });
+  useFrame(({ clock }) => { mat.uniforms["uTime"]!.value = clock.elapsedTime; });
   return <points geometry={geo} material={mat} />;
 }
 
@@ -207,7 +207,7 @@ function DataNodes({ items, globe, overlay }: { items: Callout[]; globe: Mutable
       label.style.opacity = String(o);
       label.style.pointerEvents = o > 0.4 ? "auto" : "none";
       label.style.transform = `translate(${lx + (left ? -10 : 10)}px, ${ly}px) translate(${left ? "-100%" : "0"}, -50%)`;
-      label.dataset.side = left ? "left" : "right";
+      label.dataset["side"] = left ? "left" : "right";
       line.setAttribute("d", `M${sx},${sy} L${lx - dx * 6},${ly - dy * 6} L${lx},${ly}`);
       line.style.opacity = String(o * 0.85);
       dot.setAttribute("cx", String(sx)); dot.setAttribute("cy", String(sy)); dot.style.opacity = String(o);
