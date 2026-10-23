@@ -407,7 +407,7 @@ export const AR_APP: Record<string, string> = {
   "Win rate": "نسبة النجاح",
   "Best hour": "أفضل ساعة",
   "Worst hour": "أسوأ ساعة",
-  "This week"s review": "مراجعة الأسبوع",
+  "This week's review": "مراجعة الأسبوع",
   "Learned rules": "القواعد المتعلَّمة",
   "No rules yet. They appear after the first closed trades.": "لسه مفيش قواعد. هتظهر بعد أول صفقات مقفولة.",
   "seen": "اتكررت",
