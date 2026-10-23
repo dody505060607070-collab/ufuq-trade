@@ -434,6 +434,39 @@ export type Database = {
         }
         Relationships: []
       }
+      learned_rules: {
+        Row: {
+          created_at: string
+          hits: number
+          id: string
+          is_active: boolean
+          rule: string
+          symbol: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hits?: number
+          id?: string
+          is_active?: boolean
+          rule: string
+          symbol?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hits?: number
+          id?: string
+          is_active?: boolean
+          rule?: string
+          symbol?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           copy_sl: boolean
@@ -580,6 +613,51 @@ export type Database = {
           },
         ]
       }
+      trade_lessons: {
+        Row: {
+          created_at: string
+          id: string
+          lesson: string | null
+          outcome: string
+          profit: number
+          reason: string | null
+          rule: string | null
+          side: string
+          symbol: string
+          tags: string[]
+          trade_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lesson?: string | null
+          outcome: string
+          profit?: number
+          reason?: string | null
+          rule?: string | null
+          side: string
+          symbol: string
+          tags?: string[]
+          trade_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lesson?: string | null
+          outcome?: string
+          profit?: number
+          reason?: string | null
+          rule?: string | null
+          side?: string
+          symbol?: string
+          tags?: string[]
+          trade_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           account_id: string
@@ -723,6 +801,72 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_reviews: {
+        Row: {
+          created_at: string
+          id: string
+          net: number
+          summary: string
+          trades: number
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          net?: number
+          summary: string
+          trades?: number
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          net?: number
+          summary?: string
+          trades?: number
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      whale_signals: {
+        Row: {
+          change_long: number
+          change_short: number
+          created_at: string
+          id: string
+          long_pos: number
+          report_date: string
+          short_pos: number
+          source: string
+          symbol: string
+        }
+        Insert: {
+          change_long?: number
+          change_short?: number
+          created_at?: string
+          id?: string
+          long_pos: number
+          report_date: string
+          short_pos: number
+          source: string
+          symbol: string
+        }
+        Update: {
+          change_long?: number
+          change_short?: number
+          created_at?: string
+          id?: string
+          long_pos?: number
+          report_date?: string
+          short_pos?: number
+          source?: string
+          symbol?: string
         }
         Relationships: []
       }
