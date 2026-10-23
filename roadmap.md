@@ -19,3 +19,8 @@
 
 # Auto-Pilot
 - [x] Settings page, rules, 15-min scheduled runner, activity log
+
+# Current request
+- [ ] Persist the requested 0.02 lot without enabling trading or changing other users.
+- [ ] Add protected read-only assistant access with explicit account consent.
+- [ ] Review security, fix confirmed issues, and verify access boundaries.
