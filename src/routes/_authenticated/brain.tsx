@@ -25,7 +25,7 @@ type Range = keyof typeof RANGES;
 const money = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(n).toFixed(2)}`;
 const short = (s: string, n = 24) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
-function Stat({ icon, label, value, sub, tone }: { icon: ReactNode; label: string; value: string; sub: string; tone?: "up" | "down" }) {
+function Stat({ icon, label, value, sub, tone }: { icon: ReactNode; label: string; value: string; sub: string; tone?: "up" | "down" | undefined }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card/40 px-5 py-4 backdrop-blur">
       <p className="flex items-center gap-2.5 text-sm text-muted-foreground"><span className="text-primary-glow">{icon}</span>{label}</p>

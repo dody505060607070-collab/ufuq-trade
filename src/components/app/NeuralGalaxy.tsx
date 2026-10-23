@@ -5,7 +5,7 @@ import { useMemo, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
 
 /** One labelled data point on the globe (real platform data). */
-export type Callout = { id: string; kind: "symbol" | "rule" | "win" | "loss" | "layer"; title: string; sub?: string; value?: string; tone?: "up" | "down" };
+export type Callout = { id: string; kind: "symbol" | "rule" | "win" | "loss" | "layer"; title: string; sub?: string | undefined; value?: string | undefined; tone?: "up" | "down" | undefined };
 
 const R = 9;
 const KIND_COLOR: Record<Callout["kind"], string> = { symbol: "#fbbf24", rule: "#a855f7", layer: "#a855f7", win: "#10e0a0", loss: "#ff3b5c" };
