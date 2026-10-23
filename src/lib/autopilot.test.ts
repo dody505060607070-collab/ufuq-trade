@@ -15,3 +15,14 @@ describe("autopilot rules", () => {
   it("respects daily limit", () => expect(skipReason(sig, rules, { ...st, todayCount: 4 })).not.toBeNull());
   it("no duplicate on same symbol", () => expect(skipReason(sig, rules, { ...st, openOnSymbol: 1 })).not.toBeNull());
 });
+
+describe("unlimited daily trades", () => {
+  const sig = { direction: "buy", confidence: 90, entry: 1, stop_loss: 0.9, take_profit: 1.2 };
+  const st = { openTotal: 0, openOnSymbol: 0, todayCount: 50, recentOnSymbol: false, newsNearby: false, avoidNews: true };
+  it("max_daily 0 never blocks on the daily count", () => {
+    expect(skipReason(sig, { min_confidence: 60, max_open: 2, max_daily: 0 }, st)).toBeNull();
+  });
+  it("a positive max_daily still blocks", () => {
+    expect(skipReason(sig, { min_confidence: 60, max_open: 2, max_daily: 10 }, st)).toBe("Daily limit of 10 trades reached");
+  });
+});

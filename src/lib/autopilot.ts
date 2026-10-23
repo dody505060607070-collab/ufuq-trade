@@ -11,6 +11,6 @@ export function skipReason(sig: AutoSignal, rules: AutoRules, st: AutoState): st
   if (st.openOnSymbol > 0) return "A trade is already open on this symbol";
   if (st.recentOnSymbol) return "Already traded this symbol in the last hour";
   if (st.openTotal >= rules.max_open) return `Max ${rules.max_open} open trades reached`;
-  if (st.todayCount >= rules.max_daily) return `Daily limit of ${rules.max_daily} trades reached`;
+  if (rules.max_daily > 0 && st.todayCount >= rules.max_daily) return `Daily limit of ${rules.max_daily} trades reached`;
   return null;
 }
