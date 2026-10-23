@@ -120,7 +120,7 @@ function Landing() {
             <div className="pointer-events-none absolute inset-x-10 bottom-6 h-24 rounded-[50%] bg-primary/30 blur-3xl" />
             <ClientOnly fallback={<div className="h-full" />}>
               <Suspense fallback={<div className="h-full" />}>
-                <div className="hero-globe h-full w-full overflow-hidden rounded-[2rem]"><NeuralGalaxy items={heroNodes} /></div>
+                <div className="h-full w-full" style={{ maskImage: "radial-gradient(closest-side, #000 80%, transparent 100%)", WebkitMaskImage: "radial-gradient(closest-side, #000 80%, transparent 100%)" }}><NeuralGalaxy items={heroNodes} /></div>
               </Suspense>
             </ClientOnly>
           </div>
