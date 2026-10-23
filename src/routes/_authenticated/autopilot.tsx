@@ -113,7 +113,7 @@ function AutoPilot() {
           <Field label={t("Minimum AI confidence (%)")}><Input type="number" min={50} max={95} value={s.min_confidence} onChange={(e) => num("min_confidence", e.target.value)} /></Field>
           <Field label={t("Lot size per trade")}><Input type="number" step={0.01} min={0.01} value={s.lot_size} onChange={(e) => num("lot_size", e.target.value)} /></Field>
           <Field label={t("Max open trades per account")}><Input type="number" min={1} max={10} value={s.max_open} onChange={(e) => num("max_open", e.target.value)} /></Field>
-          <Field label={t("Max auto trades per day")}><Input type="number" min={1} max={20} value={s.max_daily} onChange={(e) => num("max_daily", e.target.value)} /></Field>
+          <Field label={t("Max auto trades per day (0 = unlimited)")}><Input type="number" min={0} max={100} value={s.max_daily} onChange={(e) => num("max_daily", e.target.value)} /></Field>
           <label className="flex items-center justify-between rounded-2xl border border-border bg-background/40 px-4 py-3">
             <span className="text-sm">{t("Don't trade 30 min around high-impact news")}</span>
             <Switch checked={s.avoid_news} onCheckedChange={(v) => setS({ ...s, avoid_news: v })} />
