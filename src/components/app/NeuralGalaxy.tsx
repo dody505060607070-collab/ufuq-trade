@@ -1,140 +1,274 @@
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Html, OrbitControls, Stars } from "@react-three/drei";
-import { useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { OrbitControls, Stars } from "@react-three/drei";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
+import { useMemo, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
-import type { GEdge, GNode } from "@/lib/galaxy";
 
-const COLOR: Record<GNode["kind"], string> = { core: "#a78bfa", symbol: "#facc15", rule: "#8b5cf6", win: "#22c55e", loss: "#ef4444", breakeven: "#94a3b8" };
+/** One labelled data point on the globe (real platform data). */
+export type Callout = { id: string; kind: "symbol" | "rule" | "win" | "loss" | "layer"; title: string; sub?: string; value?: string; tone?: "up" | "down" };
 
-function Node({ n, active, onHover, onPick }: { n: GNode; active: boolean; onHover: (n: GNode | null) => void; onPick: (n: GNode) => void }) {
-  const ref = useRef<THREE.Mesh>(null);
-  const phase = useMemo(() => Math.random() * 6, []);
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-    const s = 1 + Math.sin(clock.elapsedTime * (n.kind === "core" ? 1.5 : 2) + phase) * 0.08 + (active ? 0.35 : 0);
-    ref.current.scale.setScalar(s);
-  });
-  const c = COLOR[n.kind];
-  return (
-    <group position={n.pos}>
-      <mesh ref={ref} onPointerOver={(e) => { e.stopPropagation(); onHover(n); document.body.style.cursor = "pointer"; }} onPointerOut={() => { onHover(null); document.body.style.cursor = ""; }} onClick={(e) => { e.stopPropagation(); onPick(n); }}>
-        <sphereGeometry args={[n.size, 20, 20]} />
-        <meshStandardMaterial color={c} emissive={c} emissiveIntensity={n.kind === "symbol" || n.kind === "core" ? 0.6 : 1.6} toneMapped={false} />
-      </mesh>
-      <mesh scale={n.kind === "core" ? 1.8 : 1.7}>
-        <sphereGeometry args={[n.size, 12, 12]} />
-        <meshBasicMaterial color={c} transparent opacity={active ? 0.35 : 0.12} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </mesh>
-      {(n.kind === "symbol" || n.kind === "core") && (
-        <Html center distanceFactor={14} position={[0, n.size + 0.7, 0]} style={{ pointerEvents: "none" }}>
-          <span className="whitespace-nowrap rounded-full border border-warning/40 bg-background/70 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-foreground">{n.label}</span>
-        </Html>
-      )}
-    </group>
-  );
+const R = 9;
+const KIND_COLOR: Record<Callout["kind"], string> = { symbol: "#fbbf24", rule: "#a855f7", layer: "#a855f7", win: "#10e0a0", loss: "#ff3b5c" };
+const PALETTE = ["#7c3aed", "#8b5cf6", "#a855f7", "#c026d3", "#e879f9", "#3b82f6", "#60a5fa", "#22d3ee", "#c4b5fd"];
+
+/* deterministic random so the globe looks the same every visit */
+function rng(seed: number) {
+  let s = seed >>> 0;
+  return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function fib(i: number, n: number) {
+  const y = 1 - ((i + 0.5) / n) * 2, r = Math.sqrt(1 - y * y), th = i * 2.399963229728653;
+  return new THREE.Vector3(Math.cos(th) * r, y, Math.sin(th) * r);
 }
 
-function Edges({ nodes, edges, focus }: { nodes: GNode[]; edges: GEdge[]; focus: number | null }) {
+/* ---------- glowing sprite points (soft core + halo, optional ring, twinkle) ---------- */
+const spriteVS = `
+  attribute float size; attribute float phase; attribute vec3 color;
+  uniform float uTime; uniform float uPR; varying vec3 vColor; varying float vTw;
+  void main(){
+    vec4 mv = modelViewMatrix * vec4(position,1.0);
+    float tw = 0.75 + 0.35 * sin(uTime * (1.2 + fract(phase) * 2.0) + phase * 6.2831);
+    vTw = tw; vColor = color;
+    gl_PointSize = size * tw * uPR * (300.0 / -mv.z);
+    gl_Position = projectionMatrix * mv;
+  }`;
+const spriteFS = `
+  uniform float uRing; varying vec3 vColor; varying float vTw;
+  void main(){
+    float d = length(gl_PointCoord - 0.5);
+    if (d > 0.5) discard;
+    float halo = pow(1.0 - d * 2.0, 2.2);
+    float core = smoothstep(0.12, 0.0, d);
+    float ring = uRing * smoothstep(0.035, 0.0, abs(d - 0.36)) * 0.9;
+    vec3 c = vColor * (halo * 0.55 + ring) + mix(vColor, vec3(1.0), 0.7) * core * 1.4;
+    gl_FragColor = vec4(c * vTw, clamp(halo * 0.8 + core + ring, 0.0, 1.0));
+  }`;
+
+function useSpriteMaterial(ring = 0) {
+  const { gl } = useThree();
+  return useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: spriteVS, fragmentShader: spriteFS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uTime: { value: 0 }, uPR: { value: Math.min(gl.getPixelRatio(), 2) }, uRing: { value: ring } },
+  }), [gl, ring]);
+}
+
+function Sprites({ pos, col, size, ring = 0 }: { pos: number[]; col: number[]; size: number[]; ring?: number }) {
+  const mat = useSpriteMaterial(ring);
   const geo = useMemo(() => {
-    const pos: number[] = [], col: number[] = [];
-    const tmp = new THREE.Color();
-    for (const e of edges) {
-      const a = nodes[e.a]!, b = nodes[e.b]!;
-      const lit = focus !== null && (e.a === focus || e.b === focus);
-      tmp.set(e.kind === "rule" ? "#8b5cf6" : e.kind === "core" ? "#c4b5fd" : COLOR[b.kind]).multiplyScalar(lit ? 1.6 : focus !== null ? 0.25 : 0.6);
-      pos.push(...a.pos, ...b.pos); col.push(tmp.r, tmp.g, tmp.b, tmp.r, tmp.g, tmp.b);
-    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    g.setAttribute("size", new THREE.Float32BufferAttribute(size, 1));
+    g.setAttribute("phase", new THREE.Float32BufferAttribute(size.map((_, i) => (i * 0.6180339) % 1), 1));
+    return g;
+  }, [pos, col, size]);
+  useFrame(({ clock }) => { mat.uniforms.uTime!.value = clock.elapsedTime; });
+  return <points geometry={geo} material={mat} />;
+}
+
+function Lines({ pos, col, opacity }: { pos: number[]; col: number[]; opacity: number }) {
+  const geo = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
     return g;
-  }, [nodes, edges, focus]);
-  return (
-    <lineSegments geometry={geo}>
-      <lineBasicMaterial vertexColors transparent opacity={0.85} blending={THREE.AdditiveBlending} depthWrite={false} />
-    </lineSegments>
-  );
+  }, [pos, col]);
+  return <lineSegments geometry={geo}><lineBasicMaterial vertexColors transparent opacity={opacity} blending={THREE.AdditiveBlending} depthWrite={false} /></lineSegments>;
 }
 
-function Shell({ r = 9 }: { r?: number }) {
-  const { surface, inner, lines } = useMemo(() => {
-    const N = 2200, sp: number[] = [], sc: number[] = [], c = new THREE.Color();
-    const pal = ["#8b5cf6", "#a78bfa", "#60a5fa", "#e879f9", "#c4b5fd"];
-    const pts: THREE.Vector3[] = [];
-    for (let i = 0; i < N; i++) {
-      const y = 1 - (i / (N - 1)) * 2, rad = Math.sqrt(1 - y * y), th = i * 2.399963;
-      const v = new THREE.Vector3(Math.cos(th) * rad, y, Math.sin(th) * rad).multiplyScalar(r * (0.985 + Math.random() * 0.03));
-      pts.push(v); sp.push(v.x, v.y, v.z);
-      c.set(pal[i % pal.length]!).multiplyScalar(0.7 + Math.random() * 0.8); sc.push(c.r, c.g, c.b);
+/* ---------- the globe body ---------- */
+function buildGlobe() {
+  const rand = rng(20261023), c = new THREE.Color();
+  const pick = (w: number[] = [3, 3, 3, 2, 1, 2, 2, 1, 2]) => { let t = rand() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < w.length; i++) { t -= w[i]!; if (t <= 0) return PALETTE[i]!; } return PALETTE[0]!; };
+
+  // 1) inner nebula: clustered soft clouds (purple / magenta / blue)
+  const neb = { pos: [] as number[], col: [] as number[], size: [] as number[] };
+  const clouds = Array.from({ length: 9 }, () => ({ c: new THREE.Vector3().randomDirection().multiplyScalar(R * (0.25 + rand() * 0.55)), r: R * (0.25 + rand() * 0.3), color: pick([2, 2, 3, 4, 3, 2, 1, 0, 1]) }));
+  for (let i = 0; i < 5200; i++) {
+    const cl = clouds[i % clouds.length]!;
+    const v = new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5) * 2, (rand() - 0.5) * 2).multiplyScalar(cl.r * Math.pow(rand(), 0.6)).add(cl.c);
+    if (v.length() > R * 0.96) v.setLength(R * (0.6 + rand() * 0.35));
+    neb.pos.push(v.x, v.y, v.z);
+    c.set(rand() < 0.75 ? cl.color : pick()).multiplyScalar(0.35 + rand() * 0.45); neb.col.push(c.r, c.g, c.b);
+    neb.size.push(0.25 + rand() * 0.9);
+  }
+  // 2) surface dust (dense shell, bright rim through additive overlap)
+  const dust = { pos: [] as number[], col: [] as number[], size: [] as number[] };
+  for (let i = 0; i < 7000; i++) {
+    const v = fib(i, 7000).multiplyScalar(R * (0.975 + rand() * 0.05));
+    dust.pos.push(v.x, v.y, v.z);
+    c.set(pick([2, 3, 2, 1, 1, 3, 3, 2, 3])).multiplyScalar(0.55 + rand() * 0.7); dust.col.push(c.r, c.g, c.b);
+    dust.size.push(0.12 + rand() * 0.28);
+  }
+  // 3) neural web: nodes on the shell + inner layer, joined to nearest neighbours
+  const nodes: THREE.Vector3[] = [];
+  for (let i = 0; i < 620; i++) nodes.push(new THREE.Vector3().randomDirection().multiplyScalar(R * (0.95 + rand() * 0.05)));
+  for (let i = 0; i < 160; i++) nodes.push(new THREE.Vector3().randomDirection().multiplyScalar(R * (0.45 + rand() * 0.45)));
+  const web = { pos: [] as number[], col: [] as number[] };
+  const webNodes = { pos: [] as number[], col: [] as number[], size: [] as number[] };
+  nodes.forEach((a, i) => {
+    const near = nodes.map((b, j) => ({ j, d: a.distanceToSquared(b) })).filter((x) => x.j !== i).sort((x, y) => x.d - y.d).slice(0, i < 620 ? 3 : 2);
+    for (const { j, d } of near) {
+      if (j < i && near.length > 1) continue;
+      if (d > (R * 0.42) ** 2) continue;
+      const b = nodes[j]!;
+      web.pos.push(a.x, a.y, a.z, b.x, b.y, b.z);
+      c.set(pick([3, 3, 3, 1, 1, 3, 3, 2, 2])).multiplyScalar(0.8 + rand() * 0.6); web.col.push(c.r, c.g, c.b, c.r, c.g, c.b);
     }
-    const ip: number[] = [], ic: number[] = [];
-    for (let i = 0; i < 1600; i++) {
-      const v = new THREE.Vector3().randomDirection().multiplyScalar(r * Math.cbrt(Math.random()) * 0.95);
-      ip.push(v.x, v.y, v.z); c.set(pal[(i * 7) % pal.length]!).multiplyScalar(0.5 + Math.random()); ic.push(c.r, c.g, c.b);
-    }
-    const lp: number[] = [];
-    for (let i = 0; i < N; i += 2) {
-      const a = pts[i]!;
-      for (const k of [1, 21, 34]) { const b = pts[(i + k) % N]!; if (a.distanceTo(b) < r * 0.35) lp.push(a.x, a.y, a.z, b.x, b.y, b.z); }
-    }
-    const mk = (p: number[], col?: number[]) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3)); if (col) g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); return g; };
-    return { surface: mk(sp, sc), inner: mk(ip, ic), lines: mk(lp) };
-  }, [r]);
-  const glow = useMemo(() => new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.BackSide,
-    uniforms: { c: { value: new THREE.Color("#7c3aed") } },
-    vertexShader: "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }",
-    fragmentShader: "uniform vec3 c; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1. - abs(dot(vN, vV)), 2.2); gl_FragColor = vec4(c*1.6, f*0.9); }",
-  }), []);
+    webNodes.pos.push(a.x, a.y, a.z);
+    c.set(pick([1, 2, 2, 1, 2, 2, 3, 2, 4])).multiplyScalar(1.0 + rand() * 0.5); webNodes.col.push(c.r, c.g, c.b);
+    webNodes.size.push(0.35 + rand() * 0.75);
+  });
+  // 4) long filament arcs across the volume + orbit rings around the globe
+  const arcs = { pos: [] as number[], col: [] as number[] };
+  const pushCurve = (pts: THREE.Vector3[], color: string, k = 1) => {
+    c.set(color).multiplyScalar(k);
+    for (let i = 0; i < pts.length - 1; i++) { const p = pts[i]!, q = pts[i + 1]!; arcs.pos.push(p.x, p.y, p.z, q.x, q.y, q.z); arcs.col.push(c.r, c.g, c.b, c.r, c.g, c.b); }
+  };
+  for (let i = 0; i < 46; i++) {
+    const a = nodes[Math.floor(rand() * 620)]!, b = nodes[Math.floor(rand() * 620)]!;
+    const mid = a.clone().add(b).multiplyScalar(0.5).multiplyScalar(0.55 + rand() * 0.5);
+    const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
+    pushCurve(curve.getPoints(40), rand() < 0.4 ? "#fbbf24" : pick([1, 2, 3, 2, 3, 2, 2, 1, 2]), 0.6 + rand() * 0.5);
+  }
+  for (let i = 0; i < 7; i++) {
+    const rx = R * (1.0 + rand() * 0.16), ry = rx * (0.55 + rand() * 0.45);
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI));
+    const pts = Array.from({ length: 161 }, (_, k) => { const t = (k / 160) * Math.PI * 2; return new THREE.Vector3(Math.cos(t) * rx, Math.sin(t) * ry, 0).applyQuaternion(q); });
+    pushCurve(pts, i % 3 === 0 ? "#fbbf24" : i % 3 === 1 ? "#a78bfa" : "#60a5fa", 0.55);
+  }
+  // 5) bright hubs with rings
+  const hubs = { pos: [] as number[], col: [] as number[], size: [] as number[] };
+  const hubColors = ["#22d3ee", "#fbbf24", "#e879f9", "#ffffff", "#ff3b5c", "#10e0a0", "#a78bfa"];
+  for (let i = 0; i < 34; i++) {
+    const v = nodes[Math.floor(rand() * nodes.length)]!;
+    hubs.pos.push(v.x, v.y, v.z);
+    c.set(hubColors[i % hubColors.length]!); hubs.col.push(c.r, c.g, c.b);
+    hubs.size.push(1.6 + rand() * 1.8);
+  }
+  return { neb, dust, web, webNodes, arcs, hubs };
+}
+
+const fresnelVS = "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }";
+
+function Atmosphere() {
   const rim = useMemo(() => new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    uniforms: { c: { value: new THREE.Color("#a5b4fc") } },
-    vertexShader: "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }",
-    fragmentShader: "uniform vec3 c; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1. - abs(dot(vN, vV)), 3.5); gl_FragColor = vec4(c, f); }",
+    vertexShader: fresnelVS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(vN,vV)); vec3 a = vec3(0.45,0.25,1.0); vec3 b = vec3(0.75,0.9,1.0); vec3 c = mix(a, b, pow(f,4.0)); gl_FragColor = vec4(c, pow(f,2.6)*1.1 + 0.03); }",
   }), []);
-  const spin = useRef<THREE.Group>(null);
-  useFrame((_, d) => { if (spin.current) spin.current.rotation.y += Math.min(d, 0.05) * 0.03; });
+  const halo = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: fresnelVS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.BackSide,
+    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = pow(abs(dot(vN,vV)), 3.0); gl_FragColor = vec4(vec3(0.45,0.3,1.0)*f, f*0.55); }",
+  }), []);
   return (
-    <group>
-      <mesh scale={1.18} material={glow}><sphereGeometry args={[r, 64, 64]} /></mesh>
-      <mesh material={rim}><sphereGeometry args={[r * 1.01, 64, 64]} /></mesh>
-      <mesh><sphereGeometry args={[r * 0.99, 48, 48]} /><meshBasicMaterial color="#1e1b4b" transparent opacity={0.35} depthWrite={false} /></mesh>
-      <group ref={spin}>
-        <points geometry={surface}><pointsMaterial size={0.09} vertexColors transparent opacity={0.95} blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation /></points>
-        <points geometry={inner}><pointsMaterial size={0.06} vertexColors transparent opacity={0.7} blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation /></points>
-        <lineSegments geometry={lines}><lineBasicMaterial color="#8b5cf6" transparent opacity={0.22} blending={THREE.AdditiveBlending} depthWrite={false} /></lineSegments>
-      </group>
-    </group>
+    <>
+      <mesh material={halo}><sphereGeometry args={[R * 1.22, 64, 64]} /></mesh>
+      <mesh material={rim}><sphereGeometry args={[R * 1.005, 96, 96]} /></mesh>
+    </>
   );
 }
 
-export default function NeuralGalaxy({ nodes, edges, labels, onPick }: { nodes: GNode[]; edges: GEdge[]; labels: Record<string, string>; onPick: (n: GNode | null) => void }) {
-  const [hover, setHover] = useState<GNode | null>(null);
-  const [picked, setPicked] = useState<GNode | null>(null);
-  const focusNode = hover ?? picked;
-  const focus = focusNode ? nodes.indexOf(focusNode) : null;
-  const pick = (n: GNode | null) => { setPicked(n); onPick(n); };
+/* data nodes + screen-space callouts */
+type Overlay = { labels: (HTMLDivElement | null)[]; lines: (SVGPathElement | null)[]; dots: (SVGCircleElement | null)[] };
+
+function DataNodes({ items, globe, overlay }: { items: Callout[]; globe: MutableRefObject<THREE.Group | null>; overlay: MutableRefObject<Overlay> }) {
+  const { camera, size } = useThree();
+  const local = useMemo(() => {
+    const n = Math.max(items.length, 1);
+    return items.map((_, i) => fib(i, n).applyAxisAngle(new THREE.Vector3(1, 0, 0), 0.35).multiplyScalar(R * 0.99));
+  }, [items]);
+  const sprite = useMemo(() => {
+    const pos: number[] = [], col: number[] = [], sz: number[] = [], c = new THREE.Color();
+    items.forEach((it, i) => { const v = local[i]!; pos.push(v.x, v.y, v.z); c.set(KIND_COLOR[it.kind]); col.push(c.r, c.g, c.b); sz.push(it.kind === "symbol" ? 4.2 : 3.4); });
+    return { pos, col, sz };
+  }, [items, local]);
+  const tmp = useMemo(() => ({ w: new THREE.Vector3(), p: new THREE.Vector3(), c: new THREE.Vector3(), r: new THREE.Vector3(), cam: new THREE.Vector3() }), []);
+
+  useFrame(() => {
+    const g = globe.current; if (!g) return;
+    const { w, p, c, r, cam } = tmp;
+    cam.copy(camera.position).normalize();
+    c.set(0, 0, 0).project(camera);
+    const cx = (c.x + 1) / 2 * size.width, cy = (1 - c.y) / 2 * size.height;
+    r.setFromMatrixColumn(camera.matrixWorld, 0).multiplyScalar(R).project(camera);
+    const discR = Math.hypot((r.x + 1) / 2 * size.width - cx, (1 - r.y) / 2 * size.height - cy);
+    items.forEach((_, i) => {
+      const label = overlay.current.labels[i], line = overlay.current.lines[i], dot = overlay.current.dots[i];
+      if (!label || !line || !dot) return;
+      w.copy(local[i]!).applyMatrix4(g.matrixWorld);
+      const facing = w.clone().normalize().dot(cam);
+      const o = Math.min(1, Math.max(0, (facing - 0.08) / 0.25));
+      p.copy(w).project(camera);
+      const sx = (p.x + 1) / 2 * size.width, sy = (1 - p.y) / 2 * size.height;
+      let dx = sx - cx, dy = sy - cy; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+      const reach = discR * 1.08 + 26 - d * 0.55;
+      const lx = sx + dx * Math.max(reach, 34), ly = sy + dy * Math.max(reach, 34);
+      const left = dx < 0;
+      label.style.opacity = String(o);
+      label.style.pointerEvents = o > 0.4 ? "auto" : "none";
+      label.style.transform = `translate(${lx + (left ? -10 : 10)}px, ${ly}px) translate(${left ? "-100%" : "0"}, -50%)`;
+      label.style.textAlign = left ? "right" : "left";
+      line.setAttribute("d", `M${sx},${sy} L${lx - dx * 6},${ly - dy * 6} L${lx},${ly}`);
+      line.style.opacity = String(o * 0.85);
+      dot.setAttribute("cx", String(sx)); dot.setAttribute("cy", String(sy)); dot.style.opacity = String(o);
+    });
+  });
+  return <Sprites pos={sprite.pos} col={sprite.col} size={sprite.sz} ring={1} />;
+}
+
+function Globe({ items, overlay, spin }: { items: Callout[]; overlay: MutableRefObject<Overlay>; spin: boolean }) {
+  const g = useMemo(buildGlobe, []);
+  const group = useRef<THREE.Group>(null);
+  useFrame((_, d) => { if (group.current && spin) group.current.rotation.y += Math.min(d, 0.05) * 0.05; });
   return (
-    <Canvas dpr={[1, 2]} camera={{ position: [0, 3, 26], fov: 50 }} onPointerMissed={() => pick(null)}>
-      <color attach="background" args={["#07060d"]} />
-      <fog attach="fog" args={["#07060d", 40, 90]} />
-      <ambientLight intensity={0.4} />
-      <pointLight position={[0, 0, 0]} intensity={40} color="#a78bfa" />
-      <Stars radius={80} depth={40} count={2500} factor={3} fade speed={0.6} />
-      <Shell />
-      <group scale={0.72}>
-        <Edges nodes={nodes} edges={edges} focus={focus === -1 ? null : focus} />
-        {nodes.map((n) => <Node key={n.id} n={n} active={focusNode === n} onHover={setHover} onPick={pick} />)}
+    <>
+      <Atmosphere />
+      <group ref={group} rotation={[0.25, 0, 0.08]}>
+        <Sprites pos={g.neb.pos} col={g.neb.col} size={g.neb.size} />
+        <Sprites pos={g.dust.pos} col={g.dust.col} size={g.dust.size} />
+        <Lines pos={g.web.pos} col={g.web.col} opacity={0.42} />
+        <Lines pos={g.arcs.pos} col={g.arcs.col} opacity={0.5} />
+        <Sprites pos={g.webNodes.pos} col={g.webNodes.col} size={g.webNodes.size} />
+        <Sprites pos={g.hubs.pos} col={g.hubs.col} size={g.hubs.size} ring={0.8} />
+        <DataNodes items={items} globe={group} overlay={overlay} />
       </group>
-      {hover && hover.kind !== "symbol" && hover.kind !== "core" && (
-        <Html position={hover.pos.map((v) => v * 0.72) as [number, number, number]} center distanceFactor={12} style={{ pointerEvents: "none" }}>
-          <div className="w-56 -translate-y-10 rounded-lg border border-border bg-popover/95 p-2 text-xs text-popover-foreground shadow-lg">
-            <p className="font-semibold">{labels[hover.kind]}</p>
-            <p className="mt-1 line-clamp-3">{hover.label}</p>
+    </>
+  );
+}
+
+export default function NeuralGalaxy({ items, onPick, spin = true }: { items: Callout[]; onPick?: (c: Callout) => void; spin?: boolean }) {
+  const overlay = useRef<Overlay>({ labels: [], lines: [], dots: [] });
+  return (
+    <div className="absolute inset-0">
+      <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: true }} camera={{ position: [0, 0, 27], fov: 45 }}>
+        <Stars radius={90} depth={50} count={3500} factor={3.2} saturation={0.6} fade speed={0.5} />
+        <Globe items={items} overlay={overlay} spin={spin} />
+        <OrbitControls enablePan={false} enableDamping dampingFactor={0.06} rotateSpeed={0.6} minDistance={14} maxDistance={45} />
+        <EffectComposer multisampling={0}>
+          <Bloom mipmapBlur intensity={1.15} luminanceThreshold={0.18} luminanceSmoothing={0.3} radius={0.75} />
+        </EffectComposer>
+      </Canvas>
+
+      <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
+        {items.map((it, i) => (
+          <g key={it.id}>
+            <path ref={(el) => { overlay.current.lines[i] = el; }} fill="none" stroke={KIND_COLOR[it.kind]} strokeWidth={1} style={{ opacity: 0 }} />
+            <circle ref={(el) => { overlay.current.dots[i] = el; }} r={3} fill={KIND_COLOR[it.kind]} style={{ opacity: 0 }} />
+          </g>
+        ))}
+      </svg>
+      {items.map((it, i) => (
+        <div key={it.id} ref={(el) => { overlay.current.labels[i] = el; }} onClick={() => onPick?.(it)}
+          className="absolute left-0 top-0 cursor-pointer select-none whitespace-nowrap rounded-lg px-2 py-1 transition-colors hover:bg-card/60"
+          style={{ opacity: 0 }}>
+          <div className="flex items-center gap-2" style={{ flexDirection: "inherit" }}>
+            <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2" style={{ borderColor: KIND_COLOR[it.kind], boxShadow: `0 0 10px ${KIND_COLOR[it.kind]}`, background: `radial-gradient(circle, ${KIND_COLOR[it.kind]} 35%, transparent 40%)` }} />
+            <span className="text-[11px] font-semibold tracking-wide" style={{ color: it.kind === "win" ? KIND_COLOR.win : it.kind === "loss" ? KIND_COLOR.loss : undefined }}>{it.title}</span>
           </div>
-        </Html>
-      )}
-      <OrbitControls enableDamping dampingFactor={0.06} autoRotate={!picked} minDistance={8} maxDistance={45} autoRotateSpeed={0.35} />
-    </Canvas>
+          {it.sub && <p className="ps-5 text-[11px] text-muted-foreground">{it.sub}</p>}
+          {it.value && <p className={`ps-5 text-[11px] font-medium ${it.tone === "down" ? "text-destructive" : "text-success"}`}>{it.value}</p>}
+        </div>
+      ))}
+    </div>
   );
 }
