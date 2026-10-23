@@ -271,7 +271,7 @@ export default function NeuralGalaxy({ items, onPick, spin = true }: { items: Ca
   const overlay = useRef<Overlay>({ labels: [], lines: [], dots: [] });
   return (
     <div className="absolute inset-0">
-      <Canvas dpr={[1, 2]} gl={{ antialias: true }} camera={{ position: [0, 0, 30], fov: 45 }}>
+      <Canvas dpr={[1, 2]} gl={{ antialias: true }} camera={{ position: [0, 0, 24.5], fov: 45 }}>
         <color attach="background" args={["#070514"]} />
         <SpaceBackdrop />
         <Stars radius={90} depth={50} count={3500} factor={3.2} saturation={0.6} fade speed={0.5} />
