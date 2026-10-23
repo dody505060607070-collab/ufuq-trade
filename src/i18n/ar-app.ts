@@ -1,4 +1,6 @@
 export const AR_APP: Record<string, string> = {
+  "Show all": "عرض الكل",
+  "Show less": "عرض أقل",
   "Arrissa home": "الصفحة الرئيسية لـ Arrissa",
   "Admin panel": "لوحة الإدارة",
   "Terms": "الشروط",

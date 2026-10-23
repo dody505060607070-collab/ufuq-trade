@@ -179,6 +179,7 @@ function Dashboard() {
     toast.success(t("Signal loaded into the trading form."));
   };
   const shownAnalyses = (analyses.data ?? []).filter((a) => !onlyCurrent || a.symbol === symbol);
+  const [showAll, setShowAll] = useState(false);
 
   const broker = (acc?: Account) => brokers.data?.find((b) => acc?.broker_name && b.name.toLowerCase() === acc.broker_name.toLowerCase());
   const [hide, setHide] = useState(false);
@@ -208,9 +209,14 @@ function Dashboard() {
         ))}
         {shownAnalyses.length === 0 && !busy ? (
           <p className="pt-10 text-center text-sm text-muted-foreground">{t("No analysis yet. Open Analysis and request a symbol.")}</p>
-        ) : shownAnalyses.map((a) => (
+        ) : (showAll ? shownAnalyses : shownAnalyses.slice(0, 3)).map((a) => (
           <AnalysisCard key={a.id} symbol={a.symbol} tag={a.timeframe ?? undefined} direction={a.direction} confidence={a.confidence} entry={a.entry} sl={a.stop_loss} tp={a.take_profit} text={a.summary} at={a.created_at} onUse={() => useSignal(a)} />
         ))}
+        {shownAnalyses.length > 3 && (
+          <Button variant="secondary" className="w-full rounded-full" onClick={() => setShowAll((v) => !v)}>
+            {showAll ? t("Show less") : `${t("Show all")} (${shownAnalyses.length})`}
+          </Button>
+        )}
         <p className="text-[11px] text-muted-foreground">{t("AI analysis is not financial advice. Always manage your risk.")}</p>
       </aside>
 
