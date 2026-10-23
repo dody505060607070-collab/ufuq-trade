@@ -35,7 +35,7 @@ function Stat({ icon, label, value, sub, tone }: { icon: ReactNode; label: strin
   );
 }
 
-function BrainPage() {
+export function BrainPage() {
   const t = useT();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
