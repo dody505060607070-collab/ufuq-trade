@@ -3,7 +3,7 @@ export type LockRules = { profit_target_usd: number; lock_start_usd: number; giv
 
 /** Allowed giveback shrinks as the peak grows; never looser than the user's setting. */
 export function givebackFor(peak: number, userPct: number): number {
-  const tier = peak < 15 ? 40 : peak < 30 ? 30 : 20;
+  const tier = peak < 15 ? 40 : peak < 30 ? 25 : 20;
   return Math.min(userPct, tier);
 }
 
