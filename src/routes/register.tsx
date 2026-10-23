@@ -42,7 +42,7 @@ function Register() {
     const { error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
-      options: { data: { full_name: parsed.data.full_name }, emailRedirectTo: `${window.location.origin}/login` },
+       options: { data: { full_name: parsed.data.full_name }, emailRedirectTo: new URL(safeRedirect(redirect).startsWith("/.lovable/oauth/consent") ? safeRedirect(redirect) : "/login", window.location.origin).href },
     });
     setBusy(false);
     if (error) return toast.error(error.message);

@@ -2,12 +2,14 @@ import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { lovable } from "@/integrations/lovable/index";
+import { safeRedirect } from "@/lib/auth";
 
 export function GoogleButton({ redirect }: { redirect: string }) {
   const t = useT();
   const onClick = async () => {
-    sessionStorage.setItem("post_auth_redirect", redirect);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/login` });
+    const target = safeRedirect(redirect);
+    sessionStorage.setItem("post_auth_redirect", target);
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: new URL(target.startsWith("/.lovable/oauth/consent") ? target : "/login", window.location.origin).href });
     if (result.error) toast.error(t("Google sign-in failed."));
   };
   return (
