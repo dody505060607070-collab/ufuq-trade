@@ -23,6 +23,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WebAppInstallTriggerRouteImport } from './routes/web-app-install-trigger'
+import { Route as ZzGlobeTestRouteImport } from './routes/zz-globe-test'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAutopilotRouteImport } from './routes/_authenticated/autopilot'
 import { Route as AuthenticatedBrainRouteImport } from './routes/_authenticated/brain'
@@ -120,6 +121,11 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
 const WebAppInstallTriggerRoute = WebAppInstallTriggerRouteImport.update({
   id: '/web-app-install-trigger',
   path: '/web-app-install-trigger',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZzGlobeTestRoute = ZzGlobeTestRouteImport.update({
+  id: '/zz-globe-test',
+  path: '/zz-globe-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -297,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/zz-globe-test': typeof ZzGlobeTestRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
@@ -341,6 +348,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/zz-globe-test': typeof ZzGlobeTestRoute
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
   '/brokers': typeof AuthenticatedBrokersRoute
@@ -385,6 +393,7 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/zz-globe-test': typeof ZzGlobeTestRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/autopilot': typeof AuthenticatedAutopilotRoute
   '/_authenticated/brain': typeof AuthenticatedBrainRoute
@@ -431,6 +440,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/zz-globe-test'
     | '/admin'
     | '/autopilot'
     | '/brain'
@@ -475,6 +485,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/zz-globe-test'
     | '/autopilot'
     | '/brain'
     | '/brokers'
@@ -518,6 +529,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/zz-globe-test'
     | '/_authenticated/admin'
     | '/_authenticated/autopilot'
     | '/_authenticated/brain'
@@ -564,6 +576,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WebAppInstallTriggerRoute: typeof WebAppInstallTriggerRoute
+  ZzGlobeTestRoute: typeof ZzGlobeTestRoute
   ApiPublicAutopilotRunRoute: typeof ApiPublicAutopilotRunRoute
   ApiPublicEaSyncRoute: typeof ApiPublicEaSyncRoute
 }
@@ -666,6 +679,13 @@ declare module '@tanstack/react-router' {
       path: '/web-app-install-trigger'
       fullPath: '/web-app-install-trigger'
       preLoaderRoute: typeof WebAppInstallTriggerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zz-globe-test': {
+      id: '/zz-globe-test'
+      path: '/zz-globe-test'
+      fullPath: '/zz-globe-test'
+      preLoaderRoute: typeof ZzGlobeTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -985,6 +1005,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WebAppInstallTriggerRoute: WebAppInstallTriggerRoute,
+  ZzGlobeTestRoute: ZzGlobeTestRoute,
   ApiPublicAutopilotRunRoute: ApiPublicAutopilotRunRoute,
   ApiPublicEaSyncRoute: ApiPublicEaSyncRoute,
 }
