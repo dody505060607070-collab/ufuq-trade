@@ -157,7 +157,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div><div className="mb-1 text-xs font-semibold text-muted-foreground">{label}</div>{children}</div>;
 }
 
-const CYCLE = 15 * 60_000;
+const CYCLE = 10 * 60_000;
 
 function LiveMonitor({ enabled, events, accountIds }: { enabled: boolean; events: { action: string; created_at: string }[]; accountIds: string[] }) {
   const t = useT();

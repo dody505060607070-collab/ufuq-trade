@@ -63,8 +63,11 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   const snap = snapshot(candles);
   const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${events || "none"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nProvide your directional analysis as json.`;
 
+  // Paid Gemini only — no Lovable AI fallback.
   const geminiKey = process.env["GEMINI_API_KEY"];
-  const text = (geminiKey ? await callGemini(geminiKey, prompt).catch(() => null) : null) ?? (await callLovable(model?.model_id ?? "openai/gpt-6-astra", prompt));
+  if (!geminiKey) throw new Error("Gemini API key is not configured.");
+  const text = await callGemini(geminiKey, prompt);
+  if (!text) throw new Error("Gemini analysis failed. Please try again.");
   const match = text.match(/\{[\s\S]*\}/);
   let json: unknown = null;
   try { json = match ? JSON.parse(match[0]) : null; } catch { json = null; }
@@ -92,7 +95,7 @@ async function callGemini(key: string, prompt: string): Promise<string | null> {
       generationConfig: { responseMimeType: "application/json" },
     }),
   });
-  if (!res.ok) { console.error("Gemini failed", res.status); return null; }
+  if (!res.ok) { console.error("Gemini failed", res.status, (await res.text()).slice(0, 300)); return null; }
   const j = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   return j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") || null;
 }
