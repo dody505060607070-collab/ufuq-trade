@@ -88,7 +88,7 @@ export async function refreshCot(db: DB) {
   const url = `https://publicreporting.cftc.gov/resource/6dca-aqww.json?$where=${encodeURIComponent(`market_and_exchange_names in(${names})`)}&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=24`;
   const res = await fetch(url).catch(() => null);
   if (!res?.ok) return;
-  const rows = (await res.json()) as Record<string, string>[];
+  const rows = (await res.json()) as { market_and_exchange_names?: string; report_date_as_yyyy_mm_dd?: string; noncomm_positions_long_all?: string; noncomm_positions_short_all?: string; change_in_noncomm_long_all?: string; change_in_noncomm_short_all?: string }[];
   const inv = Object.fromEntries(Object.entries(COT).map(([k, v]) => [v, k]));
   const up = rows.filter((r) => inv[r.market_and_exchange_names ?? ""]).map((r) => ({
     symbol: inv[r.market_and_exchange_names!]!, source: "cftc_cot", report_date: (r.report_date_as_yyyy_mm_dd ?? "").slice(0, 10),
