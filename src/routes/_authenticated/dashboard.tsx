@@ -197,7 +197,7 @@ function Dashboard() {
             <Tip label={onlyCurrent ? t("Showing current instrument only") : t("Show current instrument only")} side="bottom">
               <button onClick={() => setOnlyCurrent((v) => !v)} aria-label={t("Filter")} className={cn("flex h-7 w-7 items-center justify-center rounded-full border border-border", onlyCurrent && "border-primary text-primary-glow")}><ListFilter className="h-3.5 w-3.5" /></button>
             </Tip>
-            <Tip label={auto ? t("Auto analysis every 15 min: ON") : t("Auto analysis every 15 min: OFF")} side="bottom">
+            <Tip label={auto ? t("Auto analysis every 10 min: ON") : t("Auto analysis every 10 min: OFF")} side="bottom">
               <button onClick={toggleAuto} aria-label={t("Auto analysis")} className={cn("flex h-7 w-7 items-center justify-center rounded-full", auto ? "bg-success text-success-foreground" : "border border-border text-muted-foreground")}><Clock className="h-3.5 w-3.5" /></button>
             </Tip>
           </div>
