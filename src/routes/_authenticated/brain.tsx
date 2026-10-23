@@ -43,7 +43,7 @@ const ago = (iso?: string | null) => {
   return m < 1 ? "now" : m < 60 ? `${m}m` : `${Math.round(m / 60)}h`;
 };
 
-export function BrainPage() {
+function BrainPage() {
   const t = useT();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
