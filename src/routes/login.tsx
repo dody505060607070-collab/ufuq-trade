@@ -12,8 +12,10 @@ import { safeRedirect, useAuth } from "@/lib/auth";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>): { redirect?: string } =>
-    typeof s["redirect"] === "string" ? { redirect: s["redirect"] } : {},
+  validateSearch: (s: Record<string, unknown>): { redirect?: string } => {
+    const value = s["next"] ?? s["redirect"];
+    return typeof value === "string" ? { redirect: safeRedirect(value) } : {};
+  },
   head: () => seo("Sign in", "Sign in to your Arrissa AI trading dashboard."),
   component: Login,
 });

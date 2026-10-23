@@ -17,6 +17,7 @@ import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MarketsRouteImport } from './routes/markets'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -27,6 +28,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WebAppInstallTriggerRouteImport } from './routes/web-app-install-trigger'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAutopilotRouteImport } from './routes/_authenticated/autopilot'
 import { Route as AuthenticatedBrainRouteImport } from './routes/_authenticated/brain'
@@ -37,6 +39,7 @@ import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenti
 import { Route as AuthenticatedPlatformsRouteImport } from './routes/_authenticated/platforms'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedWhalesRouteImport } from './routes/_authenticated/whales'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedAccountsAddMt5RouteImport } from './routes/_authenticated/accounts.add-mt5'
 import { Route as AuthenticatedAccountsAddTradelockerRouteImport } from './routes/_authenticated/accounts.add-tradelocker'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
@@ -52,6 +55,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminSignalsRouteImport } from './routes/_authenticated/admin.signals'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
+import { Route as AuthenticatedSettingsAssistantsRouteImport } from './routes/_authenticated/settings.assistants'
 import { Route as AuthenticatedSettingsPreferencesRouteImport } from './routes/_authenticated/settings.preferences'
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 import { Route as AuthenticatedAdminUsersIdRouteImport } from './routes/_authenticated/admin.users.$id'
@@ -95,6 +99,11 @@ const LoginRoute = LoginRouteImport.update({
 const MarketsRoute = MarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PendingRoute = PendingRouteImport.update({
@@ -147,6 +156,12 @@ const WebAppInstallTriggerRoute = WebAppInstallTriggerRouteImport.update({
   path: '/web-app-install-trigger',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -197,6 +212,11 @@ const AuthenticatedWhalesRoute = AuthenticatedWhalesRouteImport.update({
   id: '/whales',
   path: '/whales',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccountsAddMt5Route =
   AuthenticatedAccountsAddMt5RouteImport.update({
@@ -285,6 +305,12 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsAssistantsRoute =
+  AuthenticatedSettingsAssistantsRouteImport.update({
+    id: '/assistants',
+    path: '/assistants',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsPreferencesRoute =
   AuthenticatedSettingsPreferencesRouteImport.update({
     id: '/preferences',
@@ -322,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
+  '/mcp': typeof McpRoute
   '/pending': typeof PendingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -332,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
@@ -342,6 +370,7 @@ export interface FileRoutesByFullPath {
   '/platforms': typeof AuthenticatedPlatformsRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/whales': typeof AuthenticatedWhalesRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
   '/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
   '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
@@ -355,6 +384,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/signals': typeof AuthenticatedAdminSignalsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRouteWithChildren
+  '/settings/assistants': typeof AuthenticatedSettingsAssistantsRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -371,6 +401,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
+  '/mcp': typeof McpRoute
   '/pending': typeof PendingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -381,6 +412,7 @@ export interface FileRoutesByTo {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
   '/brokers': typeof AuthenticatedBrokersRoute
@@ -389,6 +421,7 @@ export interface FileRoutesByTo {
   '/performance': typeof AuthenticatedPerformanceRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
   '/whales': typeof AuthenticatedWhalesRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
   '/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
   '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
@@ -402,6 +435,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/signals': typeof AuthenticatedAdminSignalsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRouteWithChildren
+  '/settings/assistants': typeof AuthenticatedSettingsAssistantsRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -420,6 +454,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
+  '/mcp': typeof McpRoute
   '/pending': typeof PendingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -430,6 +465,7 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/autopilot': typeof AuthenticatedAutopilotRoute
   '/_authenticated/brain': typeof AuthenticatedBrainRoute
@@ -440,6 +476,7 @@ export interface FileRoutesById {
   '/_authenticated/platforms': typeof AuthenticatedPlatformsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/whales': typeof AuthenticatedWhalesRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
   '/_authenticated/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
   '/_authenticated/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
@@ -453,6 +490,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/signals': typeof AuthenticatedAdminSignalsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRouteWithChildren
+  '/_authenticated/settings/assistants': typeof AuthenticatedSettingsAssistantsRoute
   '/_authenticated/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -471,6 +509,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/markets'
+    | '/mcp'
     | '/pending'
     | '/pricing'
     | '/privacy'
@@ -481,6 +520,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/autopilot'
     | '/brain'
@@ -491,6 +531,7 @@ export interface FileRouteTypes {
     | '/platforms'
     | '/settings'
     | '/whales'
+    | '/.lovable/oauth/consent'
     | '/accounts/add-mt5'
     | '/accounts/add-tradelocker'
     | '/admin/approvals'
@@ -504,6 +545,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/signals'
     | '/admin/users'
+    | '/settings/assistants'
     | '/settings/preferences'
     | '/settings/profile'
     | '/admin/'
@@ -520,6 +562,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/markets'
+    | '/mcp'
     | '/pending'
     | '/pricing'
     | '/privacy'
@@ -530,6 +573,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/.well-known/oauth-protected-resource'
     | '/autopilot'
     | '/brain'
     | '/brokers'
@@ -538,6 +582,7 @@ export interface FileRouteTypes {
     | '/performance'
     | '/platforms'
     | '/whales'
+    | '/.lovable/oauth/consent'
     | '/accounts/add-mt5'
     | '/accounts/add-tradelocker'
     | '/admin/approvals'
@@ -551,6 +596,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/signals'
     | '/admin/users'
+    | '/settings/assistants'
     | '/settings/preferences'
     | '/settings/profile'
     | '/admin'
@@ -568,6 +614,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/markets'
+    | '/mcp'
     | '/pending'
     | '/pricing'
     | '/privacy'
@@ -578,6 +625,7 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/verify-email'
     | '/web-app-install-trigger'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
     | '/_authenticated/autopilot'
     | '/_authenticated/brain'
@@ -588,6 +636,7 @@ export interface FileRouteTypes {
     | '/_authenticated/platforms'
     | '/_authenticated/settings'
     | '/_authenticated/whales'
+    | '/.lovable/oauth/consent'
     | '/_authenticated/accounts/add-mt5'
     | '/_authenticated/accounts/add-tradelocker'
     | '/_authenticated/admin/approvals'
@@ -601,6 +650,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/signals'
     | '/_authenticated/admin/users'
+    | '/_authenticated/settings/assistants'
     | '/_authenticated/settings/preferences'
     | '/_authenticated/settings/profile'
     | '/_authenticated/admin/'
@@ -619,6 +669,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   MarketsRoute: typeof MarketsRoute
+  McpRoute: typeof McpRoute
   PendingRoute: typeof PendingRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -629,6 +680,8 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   WebAppInstallTriggerRoute: typeof WebAppInstallTriggerRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicAutopilotRunRoute: typeof ApiPublicAutopilotRunRoute
   ApiPublicEaSyncRoute: typeof ApiPublicEaSyncRoute
 }
@@ -689,6 +742,13 @@ declare module '@tanstack/react-router' {
       path: '/markets'
       fullPath: '/markets'
       preLoaderRoute: typeof MarketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pending': {
@@ -761,6 +821,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WebAppInstallTriggerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -830,6 +897,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/whales'
       preLoaderRoute: typeof AuthenticatedWhalesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/accounts/add-mt5': {
       id: '/_authenticated/accounts/add-mt5'
@@ -936,6 +1010,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/assistants': {
+      id: '/_authenticated/settings/assistants'
+      path: '/assistants'
+      fullPath: '/settings/assistants'
+      preLoaderRoute: typeof AuthenticatedSettingsAssistantsRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/preferences': {
       id: '/_authenticated/settings/preferences'
       path: '/preferences'
@@ -1022,12 +1103,14 @@ const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsAssistantsRoute: typeof AuthenticatedSettingsAssistantsRoute
   AuthenticatedSettingsPreferencesRoute: typeof AuthenticatedSettingsPreferencesRoute
   AuthenticatedSettingsProfileRoute: typeof AuthenticatedSettingsProfileRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsAssistantsRoute: AuthenticatedSettingsAssistantsRoute,
   AuthenticatedSettingsPreferencesRoute: AuthenticatedSettingsPreferencesRoute,
   AuthenticatedSettingsProfileRoute: AuthenticatedSettingsProfileRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
@@ -1081,6 +1164,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   MarketsRoute: MarketsRoute,
+  McpRoute: McpRoute,
   PendingRoute: PendingRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
@@ -1091,6 +1175,9 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   WebAppInstallTriggerRoute: WebAppInstallTriggerRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicAutopilotRunRoute: ApiPublicAutopilotRunRoute,
   ApiPublicEaSyncRoute: ApiPublicEaSyncRoute,
 }
