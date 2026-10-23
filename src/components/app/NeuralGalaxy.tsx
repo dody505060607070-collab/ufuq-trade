@@ -19,9 +19,9 @@ function Node({ n, active, onHover, onPick }: { n: GNode; active: boolean; onHov
     <group position={n.pos}>
       <mesh ref={ref} onPointerOver={(e) => { e.stopPropagation(); onHover(n); document.body.style.cursor = "pointer"; }} onPointerOut={() => { onHover(null); document.body.style.cursor = ""; }} onClick={(e) => { e.stopPropagation(); onPick(n); }}>
         <sphereGeometry args={[n.size, 20, 20]} />
-        <meshStandardMaterial color={c} emissive={c} emissiveIntensity={1.6} toneMapped={false} />
+        <meshStandardMaterial color={c} emissive={c} emissiveIntensity={n.kind === "symbol" || n.kind === "core" ? 0.6 : 1.6} toneMapped={false} />
       </mesh>
-      <mesh scale={n.kind === "core" ? 2.4 : 2}>
+      <mesh scale={n.kind === "core" ? 1.8 : 1.7}>
         <sphereGeometry args={[n.size, 12, 12]} />
         <meshBasicMaterial color={c} transparent opacity={active ? 0.35 : 0.12} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
