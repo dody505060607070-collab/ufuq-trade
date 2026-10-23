@@ -1,4 +1,4 @@
-import { useT, LanguageToggle } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 import { ClientOnly, createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -8,9 +8,10 @@ import {
   CheckCircle2, Moon, Trophy, Monitor, Cpu, Zap, Headphones, Check, Instagram, Send, Youtube, Github, Coins, LineChart, Bitcoin, Droplet, Apple, DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { InstrumentIcon, BrokerLogo } from "@/components/app/InstrumentIcon";
+import { InstrumentIcon } from "@/components/app/InstrumentIcon";
+import { SiteHeader, SiteFooter, SectionHead as Head, FeaturesGrid, MarketsGrid, BrokerCards, PlatformsStrip } from "@/components/site/SiteChrome";
 import { useAuth } from "@/lib/auth";
-import { useBrokers, useInstruments } from "@/lib/trading";
+import { useInstruments } from "@/lib/trading";
 import { getQuotes } from "@/lib/market.functions";
 import { seo } from "@/lib/seo";
 import { cn } from "@/lib/utils";
@@ -24,26 +25,6 @@ export const Route = createFileRoute("/")({
   head: () => seo("The Future of Trading is Autonomous", "Arrissa AI analyzes global markets, finds high-probability opportunities and executes trades on MetaTrader 5 automatically, 24/7."),
   component: Landing,
 });
-
-const features = [
-  { icon: Brain, t: "AI Market Analysis", d: "Real-time analysis of multiple markets using advanced AI models. Spot opportunities before they happen." },
-  { icon: Layers, t: "Multi-Asset Trading", d: "Trade forex, gold, crypto, indices, stocks and more — all in one powerful platform." },
-  { icon: Shield, t: "Smart Risk Management", d: "AI adjusts position sizes, stop loss and take profit based on market conditions and volatility." },
-  { icon: Sparkles, t: "Advanced Strategies", d: "ICT, smart money concepts, price action and trend strengths — combined by the AI." },
-  { icon: Bot, t: "Automated Execution", d: "The AI finds, analyzes and executes trades automatically, 24/7, without human intervention." },
-  { icon: Bell, t: "Real-Time Notifications", d: "Get instant updates on trades, signals, market movements and account events." },
-  { icon: FlaskConical, t: "Learns From Every Trade", d: "Every closed trade becomes a lesson. The AI Brain builds rules from wins and losses." },
-  { icon: SlidersHorizontal, t: "Profit Lock & Risk Slider", d: "Lock profits, rest after a target and choose your own risk level per trade." },
-];
-
-const markets = [
-  { icon: DollarSign, t: "Forex", d: "Majors · Minors · Exotics" },
-  { icon: Coins, t: "Gold & Silver", d: "XAUUSD · XAGUSD" },
-  { icon: Bitcoin, t: "Cryptocurrencies", d: "BTC · ETH · SOL" },
-  { icon: LineChart, t: "Indices", d: "US30 · NAS100 · SP500" },
-  { icon: Apple, t: "Stocks", d: "AAPL · TSLA · NVDA" },
-  { icon: Droplet, t: "Commodities", d: "Oil · Gas" },
-];
 
 const why = [
   { icon: Trophy, t: "Smarter Decisions", d: "Six AI experts per analysis" },
@@ -67,33 +48,10 @@ const heroNodes: Callout[] = [
 function Landing() {
   const t = useT();
   const { user } = useAuth();
-  const brokers = useBrokers();
   const start = user ? "/dashboard" : "/register";
   return (
     <div className="min-h-screen overflow-x-hidden bg-space text-foreground">
-      {/* NAV */}
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/50 bg-primary/15 shadow-glow"><Brain className="h-5 w-5 text-primary-glow" /></span>
-            <span className="text-sm font-bold tracking-[0.25em]">ARRISSA AI</span>
-          </Link>
-          <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-            <a href="#features" className="hover:text-foreground">{t("Features")}</a>
-            <a href="#markets" className="hover:text-foreground">{t("Markets")}</a>
-            <a href="#pricing" className="hover:text-foreground">{t("Pricing")}</a>
-            <Link to="/about" className="hover:text-foreground">{t("About")}</Link>
-          </nav>
-          <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1.5 text-xs text-muted-foreground lg:flex"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />{t("Live Trading")}</span>
-            <LanguageToggle />
-            {user ? <Button asChild variant="hero" size="sm" className="rounded-lg"><Link to="/dashboard">{t("Open Dashboard")}</Link></Button> : <>
-              <Button asChild variant="outline" size="sm" className="rounded-lg"><Link to="/login">{t("Sign In")}</Link></Button>
-              <Button asChild variant="hero" size="sm" className="rounded-lg"><Link to="/register">{t("Get Started")}</Link></Button>
-            </>}
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* HERO */}
       <section className="relative">
@@ -132,17 +90,7 @@ function Landing() {
       <section id="features" className="py-20">
         <div className="mx-auto max-w-7xl px-4">
           <Head tag="POWERFUL FEATURES" title={<>{t("Everything You Need to Trade with")} <span className="text-gradient-violet">{t("Precision")}</span></>} sub="From market analysis to automated execution, our AI handles every step of the trading process." />
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((f, i) => (
-              <div key={f.t} className="group relative rounded-2xl border border-border/70 bg-card/50 p-5 backdrop-blur transition hover:border-primary/60 hover:shadow-glow">
-                <span className="absolute end-4 top-4 text-[10px] text-primary-glow">0{i + 1}</span>
-                <div className="flex gap-4">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10"><f.icon className="h-5 w-5 text-primary-glow" /></span>
-                  <div><p className="text-sm font-semibold">{t(f.t)}</p><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t(f.d)}</p></div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="mt-12"><FeaturesGrid /></div>
         </div>
       </section>
 
@@ -155,15 +103,7 @@ function Landing() {
             <p className="mt-3 text-sm text-muted-foreground">{t("From gold to crypto, forex to indices — our AI analyzes major markets and finds the best opportunities for you.")}</p>
             <Button asChild variant="outline" className="mt-6 rounded-xl"><Link to={start}>{t("Explore All Markets")} <ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link></Button>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {markets.map((m) => (
-              <div key={m.t} className="rounded-2xl border border-border/70 bg-card/50 p-5 text-center transition hover:-translate-y-1 hover:border-primary/60">
-                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 shadow-glow"><m.icon className="h-6 w-6 text-primary-glow" /></span>
-                <p className="mt-4 text-sm font-semibold">{t(m.t)}</p>
-                <p className="mt-1 text-[10px] text-muted-foreground">{m.d}</p>
-              </div>
-            ))}
-          </div>
+          <MarketsGrid />
         </div>
       </section>
 
@@ -212,16 +152,8 @@ function Landing() {
       <section id="pricing" className="py-16">
         <div className="mx-auto max-w-5xl px-4">
           <Head tag="PRICING" title="AI Trading at Zero Cost" sub="We partnered with various brokers to provide full access with no subscription fees. Open through partner links to unlock all features." />
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            {(brokers.data ?? []).map((b) => (
-              <div key={b.id} className="w-full max-w-xs rounded-2xl border border-border/70 bg-card/50 p-5 text-center">
-                <BrokerLogo name={b.name} color={b.brand_color} className="mx-auto h-14 w-14" />
-                <p className="mt-3 text-sm font-semibold">{b.name}</p>
-                <ul className="mt-3 space-y-1 text-start text-xs text-muted-foreground">{b.features.map((f) => <li key={f} className="flex items-center gap-2"><Check className="h-3 w-3 text-success" />{f}</li>)}</ul>
-                <Button asChild variant="hero" size="sm" className="mt-4 w-full rounded-lg"><a href={b.partner_url ?? "#"} target="_blank" rel="noreferrer">{t("Open Account")}</a></Button>
-              </div>
-            ))}
-          </div>
+          <div className="mt-10"><BrokerCards /></div>
+          <div className="mt-8"><PlatformsStrip /></div>
         </div>
       </section>
 
@@ -233,7 +165,7 @@ function Landing() {
           <p className="mt-3 text-sm text-muted-foreground">{t("Join traders who are already using AI to trade smarter, faster and with more discipline.")}</p>
           <div className="mt-6 flex justify-center gap-3">
             <Button asChild variant="hero" className="rounded-xl px-7"><Link to={start}>{t("Start Trading Free")} <ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link></Button>
-            <Button asChild variant="outline" className="rounded-xl px-7"><a href="#features">{t("Learn More")}</a></Button>
+            <Button asChild variant="outline" className="rounded-xl px-7"><Link to="/features">{t("Learn More")}</Link></Button>
           </div>
           <div className="mt-6 flex flex-wrap justify-center gap-5 text-xs text-muted-foreground">
             {["No credit card required", "Free plan available", "Cancel anytime"].map((label) => <span key={label} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-success" />{t(label)}</span>)}
@@ -241,23 +173,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-border/50">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/50 bg-primary/15"><Brain className="h-5 w-5 text-primary-glow" /></span>
-            <div><p className="text-sm font-bold tracking-[0.2em]">ARRISSA AI</p><p className="mt-1 text-xs text-muted-foreground">{t("Smarter Analysis. Bigger Opportunities.")}</p></div>
-          </div>
-          <FootCol title="Product" links={[["#features", "Features"], ["#pricing", "Pricing"], ["#markets", "Markets"], ["/ea/ArrissaEA.mq5", "Download EA"]]} />
-          <FootCol title="Company" links={[["/about", "About"], ["/contact", "Contact"]]} />
-          <FootCol title="Legal" links={[["/terms", "Terms"], ["/privacy", "Privacy"], ["/risk-disclosure", "Risk Disclosure"]]} />
-          <div>
-            <div className="flex gap-2 text-muted-foreground">{[Instagram, Send, Youtube, Github].map((I, i) => <span key={i} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border"><I className="h-4 w-4" /></span>)}</div>
-            <p className="mt-4 text-[11px] text-muted-foreground">© {new Date().getFullYear()} {t("ArrissaAI. All rights reserved.")}</p>
-          </div>
-        </div>
-        <p className="border-t border-border/40 py-4 text-center text-[11px] text-muted-foreground">{t("Trading in derivatives is highly speculative and involves significant risk.")}</p>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
@@ -295,14 +211,4 @@ function Ticker() {
       })}
     </div>
   );
-}
-
-function Head({ tag, title, sub }: { tag: string; title: React.ReactNode; sub: string }) {
-  const t = useT();
-  return <div className="text-center"><p className="text-[11px] font-semibold tracking-[0.2em] text-primary-glow">{t(tag)}</p><h2 className="mt-3 text-3xl font-bold sm:text-4xl">{typeof title === "string" ? t(title) : title}</h2><p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">{t(sub)}</p></div>;
-}
-
-function FootCol({ title, links }: { title: string; links: [string, string][] }) {
-  const t = useT();
-  return <div><p className="text-sm font-semibold">{t(title)}</p><ul className="mt-3 space-y-2 text-xs text-muted-foreground">{links.map(([h, l]) => <li key={l}><a href={h} className="hover:text-foreground">{t(l)}</a></li>)}</ul></div>;
 }

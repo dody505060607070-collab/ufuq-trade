@@ -469,6 +469,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: string
           copy_sl: boolean
           copy_tp: boolean
           country: string | null
@@ -489,6 +490,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          approval_status?: string
           copy_sl?: boolean
           copy_tp?: boolean
           country?: string | null
@@ -509,6 +511,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          approval_status?: string
           copy_sl?: boolean
           copy_tp?: boolean
           country?: string | null
@@ -882,6 +885,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved: { Args: { _user_id: string }; Returns: boolean }
       make_username: { Args: { _email: string }; Returns: string }
     }
     Enums: {
