@@ -5,7 +5,7 @@ import { cotBias, outcomeOf, ruleKey, rulesText } from "./brain";
 type DB = SupabaseClient<Database>;
 
 const LESSON_SYS =
-  "You are a strict trading coach reviewing one closed trade. Return ONLY JSON: {reason (why it won or lost, max 2 sentences), lesson (max 1 sentence), rule (one short actionable rule for future trades, max 15 words, or empty string if nothing new), tags (array of up to 3 of: trend, counter-trend, news, session, stop-too-tight, target-too-far, ict, price-action, overtrading, good-entry)}.";
+  "You are a strict trading coach reviewing one closed trade, including whether it was closed too early or too late. Return ONLY JSON: {reason (why it won or lost and why the exit happened when it did, max 2 sentences), lesson (max 1 sentence), rule (one short actionable rule for future trades, max 15 words, or empty string if nothing new), tags (array of up to 3 of: trend, counter-trend, news, session, stop-too-tight, target-too-far, ict, price-action, overtrading, good-entry, early-exit, late-exit)}.";
 
 async function gemini(system: string, prompt: string): Promise<{ rule?: unknown; reason?: unknown; lesson?: unknown; tags?: unknown; summary?: unknown } | null> {
   const key = process.env["GEMINI_API_KEY"];
@@ -24,17 +24,38 @@ async function gemini(system: string, prompt: string): Promise<{ rule?: unknown;
 /** Writes one lesson per newly closed trade (max 5 per cycle) and merges its rule into the rule bank. */
 export async function processLessons(db: DB) {
   const since = new Date(Date.now() - 7 * 86400_000).toISOString();
-  const { data: closed } = await db.from("trades").select("*").eq("status", "closed").gte("closed_at", since).order("closed_at", { ascending: false }).limit(40);
+  // Wait 2h after close so we can see where price went next.
+  const ready = new Date(Date.now() - 2 * 3600_000).toISOString();
+  const { data: closed } = await db.from("trades").select("*").eq("status", "closed").gte("closed_at", since).lte("closed_at", ready).order("closed_at", { ascending: false }).limit(40);
   if (!closed?.length) return 0;
   const { data: done } = await db.from("trade_lessons").select("trade_id").in("trade_id", closed.map((t) => t.id));
   const doneIds = new Set((done ?? []).map((d) => d.trade_id));
   const todo = closed.filter((t) => !doneIds.has(t.id)).slice(0, 5);
+  const { fetchCandles } = await import("./market.server");
+  const { exitReview } = await import("./profitlock");
+  const { data: inst } = await db.from("instruments").select("symbol,yahoo_symbol");
   let n = 0;
   for (const t of todo) {
     const profit = Number(t.profit ?? 0);
+    const peak = Number(t.peak_profit ?? Math.max(profit, 0));
     const sym = t.symbol.replace(/[^A-Z]/gi, "").toUpperCase().slice(0, 6);
+    // "What if I had held?" — best price in the 2h after close, converted to $ via this trade's $/point.
+    let missed = 0;
+    const y = (inst ?? []).find((i) => i.symbol === sym)?.yahoo_symbol;
+    const move = Math.abs(Number(t.close_price) - Number(t.open_price));
+    const perPoint = move > 0 ? Math.abs(profit) / move : 0;
+    if (y && t.closed_at && perPoint > 0) {
+      const ct = new Date(t.closed_at).getTime() / 1000;
+      const after = (await fetchCandles(y, "M15", 200).catch(() => [])).filter((c) => c.t >= ct && c.t <= ct + 7200);
+      if (after.length) {
+        const best = t.side === "buy" ? Math.max(...after.map((c) => c.h)) - Number(t.close_price) : Number(t.close_price) - Math.min(...after.map((c) => c.l));
+        missed = Math.max(0, best * perPoint);
+      }
+    }
+    const ex = exitReview(profit, peak, missed);
+    const exitLine = `Exit review: ${ex.verdict.toUpperCase()} — gave back $${ex.giveback.toFixed(2)} from peak $${peak.toFixed(2)}; price would have added $${missed.toFixed(2)} more within 2h after close.`;
     const { data: an } = await db.from("analyses").select("direction,confidence,summary,created_at").eq("symbol", sym).lte("created_at", t.opened_at ?? t.closed_at ?? new Date().toISOString()).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    const prompt = `Trade: ${t.side.toUpperCase()} ${t.symbol} ${t.volume} lot\nOpen ${t.opened_at} @ ${t.open_price}\nClose ${t.closed_at} @ ${t.close_price}\nSL ${t.stop_loss} TP ${t.take_profit}\nProfit ${profit.toFixed(2)} USD (peak ${t.peak_profit ?? "?"})\nAI analysis before entry: ${an ? `${an.direction} ${an.confidence}% — ${an.summary}` : "none"}`;
+    const prompt = `Trade: ${t.side.toUpperCase()} ${t.symbol} ${t.volume} lot\nOpen ${t.opened_at} @ ${t.open_price}\nClose ${t.closed_at} @ ${t.close_price}\nSL ${t.stop_loss} TP ${t.take_profit}\nProfit ${profit.toFixed(2)} USD (peak ${peak.toFixed(2)})\n${exitLine}\nAI analysis before entry: ${an ? `${an.direction} ${an.confidence}% — ${an.summary}` : "none"}\nIf the exit was EARLY or LATE, explain why and make the rule about exit timing.`;
     const r = await gemini(LESSON_SYS, prompt);
     const rule = typeof r?.rule === "string" ? r.rule.trim().slice(0, 160) : "";
     const { error } = await db.from("trade_lessons").insert({
@@ -43,6 +64,7 @@ export async function processLessons(db: DB) {
       lesson: typeof r?.lesson === "string" ? r.lesson.slice(0, 300) : null,
       rule: rule || null,
       tags: Array.isArray(r?.tags) ? (r.tags as unknown[]).filter((x): x is string => typeof x === "string").slice(0, 3) : [],
+      peak_profit: peak, missed_profit: Math.round(missed * 100) / 100, giveback_usd: Math.round(ex.giveback * 100) / 100, exit_verdict: ex.verdict,
     });
     if (error) continue;
     n++;
