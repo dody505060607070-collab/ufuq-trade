@@ -97,7 +97,7 @@ function buildGlobe() {
     const v = new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5) * 2, (rand() - 0.5) * 2).multiplyScalar(cl.r * Math.pow(rand(), 0.6)).add(cl.c);
     if (v.length() > R * 0.96) v.setLength(R * (0.6 + rand() * 0.35));
     neb.pos.push(v.x, v.y, v.z);
-    c.set(rand() < 0.75 ? cl.color : pick()).multiplyScalar(0.28 + rand() * 0.32); neb.col.push(c.r, c.g, c.b);
+    c.set(rand() < 0.75 ? cl.color : pick()).multiplyScalar(0.4 + rand() * 0.45); neb.col.push(c.r, c.g, c.b);
     neb.size.push(rand() < 0.85 ? 0.8 + rand() * 2.2 : 0.3 + rand() * 0.4);
   }
   // 2) surface dust (dense shell, bright rim through additive overlap)
@@ -110,18 +110,18 @@ function buildGlobe() {
   }
   // 3) neural web: nodes on the shell + inner layer, joined to nearest neighbours
   const nodes: THREE.Vector3[] = [];
-  for (let i = 0; i < 620; i++) nodes.push(new THREE.Vector3().randomDirection().multiplyScalar(R * (0.95 + rand() * 0.05)));
+  for (let i = 0; i < 900; i++) nodes.push(new THREE.Vector3().randomDirection().multiplyScalar(R * (0.95 + rand() * 0.05)));
   for (let i = 0; i < 160; i++) nodes.push(new THREE.Vector3().randomDirection().multiplyScalar(R * (0.45 + rand() * 0.45)));
   const web = { pos: [] as number[], col: [] as number[] };
   const webNodes = { pos: [] as number[], col: [] as number[], size: [] as number[] };
   nodes.forEach((a, i) => {
-    const near = nodes.map((b, j) => ({ j, d: a.distanceToSquared(b) })).filter((x) => x.j !== i).sort((x, y) => x.d - y.d).slice(0, i < 620 ? 3 : 2);
+    const near = nodes.map((b, j) => ({ j, d: a.distanceToSquared(b) })).filter((x) => x.j !== i).sort((x, y) => x.d - y.d).slice(0, i < 900 ? 3 : 2);
     for (const { j, d } of near) {
       if (j < i && near.length > 1) continue;
       if (d > (R * 0.42) ** 2) continue;
       const b = nodes[j]!;
       web.pos.push(a.x, a.y, a.z, b.x, b.y, b.z);
-      c.set(pick([3, 3, 3, 1, 1, 3, 3, 2, 2])).multiplyScalar(0.8 + rand() * 0.6); web.col.push(c.r, c.g, c.b, c.r, c.g, c.b);
+      c.set(pick([3, 3, 3, 1, 1, 3, 3, 2, 2])).multiplyScalar(1.0 + rand() * 0.8); web.col.push(c.r, c.g, c.b, c.r, c.g, c.b);
     }
     webNodes.pos.push(a.x, a.y, a.z);
     c.set(pick([1, 2, 2, 1, 2, 2, 3, 2, 4])).multiplyScalar(1.0 + rand() * 0.5); webNodes.col.push(c.r, c.g, c.b);
@@ -134,7 +134,7 @@ function buildGlobe() {
     for (let i = 0; i < pts.length - 1; i++) { const p = pts[i]!, q = pts[i + 1]!; arcs.pos.push(p.x, p.y, p.z, q.x, q.y, q.z); arcs.col.push(c.r, c.g, c.b, c.r, c.g, c.b); }
   };
   for (let i = 0; i < 26; i++) {
-    const a = nodes[Math.floor(rand() * 620)]!, b = nodes[Math.floor(rand() * 620)]!;
+    const a = nodes[Math.floor(rand() * 900)]!, b = nodes[Math.floor(rand() * 900)]!;
     const mid = a.clone().add(b).multiplyScalar(0.5).multiplyScalar(0.55 + rand() * 0.5);
     const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
     pushCurve(curve.getPoints(40), rand() < 0.4 ? "#fbbf24" : pick([1, 2, 3, 2, 3, 2, 2, 1, 2]), 0.6 + rand() * 0.5);
@@ -162,12 +162,12 @@ const fresnelVS = "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = mode
 function Atmosphere() {
   const rim = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: fresnelVS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(vN,vV)); vec3 a = vec3(0.55,0.2,1.0); vec3 b = vec3(0.55,0.8,1.0); vec3 c = mix(a, b, pow(f,6.0)); gl_FragColor = vec4(c, pow(f,6.0)*0.5); }",
+    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(vN,vV)); vec3 a = pow(vec3(0.55,0.25,1.0), vec3(2.2)); vec3 b = pow(vec3(0.6,0.85,1.0), vec3(2.2)); vec3 c = mix(a, b, pow(f,8.0)); gl_FragColor = vec4(c*1.6, pow(f,3.5)*0.8); }",
   }), []);
   const halo = useMemo(() => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
-    fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv-0.5)*2.0*1.5; float out_ = smoothstep(0.93,1.0,d); float g = out_*exp(-(d-1.0)*5.0); float inner = 0.0; vec3 c = mix(vec3(0.35,0.25,1.0), vec3(0.6,0.75,1.0), exp(-(d-1.0)*12.0)); gl_FragColor = vec4(c*g*0.5, g*0.5); }",
+    fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv-0.5)*2.0*1.5; float out_ = smoothstep(0.93,1.0,d); float g = out_*exp(-(d-1.0)*5.0); float inner = 0.0; vec3 c = pow(mix(vec3(0.45,0.25,1.0), vec3(0.55,0.7,1.0), exp(-(d-1.0)*14.0)), vec3(2.2)); gl_FragColor = vec4(c*g*1.4, g*0.7); }",
   }), []);
   const core = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0d0733", transparent: true, opacity: 0.5, depthWrite: false }), []);
   return (
@@ -237,8 +237,8 @@ function Globe({ items, overlay, spin }: { items: Callout[]; overlay: MutableRef
       <group ref={group} rotation={[0.25, 0, 0.08]}>
         <Sprites pos={g.neb.pos} col={g.neb.col} size={g.neb.size} core={0.15} />
         <Sprites pos={g.dust.pos} col={g.dust.col} size={g.dust.size} core={0.5} edge={1} />
-        <Lines pos={g.web.pos} col={g.web.col} opacity={0.4} edge={1} />
-        <Lines pos={g.arcs.pos} col={g.arcs.col} opacity={0.38} />
+        <Lines pos={g.web.pos} col={g.web.col} opacity={0.6} edge={1} />
+        <Lines pos={g.arcs.pos} col={g.arcs.col} opacity={0.5} />
         <Sprites pos={g.webNodes.pos} col={g.webNodes.col} size={g.webNodes.size} edge={0.7} />
         <Sprites pos={g.hubs.pos} col={g.hubs.col} size={g.hubs.size} ring={0.8} />
         <DataNodes items={items} globe={group} overlay={overlay} />
