@@ -21,6 +21,9 @@
 - [x] Settings page, rules, 15-min scheduled runner, activity log
 
 # Current request
-- [ ] Persist the requested 0.02 lot without enabling trading or changing other users.
-- [ ] Add protected read-only assistant access with explicit account consent.
-- [ ] Review security, fix confirmed issues, and verify access boundaries.
+- [x] Use 0.02 for new account/settings forms and save lot edits when leaving the field.
+- [ ] Update and verify the requesting user's existing lot — blocked: no matching authenticated account; user must sign in.
+- [x] Add OAuth-only read-only assistant tools, consent, revocation, and browser-local settings read.
+- [ ] Verify approved/denied OAuth flow with real assistant — blocked: requesting user session and external OAuth client required; republish needed.
+- [x] Run basic security review, harden redirect handling, and verify anonymous MCP requests are refused.
+- [ ] Complete remaining security review — blocked: deep scan is running; findings need its report before further changes.
