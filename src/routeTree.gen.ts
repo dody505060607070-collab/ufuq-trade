@@ -15,6 +15,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PendingRouteImport } from './routes/pending'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -36,6 +37,7 @@ import { Route as AuthenticatedWhalesRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAccountsAddMt5RouteImport } from './routes/_authenticated/accounts.add-mt5'
 import { Route as AuthenticatedAccountsAddTradelockerRouteImport } from './routes/_authenticated/accounts.add-tradelocker'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authenticated/admin.approvals'
 import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin.audit'
 import { Route as AuthenticatedAdminBrokersRouteImport } from './routes/_authenticated/admin.brokers'
 import { Route as AuthenticatedAdminCampaignRouteImport } from './routes/_authenticated/admin.campaign'
@@ -80,6 +82,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PendingRoute = PendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -190,6 +197,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminApprovalsRoute =
+  AuthenticatedAdminApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -289,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/pending': typeof PendingRoute
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -309,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/whales': typeof AuthenticatedWhalesRoute
   '/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
   '/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
+  '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/brokers': typeof AuthenticatedAdminBrokersRoute
   '/admin/campaign': typeof AuthenticatedAdminCampaignRoute
@@ -333,6 +348,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/pending': typeof PendingRoute
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -351,6 +367,7 @@ export interface FileRoutesByTo {
   '/whales': typeof AuthenticatedWhalesRoute
   '/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
   '/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
+  '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/admin/brokers': typeof AuthenticatedAdminBrokersRoute
   '/admin/campaign': typeof AuthenticatedAdminCampaignRoute
@@ -377,6 +394,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/pending': typeof PendingRoute
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -397,6 +415,7 @@ export interface FileRoutesById {
   '/_authenticated/whales': typeof AuthenticatedWhalesRoute
   '/_authenticated/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
   '/_authenticated/accounts/add-tradelocker': typeof AuthenticatedAccountsAddTradelockerRoute
+  '/_authenticated/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
   '/_authenticated/admin/brokers': typeof AuthenticatedAdminBrokersRoute
   '/_authenticated/admin/campaign': typeof AuthenticatedAdminCampaignRoute
@@ -423,6 +442,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/forgot-password'
     | '/login'
+    | '/pending'
     | '/privacy'
     | '/register'
     | '/reset-password'
@@ -443,6 +463,7 @@ export interface FileRouteTypes {
     | '/whales'
     | '/accounts/add-mt5'
     | '/accounts/add-tradelocker'
+    | '/admin/approvals'
     | '/admin/audit'
     | '/admin/brokers'
     | '/admin/campaign'
@@ -467,6 +488,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/forgot-password'
     | '/login'
+    | '/pending'
     | '/privacy'
     | '/register'
     | '/reset-password'
@@ -485,6 +507,7 @@ export interface FileRouteTypes {
     | '/whales'
     | '/accounts/add-mt5'
     | '/accounts/add-tradelocker'
+    | '/admin/approvals'
     | '/admin/audit'
     | '/admin/brokers'
     | '/admin/campaign'
@@ -510,6 +533,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/forgot-password'
     | '/login'
+    | '/pending'
     | '/privacy'
     | '/register'
     | '/reset-password'
@@ -530,6 +554,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whales'
     | '/_authenticated/accounts/add-mt5'
     | '/_authenticated/accounts/add-tradelocker'
+    | '/_authenticated/admin/approvals'
     | '/_authenticated/admin/audit'
     | '/_authenticated/admin/brokers'
     | '/_authenticated/admin/campaign'
@@ -556,6 +581,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  PendingRoute: typeof PendingRoute
   PrivacyRoute: typeof PrivacyRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -610,6 +636,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pending': {
+      id: '/pending'
+      path: '/pending'
+      fullPath: '/pending'
+      preLoaderRoute: typeof PendingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -759,6 +792,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/approvals': {
+      id: '/_authenticated/admin/approvals'
+      path: '/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AuthenticatedAdminApprovalsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/audit': {
       id: '/_authenticated/admin/audit'
       path: '/audit'
@@ -889,6 +929,7 @@ const AuthenticatedAdminUsersRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminApprovalsRoute: typeof AuthenticatedAdminApprovalsRoute
   AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
   AuthenticatedAdminBrokersRoute: typeof AuthenticatedAdminBrokersRoute
   AuthenticatedAdminCampaignRoute: typeof AuthenticatedAdminCampaignRoute
@@ -903,6 +944,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminApprovalsRoute: AuthenticatedAdminApprovalsRoute,
   AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
   AuthenticatedAdminBrokersRoute: AuthenticatedAdminBrokersRoute,
   AuthenticatedAdminCampaignRoute: AuthenticatedAdminCampaignRoute,
@@ -977,6 +1019,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  PendingRoute: PendingRoute,
   PrivacyRoute: PrivacyRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
