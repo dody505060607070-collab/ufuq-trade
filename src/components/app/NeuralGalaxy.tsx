@@ -33,27 +33,27 @@ const spriteVS = `
     gl_Position = projectionMatrix * mv;
   }`;
 const spriteFS = `
-  uniform float uRing; varying vec3 vColor; varying float vTw;
+  uniform float uRing; uniform float uCore; varying vec3 vColor; varying float vTw;
   void main(){
     float d = length(gl_PointCoord - 0.5);
     if (d > 0.5) discard;
     float halo = pow(1.0 - d * 2.0, 2.2);
     float core = smoothstep(0.12, 0.0, d);
     float ring = uRing * smoothstep(0.035, 0.0, abs(d - 0.36)) * 0.9;
-    vec3 c = vColor * (halo * 0.55 + ring) + mix(vColor, vec3(1.0), 0.7) * core * 1.4;
-    gl_FragColor = vec4(c * vTw, clamp(halo * 0.8 + core + ring, 0.0, 1.0));
+    vec3 c = vColor * (halo * 0.55 + ring) + mix(vColor, vec3(1.0), 0.7) * core * 1.4 * uCore;
+    gl_FragColor = vec4(c * vTw, clamp(halo * 0.8 + core * uCore + ring, 0.0, 1.0));
   }`;
 
-function useSpriteMaterial(ring = 0) {
+function useSpriteMaterial(ring = 0, coreK = 1) {
   const { gl } = useThree();
   return useMemo(() => new THREE.ShaderMaterial({
     vertexShader: spriteVS, fragmentShader: spriteFS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 }, uPR: { value: Math.min(gl.getPixelRatio(), 2) }, uRing: { value: ring } },
-  }), [gl, ring]);
+    uniforms: { uTime: { value: 0 }, uPR: { value: Math.min(gl.getPixelRatio(), 2) }, uRing: { value: ring }, uCore: { value: coreK } },
+  }), [gl, ring, coreK]);
 }
 
-function Sprites({ pos, col, size, ring = 0 }: { pos: number[]; col: number[]; size: number[]; ring?: number }) {
-  const mat = useSpriteMaterial(ring);
+function Sprites({ pos, col, size, ring = 0, core = 1 }: { pos: number[]; col: number[]; size: number[]; ring?: number; core?: number }) {
+  const mat = useSpriteMaterial(ring, core);
   const geo = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -89,7 +89,7 @@ function buildGlobe() {
     const v = new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5) * 2, (rand() - 0.5) * 2).multiplyScalar(cl.r * Math.pow(rand(), 0.6)).add(cl.c);
     if (v.length() > R * 0.96) v.setLength(R * (0.6 + rand() * 0.35));
     neb.pos.push(v.x, v.y, v.z);
-    c.set(rand() < 0.75 ? cl.color : pick()).multiplyScalar(0.14 + rand() * 0.2); neb.col.push(c.r, c.g, c.b);
+    c.set(rand() < 0.75 ? cl.color : pick()).multiplyScalar(0.35 + rand() * 0.4); neb.col.push(c.r, c.g, c.b);
     neb.size.push(rand() < 0.85 ? 0.8 + rand() * 2.2 : 0.3 + rand() * 0.4);
   }
   // 2) surface dust (dense shell, bright rim through additive overlap)
@@ -97,7 +97,7 @@ function buildGlobe() {
   for (let i = 0; i < 6000; i++) {
     const v = fib(i, 6000).multiplyScalar(R * (0.975 + rand() * 0.05));
     dust.pos.push(v.x, v.y, v.z);
-    c.set(pick([2, 3, 2, 1, 1, 3, 3, 2, 3])).multiplyScalar(0.25 + rand() * 0.45); dust.col.push(c.r, c.g, c.b);
+    c.set(pick([2, 3, 2, 1, 1, 3, 3, 2, 3])).multiplyScalar(0.18 + rand() * 0.35); dust.col.push(c.r, c.g, c.b);
     dust.size.push(0.1 + rand() * 0.22);
   }
   // 3) neural web: nodes on the shell + inner layer, joined to nearest neighbours
@@ -154,14 +154,14 @@ const fresnelVS = "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = mode
 function Atmosphere() {
   const rim = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: fresnelVS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(vN,vV)); vec3 a = vec3(0.45,0.25,1.0); vec3 b = vec3(0.75,0.9,1.0); vec3 c = mix(a, b, pow(f,4.0)); gl_FragColor = vec4(c, pow(f,4.5)*1.3); }",
+    fragmentShader: "varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - abs(dot(vN,vV)); vec3 a = vec3(0.55,0.2,1.0); vec3 b = vec3(0.55,0.8,1.0); vec3 c = mix(a, b, pow(f,6.0)); gl_FragColor = vec4(c, pow(f,5.0)*0.75); }",
   }), []);
   const halo = useMemo(() => new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
     fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv-0.5)*2.0*1.5; float out_ = smoothstep(0.93,1.0,d); float g = out_*exp(-(d-1.0)*5.0); float inner = smoothstep(0.55,1.0,d)*(1.0-out_)*0.12; vec3 c = mix(vec3(0.35,0.25,1.0), vec3(0.6,0.75,1.0), exp(-(d-1.0)*12.0)); gl_FragColor = vec4(c*(g*0.9+inner), g*0.9+inner); }",
   }), []);
-  const core = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0b0830", transparent: true, opacity: 0.7, depthWrite: false }), []);
+  const core = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0d0733", transparent: true, opacity: 0.5, depthWrite: false }), []);
   return (
     <>
       <Billboard><mesh material={halo} renderOrder={-1}><planeGeometry args={[R * 3, R * 3]} /></mesh></Billboard>
@@ -228,8 +228,8 @@ function Globe({ items, overlay, spin }: { items: Callout[]; overlay: MutableRef
     <>
       <Atmosphere />
       <group ref={group} rotation={[0.25, 0, 0.08]}>
-        <Sprites pos={g.neb.pos} col={g.neb.col} size={g.neb.size} />
-        <Sprites pos={g.dust.pos} col={g.dust.col} size={g.dust.size} />
+        <Sprites pos={g.neb.pos} col={g.neb.col} size={g.neb.size} core={0.15} />
+        <Sprites pos={g.dust.pos} col={g.dust.col} size={g.dust.size} core={0.5} />
         <Lines pos={g.web.pos} col={g.web.col} opacity={0.32} />
         <Lines pos={g.arcs.pos} col={g.arcs.col} opacity={0.38} />
         <Sprites pos={g.webNodes.pos} col={g.webNodes.col} size={g.webNodes.size} />
