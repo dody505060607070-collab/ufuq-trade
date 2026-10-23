@@ -1,0 +1,1 @@
+ALTER TABLE public.trade_lessons ADD COLUMN IF NOT EXISTS peak_profit numeric, ADD COLUMN IF NOT EXISTS missed_profit numeric, ADD COLUMN IF NOT EXISTS giveback_usd numeric, ADD COLUMN IF NOT EXISTS exit_verdict text;
