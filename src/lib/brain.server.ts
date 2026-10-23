@@ -7,7 +7,7 @@ type DB = SupabaseClient<Database>;
 const LESSON_SYS =
   "You are a strict trading coach reviewing one closed trade. Return ONLY JSON: {reason (why it won or lost, max 2 sentences), lesson (max 1 sentence), rule (one short actionable rule for future trades, max 15 words, or empty string if nothing new), tags (array of up to 3 of: trend, counter-trend, news, session, stop-too-tight, target-too-far, ict, price-action, overtrading, good-entry)}.";
 
-async function gemini(system: string, prompt: string): Promise<Record<string, unknown> | null> {
+async function gemini(system: string, prompt: string): Promise<{ rule?: unknown; reason?: unknown; lesson?: unknown; tags?: unknown; summary?: unknown } | null> {
   const key = process.env["GEMINI_API_KEY"];
   if (!key) return null;
   const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
