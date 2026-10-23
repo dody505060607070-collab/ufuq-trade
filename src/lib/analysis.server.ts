@@ -38,7 +38,7 @@ export async function getCached(admin: DB, symbol: string, timeframe: string) {
 
 /** Fresh AI analysis from live candles, calendar and headlines. */
 export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null): Promise<Levels> {
-  const [{ data: model }, { data: inst }] = await Promise.all([
+  const [, { data: inst }] = await Promise.all([
     db.from("ai_models").select("model_id").eq("is_default", true).eq("is_active", true).maybeSingle(),
     db.from("instruments").select("name,yahoo_symbol").eq("symbol", symbol).maybeSingle(),
   ]);
@@ -100,7 +100,7 @@ async function callGemini(key: string, prompt: string): Promise<string | null> {
   return j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") || null;
 }
 
-async function callLovable(modelId: string, prompt: string): Promise<string> {
+export async function callLovable(modelId: string, prompt: string): Promise<string> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("AI is not configured.");
   const { createOpenAI } = await import("@ai-sdk/openai");
