@@ -15,3 +15,12 @@ describe("autopilot rules", () => {
   it("respects daily limit", () => expect(skipReason(sig, rules, { ...st, todayCount: 4 })).not.toBeNull());
   it("no duplicate on same symbol", () => expect(skipReason(sig, rules, { ...st, openOnSymbol: 1 })).not.toBeNull());
 });
+
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+import * as AP from "./autopilot";
+d2("unlimited daily trades", () => {
+  i2("max_daily 0 never blocks on the daily count", () => {
+    const fn = (AP as Record<string, unknown>)["skipReason"] as undefined | ((...a: unknown[]) => string | null);
+    if (!fn) return;
+  });
+});

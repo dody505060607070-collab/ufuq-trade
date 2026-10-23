@@ -357,6 +357,7 @@ export const AR_APP: Record<string, string> = {
   "Lot size per trade": "حجم اللوت لكل صفقة",
   "Max open trades per account": "أقصى عدد صفقات مفتوحة لكل حساب",
   "Max auto trades per day": "أقصى عدد صفقات آلية في اليوم",
+  "Max auto trades per day (0 = unlimited)": "أقصى عدد صفقات آلية في اليوم (0 = بلا حد)",
   "Don't trade 30 min around high-impact news": "لا تتداول قبل وبعد الأخبار القوية بـ 30 دقيقة",
   "Save settings": "حفظ الإعدادات",
   "Activity": "النشاط",
