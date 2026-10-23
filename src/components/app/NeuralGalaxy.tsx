@@ -24,11 +24,13 @@ function fib(i: number, n: number) {
 /* ---------- glowing sprite points (soft core + halo, optional ring, twinkle) ---------- */
 const spriteVS = `
   attribute float size; attribute float phase; attribute vec3 color;
-  uniform float uTime; uniform float uPR; varying vec3 vColor; varying float vTw;
+  uniform float uTime; uniform float uPR; uniform float uEdge; varying vec3 vColor; varying float vTw;
   void main(){
     vec4 mv = modelViewMatrix * vec4(position,1.0);
     float tw = 0.75 + 0.35 * sin(uTime * (1.2 + fract(phase) * 2.0) + phase * 6.2831);
-    vTw = tw; vColor = color;
+    vec3 nv = normalize(normalMatrix * normalize(position)); float fac = abs(dot(nv, normalize(-mv.xyz)));
+    float edge = mix(1.0, 0.2 + 0.8 * smoothstep(0.0, 0.45, fac), uEdge);
+    vTw = tw * edge; vColor = color;
     gl_PointSize = size * tw * uPR * (300.0 / -mv.z);
     gl_Position = projectionMatrix * mv;
   }`;
@@ -44,16 +46,16 @@ const spriteFS = `
     gl_FragColor = vec4(c * vTw, clamp(halo * 0.8 + core * uCore + ring, 0.0, 1.0));
   }`;
 
-function useSpriteMaterial(ring = 0, coreK = 1) {
+function useSpriteMaterial(ring = 0, coreK = 1, edgeK = 0) {
   const { gl } = useThree();
   return useMemo(() => new THREE.ShaderMaterial({
     vertexShader: spriteVS, fragmentShader: spriteFS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 }, uPR: { value: Math.min(gl.getPixelRatio(), 2) }, uRing: { value: ring }, uCore: { value: coreK } },
-  }), [gl, ring, coreK]);
+    uniforms: { uTime: { value: 0 }, uPR: { value: Math.min(gl.getPixelRatio(), 2) }, uRing: { value: ring }, uCore: { value: coreK }, uEdge: { value: edgeK } },
+  }), [gl, ring, coreK, edgeK]);
 }
 
-function Sprites({ pos, col, size, ring = 0, core = 1 }: { pos: number[]; col: number[]; size: number[]; ring?: number; core?: number }) {
-  const mat = useSpriteMaterial(ring, core);
+function Sprites({ pos, col, size, ring = 0, core = 1, edge = 0 }: { pos: number[]; col: number[]; size: number[]; ring?: number; core?: number; edge?: number }) {
+  const mat = useSpriteMaterial(ring, core, edge);
   const geo = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -66,14 +68,20 @@ function Sprites({ pos, col, size, ring = 0, core = 1 }: { pos: number[]; col: n
   return <points geometry={geo} material={mat} />;
 }
 
-function Lines({ pos, col, opacity }: { pos: number[]; col: number[]; opacity: number }) {
+function Lines({ pos, col, opacity, edge = 0 }: { pos: number[]; col: number[]; opacity: number; edge?: number }) {
   const geo = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
     return g;
   }, [pos, col]);
-  return <lineSegments geometry={geo}><lineBasicMaterial vertexColors transparent opacity={opacity} blending={THREE.AdditiveBlending} depthWrite={false} /></lineSegments>;
+  const mat = useMemo(() => new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uOp: { value: opacity }, uEdge: { value: edge } },
+    vertexShader: "attribute vec3 color; uniform float uEdge; varying vec3 vC; varying float vA; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); vec3 nv = normalize(normalMatrix*normalize(position)); float fac = abs(dot(nv, normalize(-mv.xyz))); vA = mix(1.0, 0.15 + 0.85*smoothstep(0.0,0.5,fac), uEdge); vC = color; gl_Position = projectionMatrix*mv; }",
+    fragmentShader: "uniform float uOp; varying vec3 vC; varying float vA; void main(){ gl_FragColor = vec4(vC, uOp*vA); }",
+  }), [opacity, edge]);
+  return <lineSegments geometry={geo} material={mat} />;
 }
 
 /* ---------- the globe body ---------- */
@@ -228,10 +236,10 @@ function Globe({ items, overlay, spin }: { items: Callout[]; overlay: MutableRef
       <Atmosphere />
       <group ref={group} rotation={[0.25, 0, 0.08]}>
         <Sprites pos={g.neb.pos} col={g.neb.col} size={g.neb.size} core={0.15} />
-        <Sprites pos={g.dust.pos} col={g.dust.col} size={g.dust.size} core={0.5} />
-        <Lines pos={g.web.pos} col={g.web.col} opacity={0.32} />
+        <Sprites pos={g.dust.pos} col={g.dust.col} size={g.dust.size} core={0.5} edge={1} />
+        <Lines pos={g.web.pos} col={g.web.col} opacity={0.4} edge={1} />
         <Lines pos={g.arcs.pos} col={g.arcs.col} opacity={0.38} />
-        <Sprites pos={g.webNodes.pos} col={g.webNodes.col} size={g.webNodes.size} />
+        <Sprites pos={g.webNodes.pos} col={g.webNodes.col} size={g.webNodes.size} edge={0.7} />
         <Sprites pos={g.hubs.pos} col={g.hubs.col} size={g.hubs.size} ring={0.8} />
         <DataNodes items={items} globe={group} overlay={overlay} />
       </group>
@@ -253,7 +261,7 @@ function SpaceBackdrop() {
         vec3 base = vec3(0.027,0.02,0.08);
         vec3 neb = mix(vec3(0.16,0.06,0.32), vec3(0.06,0.1,0.32), smoothstep(0.3,0.8,vUv.x));
         float m = smoothstep(0.45,0.85,f) * (0.6 + 0.4*smoothstep(0.9,0.2,length(vUv-0.5)));
-        gl_FragColor = vec4(base + neb*m*0.9, 1.0);
+        gl_FragColor = vec4(base + neb*m*0.32, 1.0);
       }`,
   }), []);
   return <Billboard position={[0, 0, -60]}><mesh material={mat} renderOrder={-10}><planeGeometry args={[260, 160]} /></mesh></Billboard>;
