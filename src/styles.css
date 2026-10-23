@@ -153,3 +153,17 @@ html[lang="ar"] body { font-family: "IBM Plex Sans Arabic", "Geist", ui-sans-ser
     radial-gradient(ellipse 60% 55% at 50% 50%, oklch(0.25 0.12 290 / 0.45), transparent 75%),
     oklch(0.1 0.03 280);
 }
+
+@utility bg-space {
+  background:
+    radial-gradient(ellipse 60% 40% at 75% 8%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%),
+    radial-gradient(ellipse 50% 35% at 10% 55%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 50% 100%, color-mix(in oklab, var(--primary-glow) 14%, transparent), transparent 70%),
+    var(--background);
+}
+@utility text-gradient-violet {
+  background: linear-gradient(90deg, var(--primary-glow), var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
