@@ -83,21 +83,21 @@ function buildGlobe() {
 
   // 1) inner nebula: clustered soft clouds (purple / magenta / blue)
   const neb = { pos: [] as number[], col: [] as number[], size: [] as number[] };
-  const clouds = Array.from({ length: 9 }, () => ({ c: new THREE.Vector3().randomDirection().multiplyScalar(R * (0.25 + rand() * 0.55)), r: R * (0.25 + rand() * 0.3), color: ["#c026d3", "#7c3aed", "#9333ea", "#2563eb", "#db2777", "#6d28d9", "#a21caf", "#1d4ed8", "#8b5cf6"][Math.floor(rand() * 9)]! }));
-  for (let i = 0; i < 5200; i++) {
+  const clouds = Array.from({ length: 12 }, () => ({ c: new THREE.Vector3().randomDirection().multiplyScalar(R * (0.25 + rand() * 0.55)), r: R * (0.12 + rand() * 0.16), color: ["#c026d3", "#7c3aed", "#9333ea", "#2563eb", "#db2777", "#6d28d9", "#a21caf", "#1d4ed8", "#8b5cf6"][Math.floor(rand() * 9)]! }));
+  for (let i = 0; i < 2600; i++) {
     const cl = clouds[i % clouds.length]!;
     const v = new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5) * 2, (rand() - 0.5) * 2).multiplyScalar(cl.r * Math.pow(rand(), 0.6)).add(cl.c);
     if (v.length() > R * 0.96) v.setLength(R * (0.6 + rand() * 0.35));
     neb.pos.push(v.x, v.y, v.z);
-    c.set(rand() < 0.75 ? cl.color : pick()).multiplyScalar(0.18 + rand() * 0.22); neb.col.push(c.r, c.g, c.b);
-    neb.size.push(rand() < 0.85 ? 1.2 + rand() * 3.2 : 0.3 + rand() * 0.4);
+    c.set(rand() < 0.75 ? cl.color : pick()).multiplyScalar(0.14 + rand() * 0.2); neb.col.push(c.r, c.g, c.b);
+    neb.size.push(rand() < 0.85 ? 0.8 + rand() * 2.2 : 0.3 + rand() * 0.4);
   }
   // 2) surface dust (dense shell, bright rim through additive overlap)
   const dust = { pos: [] as number[], col: [] as number[], size: [] as number[] };
   for (let i = 0; i < 6000; i++) {
     const v = fib(i, 6000).multiplyScalar(R * (0.975 + rand() * 0.05));
     dust.pos.push(v.x, v.y, v.z);
-    c.set(pick([2, 3, 2, 1, 1, 3, 3, 2, 3])).multiplyScalar(0.35 + rand() * 0.55); dust.col.push(c.r, c.g, c.b);
+    c.set(pick([2, 3, 2, 1, 1, 3, 3, 2, 3])).multiplyScalar(0.25 + rand() * 0.45); dust.col.push(c.r, c.g, c.b);
     dust.size.push(0.1 + rand() * 0.22);
   }
   // 3) neural web: nodes on the shell + inner layer, joined to nearest neighbours
@@ -161,11 +161,11 @@ function Atmosphere() {
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
     fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv-0.5)*2.0*1.5; float out_ = smoothstep(0.93,1.0,d); float g = out_*exp(-(d-1.0)*5.0); float inner = smoothstep(0.55,1.0,d)*(1.0-out_)*0.12; vec3 c = mix(vec3(0.35,0.25,1.0), vec3(0.6,0.75,1.0), exp(-(d-1.0)*12.0)); gl_FragColor = vec4(c*(g*0.9+inner), g*0.9+inner); }",
   }), []);
-  const core = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0b0830", transparent: true, opacity: 0.55, depthWrite: false }), []);
+  const core = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0b0830", transparent: true, opacity: 0.7, depthWrite: false }), []);
   return (
     <>
       <Billboard><mesh material={halo} renderOrder={-1}><planeGeometry args={[R * 3, R * 3]} /></mesh></Billboard>
-      <mesh material={core} renderOrder={-2}><sphereGeometry args={[R * 0.5, 32, 32]} /></mesh>
+      <mesh material={core} renderOrder={-2}><sphereGeometry args={[R * 0.8, 48, 48]} /></mesh>
       <mesh material={rim}><sphereGeometry args={[R * 1.005, 96, 96]} /></mesh>
     </>
   );
@@ -206,7 +206,7 @@ function DataNodes({ items, globe, overlay }: { items: Callout[]; globe: Mutable
       let dx = sx - cx, dy = sy - cy; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
       const reach = discR * 1.1 + 20 - d * 0.75;
       const lx = sx + dx * Math.max(reach, 34), ly = sy + dy * Math.max(reach, 34);
-      const lxC = Math.min(size.width - 20, Math.max(20, lx)), lyC = Math.min(size.height - 30, Math.max(24, ly));
+      const lxC = Math.min(size.width - 170, Math.max(170, lx)), lyC = Math.min(size.height - 30, Math.max(24, ly));
       const left = dx < 0;
       label.style.opacity = String(o);
       label.style.pointerEvents = o > 0.4 ? "auto" : "none";
@@ -244,12 +244,12 @@ export default function NeuralGalaxy({ items, onPick, spin = true }: { items: Ca
   const overlay = useRef<Overlay>({ labels: [], lines: [], dots: [] });
   return (
     <div className="absolute inset-0">
-      <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: true }} camera={{ position: [0, 0, 27], fov: 45 }}>
+      <Canvas dpr={[1, 2]} gl={{ antialias: true, alpha: true }} camera={{ position: [0, 0, 30], fov: 45 }}>
         <Stars radius={90} depth={50} count={3500} factor={3.2} saturation={0.6} fade speed={0.5} />
         <Globe items={items} overlay={overlay} spin={spin} />
         <OrbitControls enablePan={false} enableDamping dampingFactor={0.06} rotateSpeed={0.6} minDistance={14} maxDistance={45} />
         <EffectComposer multisampling={0}>
-          <Bloom mipmapBlur intensity={1.0} luminanceThreshold={0.32} luminanceSmoothing={0.3} radius={0.75} />
+          <Bloom mipmapBlur intensity={0.9} luminanceThreshold={0.45} luminanceSmoothing={0.3} radius={0.75} />
         </EffectComposer>
       </Canvas>
 
