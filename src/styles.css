@@ -144,3 +144,12 @@
 
 /* Arabic: use the Arabic face first */
 html[lang="ar"] body { font-family: "IBM Plex Sans Arabic", "Geist", ui-sans-serif, system-ui, sans-serif; }
+
+/* deep-space backdrop behind the AI Brain globe */
+.space-bg {
+  background:
+    radial-gradient(ellipse 45% 40% at 18% 30%, oklch(0.35 0.15 285 / 0.35), transparent 70%),
+    radial-gradient(ellipse 40% 35% at 85% 75%, oklch(0.3 0.14 265 / 0.35), transparent 70%),
+    radial-gradient(ellipse 60% 55% at 50% 50%, oklch(0.25 0.12 290 / 0.45), transparent 75%),
+    oklch(0.1 0.03 280);
+}
