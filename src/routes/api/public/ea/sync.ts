@@ -108,7 +108,7 @@ export const Route = createFileRoute("/api/public/ea/sync")({
         }
         const live = new Set((p.positions ?? []).map((x) => x.ticket));
         if (p.positions?.length) {
-          await db.from("trades").upsert(p.positions.map((x) => defined({ ...x, account_id: acc.id, user_id: acc.user_id, status: "open" })), { onConflict: "account_id,ticket" });
+          await db.from("trades").upsert(p.positions.map(({ deal: _d, ...x }) => defined({ ...x, account_id: acc.id, user_id: acc.user_id, status: "open" })), { onConflict: "account_id,ticket" });
         }
         if (p.positions) {
           // Positions no longer reported by the terminal are fully closed.
