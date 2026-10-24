@@ -11,7 +11,7 @@ export const Route = createFileRoute("/features")({
 });
 
 const steps: [string, string, string][] = [
-  ["1", "Connect MetaTrader 5", "Attach the Arrissa EA to one chart. Your funds stay with your broker."],
+  ["1", "Connect MetaTrader 5", "Attach the Ufuq Trade EA to one chart. Your funds stay with your broker."],
   ["2", "The AI analyses every 10 minutes", "Six AI experts read price, ICT levels, news and whale positioning."],
   ["3", "Trades run on their own", "Entries, stop loss, take profit and profit lock are handled automatically."],
 ];

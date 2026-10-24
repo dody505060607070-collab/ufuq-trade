@@ -56,7 +56,7 @@ function AddMt5() {
   };
 
   const disconnect = async (id: string) => {
-    if (!window.confirm(t("Disconnect this account? Its trade history on Arrissa will be deleted."))) return;
+    if (!window.confirm(t("Disconnect this account? Its trade history on Ufuq Trade will be deleted."))) return;
     const { error } = await supabase.from("trading_accounts").delete().eq("id", id);
     if (error) return toast.error(t("Could not disconnect."));
     toast.success(t("Account disconnected."));
@@ -81,7 +81,7 @@ function AddMt5() {
         </div>
       </div>
       <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={() => setOpen(true)} disabled={!chosen}>{t("Configure MT5 account connection")}</Button>
-      <p className="text-center text-xs text-muted-foreground">{t("Tip: attaching the Arrissa EA in MT5 also adds the account automatically.")} <Link to="/settings" className="text-primary-glow underline">{t("EA setup")}</Link> · <Link to="/accounts/add-tradelocker" className="underline">{t("TradeLocker")}</Link></p>
+      <p className="text-center text-xs text-muted-foreground">{t("Tip: attaching the Ufuq Trade EA in MT5 also adds the account automatically.")} <Link to="/settings" className="text-primary-glow underline">{t("EA setup")}</Link> · <Link to="/accounts/add-tradelocker" className="underline">{t("TradeLocker")}</Link></p>
 
       <div>
         <p className="mb-3 text-sm font-semibold tracking-widest text-muted-foreground">{t("CONNECTED MT5 ACCOUNTS")}</p>
@@ -119,7 +119,7 @@ function AddMt5() {
               <div className="space-y-2"><Label htmlFor="label">{t("Nickname")}</Label><Input id="label" name="label" placeholder={t("MT5 Account")} className="rounded-full" /></div>
               <div className="space-y-2"><Label htmlFor="lot_size">{t("Default lot")}</Label><Input id="lot_size" name="lot_size" defaultValue={String(DEFAULT_TRADE_LOT)} inputMode="decimal" className="rounded-full" /></div>
             </div>
-            <p className="text-xs text-muted-foreground">{t("Your MT5 password is never needed. Trades run through the Arrissa EA inside your own MT5.")}</p>
+            <p className="text-xs text-muted-foreground">{t("Your MT5 password is never needed. Trades run through the Ufuq Trade EA inside your own MT5.")}</p>
             <Button type="submit" variant="hero" className="h-11 w-full rounded-full" disabled={busy}>{busy ? t("Adding…") : t("Add account")}</Button>
           </form>
         </DialogContent>

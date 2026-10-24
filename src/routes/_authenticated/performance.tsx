@@ -43,7 +43,7 @@ function Performance() {
       }
     >
       <div className="flex items-center gap-4 rounded-2xl border border-primary/40 bg-accent/40 p-4 text-sm text-muted-foreground">
-        <p className="flex-1">{t("Performance data is sent to Arrissa directly from your MT5 terminal via the Expert Advisor (EA). Make sure your EA is installed and running to see accurate figures here.")}</p>
+        <p className="flex-1">{t("Performance data is sent to Ufuq Trade directly from your MT5 terminal via the Expert Advisor (EA). Make sure your EA is installed and running to see accurate figures here.")}</p>
         <Button asChild variant="hero" size="sm" className="rounded-full"><Link to="/settings">{t("Set up EA")}</Link></Button>
       </div>
       <div className="space-y-2">

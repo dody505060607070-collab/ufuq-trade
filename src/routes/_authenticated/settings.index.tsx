@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { fmt, isOnline, useAccounts, useProfile, type Account } from "@/lib/trading";
 
 export const Route = createFileRoute("/_authenticated/settings/")({
-  head: () => ({ meta: [{ title: "MT5 EA Configuration | Ufuq Trade" }, { name: "description", content: "Connect the Arrissa Expert Advisor to your MT5 account." }] }),
+  head: () => ({ meta: [{ title: "MT5 EA Configuration | Ufuq Trade" }, { name: "description", content: "Connect the Ufuq Trade Expert Advisor to your MT5 account." }] }),
   component: EaConfig,
 });
 
@@ -41,15 +41,15 @@ function EaConfig() {
   const isSource = !ea.data?.file_url;
 
   return (
-    <Page title={t("MT5 EA Configuration")} subtitle={t("Use these credentials to connect your Arrissa EA to this account.")}>
+    <Page title={t("MT5 EA Configuration")} subtitle={t("Use these credentials to connect your Ufuq Trade EA to this account.")}>
       <HelpNote>{"The EA is a small program running inside MetaTrader 5 that connects this site to your broker account and executes trades. Download it, put it in MQL5/Experts, Compile it in MetaEditor, allow WebRequest, then attach it to a chart with your username and API key."}</HelpNote>
       <Button asChild variant="outline"><Link to="/settings/assistants">Assistant access</Link></Button>
       <Card title={t("Download EA")}>
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary-glow"><Download className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">{t("Arrissa EA")} <span className="ms-1 rounded-md bg-primary/20 px-1.5 py-0.5 text-xs text-primary-glow">{t("v")}{ea.data?.version ?? "1.0"}</span></p>
-            <p className="text-sm text-muted-foreground">{t("MetaTrader 5 Expert Advisor — connect your MT5 account to the Arrissa platform.")}</p>
+            <p className="font-semibold">{t("Ufuq Trade EA")} <span className="ms-1 rounded-md bg-primary/20 px-1.5 py-0.5 text-xs text-primary-glow">{t("v")}{ea.data?.version ?? "1.0"}</span></p>
+            <p className="text-sm text-muted-foreground">{t("MetaTrader 5 Expert Advisor — connect your MT5 account to the Ufuq Trade platform.")}</p>
           </div>
           <Button asChild variant="hero" className="h-11 rounded-full px-6"><a href={fileUrl} download>{isSource ? t("Download .mq5") : t("Download .ex5")}</a></Button>
         </div>
