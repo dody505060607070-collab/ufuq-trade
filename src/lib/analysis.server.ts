@@ -37,6 +37,17 @@ export async function getCached(admin: DB, symbol: string, timeframe: string) {
   return data ? ({ ...data, direction: data.direction as Levels["direction"], confidence: data.confidence ?? 0, summary: data.summary ?? "" } as Levels) : null;
 }
 
+/** Broker candles sent by the MT5 EA, when fresh (last bar within 3 bar-lengths); null → use Yahoo. */
+export async function brokerCandles(db: DB, symbol: string, timeframe: string, limit: number) {
+  const sec: Record<string, number> = { M5: 300, M15: 900, H1: 3600, H4: 14400, D1: 86400 };
+  const { data } = await db.from("broker_candles").select("t,o,h,l,c,account_id").eq("symbol", symbol).eq("timeframe", timeframe).order("t", { ascending: false }).limit(limit * 3);
+  if (!data?.length) return null;
+  const acc = data[0]!.account_id;
+  const rows = data.filter((r) => r.account_id === acc).slice(0, limit).reverse();
+  if (Date.now() / 1000 - rows[rows.length - 1]!.t > 3 * (sec[timeframe] ?? 3600) + 600) return null;
+  return rows.length >= 30 ? rows.map((r) => ({ t: r.t, o: r.o, h: r.h, l: r.l, c: r.c })) : null;
+}
+
 /** Fresh AI analysis from live candles, calendar and headlines. */
 export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null): Promise<Levels> {
   const [, { data: inst }] = await Promise.all([
@@ -44,7 +55,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     db.from("instruments").select("name,yahoo_symbol").eq("symbol", symbol).maybeSingle(),
   ]);
   const [candles, calendar, news, past, daily] = await Promise.all([
-    inst?.yahoo_symbol ? fetchCandles(inst.yahoo_symbol, timeframe, 80).catch(() => []) : Promise.resolve([]),
+    brokerCandles(db, symbol, timeframe, 80).then((b) => b ?? (inst?.yahoo_symbol ? fetchCandles(inst.yahoo_symbol, timeframe, 80).catch(() => []) : [])),
     fetchCalendar(),
     fetchNews(15),
     db.from("trades").select("side,profit,closed_at").ilike("symbol", `${symbol}%`).eq("status", "closed").order("closed_at", { ascending: false }).limit(10).then((r) => r.data ?? []),

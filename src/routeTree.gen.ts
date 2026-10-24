@@ -34,6 +34,7 @@ import { Route as AuthenticatedAutopilotRouteImport } from './routes/_authentica
 import { Route as AuthenticatedBrainRouteImport } from './routes/_authenticated/brain'
 import { Route as AuthenticatedBrokersRouteImport } from './routes/_authenticated/brokers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDecisionsRouteImport } from './routes/_authenticated/decisions'
 import { Route as AuthenticatedHedgeRouteImport } from './routes/_authenticated/hedge'
 import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
 import { Route as AuthenticatedPlatformsRouteImport } from './routes/_authenticated/platforms'
@@ -185,6 +186,11 @@ const AuthenticatedBrokersRoute = AuthenticatedBrokersRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDecisionsRoute = AuthenticatedDecisionsRouteImport.update({
+  id: '/decisions',
+  path: '/decisions',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHedgeRoute = AuthenticatedHedgeRouteImport.update({
@@ -365,6 +371,7 @@ export interface FileRoutesByFullPath {
   '/brain': typeof AuthenticatedBrainRoute
   '/brokers': typeof AuthenticatedBrokersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/decisions': typeof AuthenticatedDecisionsRoute
   '/hedge': typeof AuthenticatedHedgeRoute
   '/performance': typeof AuthenticatedPerformanceRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
@@ -417,6 +424,7 @@ export interface FileRoutesByTo {
   '/brain': typeof AuthenticatedBrainRoute
   '/brokers': typeof AuthenticatedBrokersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/decisions': typeof AuthenticatedDecisionsRoute
   '/hedge': typeof AuthenticatedHedgeRoute
   '/performance': typeof AuthenticatedPerformanceRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
@@ -471,6 +479,7 @@ export interface FileRoutesById {
   '/_authenticated/brain': typeof AuthenticatedBrainRoute
   '/_authenticated/brokers': typeof AuthenticatedBrokersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/decisions': typeof AuthenticatedDecisionsRoute
   '/_authenticated/hedge': typeof AuthenticatedHedgeRoute
   '/_authenticated/performance': typeof AuthenticatedPerformanceRoute
   '/_authenticated/platforms': typeof AuthenticatedPlatformsRoute
@@ -526,6 +535,7 @@ export interface FileRouteTypes {
     | '/brain'
     | '/brokers'
     | '/dashboard'
+    | '/decisions'
     | '/hedge'
     | '/performance'
     | '/platforms'
@@ -578,6 +588,7 @@ export interface FileRouteTypes {
     | '/brain'
     | '/brokers'
     | '/dashboard'
+    | '/decisions'
     | '/hedge'
     | '/performance'
     | '/platforms'
@@ -631,6 +642,7 @@ export interface FileRouteTypes {
     | '/_authenticated/brain'
     | '/_authenticated/brokers'
     | '/_authenticated/dashboard'
+    | '/_authenticated/decisions'
     | '/_authenticated/hedge'
     | '/_authenticated/performance'
     | '/_authenticated/platforms'
@@ -861,6 +873,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/decisions': {
+      id: '/_authenticated/decisions'
+      path: '/decisions'
+      fullPath: '/decisions'
+      preLoaderRoute: typeof AuthenticatedDecisionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/hedge': {
@@ -1127,6 +1146,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBrainRoute: typeof AuthenticatedBrainRoute
   AuthenticatedBrokersRoute: typeof AuthenticatedBrokersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDecisionsRoute: typeof AuthenticatedDecisionsRoute
   AuthenticatedHedgeRoute: typeof AuthenticatedHedgeRoute
   AuthenticatedPerformanceRoute: typeof AuthenticatedPerformanceRoute
   AuthenticatedPlatformsRoute: typeof AuthenticatedPlatformsRoute
@@ -1142,6 +1162,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBrainRoute: AuthenticatedBrainRoute,
   AuthenticatedBrokersRoute: AuthenticatedBrokersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDecisionsRoute: AuthenticatedDecisionsRoute,
   AuthenticatedHedgeRoute: AuthenticatedHedgeRoute,
   AuthenticatedPerformanceRoute: AuthenticatedPerformanceRoute,
   AuthenticatedPlatformsRoute: AuthenticatedPlatformsRoute,

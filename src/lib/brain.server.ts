@@ -1,3 +1,4 @@
+import { ruleStatus } from "./backtest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { cotBias, outcomeOf, ruleKey, rulesText } from "./brain";
@@ -69,9 +70,9 @@ export async function processLessons(db: DB) {
     if (error) continue;
     n++;
     if (rule) {
-      const { data: existing } = await db.from("learned_rules").select("id,rule,hits").eq("user_id", t.user_id);
+      const { data: existing } = await db.from("learned_rules").select("id,rule,hits,status").eq("user_id", t.user_id);
       const match = (existing ?? []).find((e) => ruleKey(e.rule) === ruleKey(rule));
-      if (match) await db.from("learned_rules").update({ hits: match.hits + 1, updated_at: new Date().toISOString() }).eq("id", match.id);
+      if (match) await db.from("learned_rules").update({ hits: match.hits + 1, status: ruleStatus(match.hits + 1, match.status), updated_at: new Date().toISOString() }).eq("id", match.id);
       else await db.from("learned_rules").insert({ user_id: t.user_id, symbol: sym, rule });
     }
   }
@@ -124,7 +125,7 @@ export async function refreshCot(db: DB) {
 export async function brainContext(db: DB, symbol: string) {
   const [{ data: w }, { data: rules }] = await Promise.all([
     db.from("whale_signals").select("*").eq("symbol", symbol).order("report_date", { ascending: false }).limit(1).maybeSingle(),
-    db.from("learned_rules").select("rule,hits,symbol").eq("is_active", true).or(`symbol.eq.${symbol},symbol.is.null`).order("hits", { ascending: false }).limit(12),
+    db.from("learned_rules").select("rule,hits,symbol").eq("is_active", true).eq("status", "approved").or(`symbol.eq.${symbol},symbol.is.null`).order("hits", { ascending: false }).limit(12),
   ]);
   const whale = w ? (() => { const b = cotBias(Number(w.long_pos), Number(w.short_pos), Number(w.change_long), Number(w.change_short)); return `CFTC COT ${w.report_date}: speculators ${b.bias} (net ${b.netPct.toFixed(0)}% of positions, weekly net change ${b.weekly})`; })() : "unavailable";
   return { whale, rules: rulesText(rules ?? []) };

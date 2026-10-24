@@ -37,6 +37,13 @@ const body = z.object({
   closed: z.array(position).max(500).optional(),
   results: z.array(z.object({ id: z.string().uuid(), status: z.enum(["done", "failed"]), result: z.string().max(500).optional() })).max(200).optional(),
   hedge_fired: z.array(z.string().uuid()).max(50).optional(),
+  market: z.array(z.object({
+    symbol: z.string().max(20),
+    broker_symbol: z.string().max(30).optional(),
+    bid: z.number().optional(), ask: z.number().optional(), spread: z.number().int().optional(),
+    point: z.number().optional(), tick_value: z.number().optional(), contract_size: z.number().optional(), min_lot: z.number().optional(),
+    candles: z.record(z.enum(["M5", "M15", "H1", "H4", "D1"]), z.array(z.tuple([z.number(), z.number(), z.number(), z.number(), z.number(), z.number()])).max(300)).optional(),
+  })).max(5).optional(),
 });
 
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: cors });
@@ -80,6 +87,14 @@ export const Route = createFileRoute("/api/public/ea/sync")({
 
         const { login: _l, company: _c, ...accFields } = p.account ?? {};
         await db.from("trading_accounts").update(defined({ ...accFields, last_seen_at: now })).eq("id", acc.id);
+
+        for (const m of p.market ?? []) {
+          const sym = m.symbol.toUpperCase();
+          await db.from("broker_quotes").upsert({ account_id: acc.id, user_id: acc.user_id, symbol: sym, broker_symbol: m.broker_symbol ?? null, bid: m.bid ?? null, ask: m.ask ?? null, spread_points: m.spread ?? null, point: m.point ?? null, tick_value: m.tick_value ?? null, contract_size: m.contract_size ?? null, min_lot: m.min_lot ?? null, updated_at: now }, { onConflict: "account_id,symbol" });
+          for (const [tf, rows] of Object.entries(m.candles ?? {})) {
+            if (rows?.length) await db.from("broker_candles").upsert(rows.map(([t, o, h, l, c, sp]) => ({ account_id: acc.id, user_id: acc.user_id, symbol: sym, timeframe: tf, t, o, h, l, c, spread: Math.round(sp) })), { onConflict: "account_id,symbol,timeframe,t" });
+          }
+        }
 
         if (p.positions) {
           const tickets = p.positions.map((x) => x.ticket);
