@@ -170,6 +170,7 @@ export type Database = {
           max_risk_pct: number
           min_confidence: number
           profit_target_usd: number
+          shadow_mode: boolean
           symbols: string[]
           timeframe: string
           updated_at: string
@@ -189,6 +190,7 @@ export type Database = {
           max_risk_pct?: number
           min_confidence?: number
           profit_target_usd?: number
+          shadow_mode?: boolean
           symbols?: string[]
           timeframe?: string
           updated_at?: string
@@ -208,6 +210,7 @@ export type Database = {
           max_risk_pct?: number
           min_confidence?: number
           profit_target_usd?: number
+          shadow_mode?: boolean
           symbols?: string[]
           timeframe?: string
           updated_at?: string
@@ -261,8 +264,11 @@ export type Database = {
           bid: number | null
           broker_symbol: string | null
           contract_size: number | null
+          lot_step: number | null
+          max_lot: number | null
           min_lot: number | null
           point: number | null
+          quote_time: string | null
           spread_points: number | null
           symbol: string
           tick_value: number | null
@@ -275,8 +281,11 @@ export type Database = {
           bid?: number | null
           broker_symbol?: string | null
           contract_size?: number | null
+          lot_step?: number | null
+          max_lot?: number | null
           min_lot?: number | null
           point?: number | null
+          quote_time?: string | null
           spread_points?: number | null
           symbol: string
           tick_value?: number | null
@@ -289,8 +298,11 @@ export type Database = {
           bid?: number | null
           broker_symbol?: string | null
           contract_size?: number | null
+          lot_step?: number | null
+          max_lot?: number | null
           min_lot?: number | null
           point?: number | null
+          quote_time?: string | null
           spread_points?: number | null
           symbol?: string
           tick_value?: number | null
@@ -404,7 +416,11 @@ export type Database = {
           created_at: string
           data_source: string | null
           entry: number | null
+          exec_price: number | null
           id: string
+          mode: string | null
+          model: string | null
+          prompt_version: string | null
           risk_reason: string | null
           risk_verdict: string
           stop_loss: number | null
@@ -421,7 +437,11 @@ export type Database = {
           created_at?: string
           data_source?: string | null
           entry?: number | null
+          exec_price?: number | null
           id?: string
+          mode?: string | null
+          model?: string | null
+          prompt_version?: string | null
           risk_reason?: string | null
           risk_verdict: string
           stop_loss?: number | null
@@ -438,7 +458,11 @@ export type Database = {
           created_at?: string
           data_source?: string | null
           entry?: number | null
+          exec_price?: number | null
           id?: string
+          mode?: string | null
+          model?: string | null
+          prompt_version?: string | null
           risk_reason?: string | null
           risk_verdict?: string
           stop_loss?: number | null
@@ -731,10 +755,15 @@ export type Database = {
           command: string
           created_at: string
           executed_at: string | null
+          executor_id: string | null
+          expires_at: string | null
+          filled_count: number | null
           id: string
           payload: Json
+          requested_count: number | null
           result: string | null
           status: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -742,10 +771,15 @@ export type Database = {
           command: string
           created_at?: string
           executed_at?: string | null
+          executor_id?: string | null
+          expires_at?: string | null
+          filled_count?: number | null
           id?: string
           payload?: Json
+          requested_count?: number | null
           result?: string | null
           status?: string
+          updated_at?: string
           user_id?: string
         }
         Update: {
@@ -753,10 +787,15 @@ export type Database = {
           command?: string
           created_at?: string
           executed_at?: string | null
+          executor_id?: string | null
+          expires_at?: string | null
+          filled_count?: number | null
           id?: string
           payload?: Json
+          requested_count?: number | null
           result?: string | null
           status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -955,19 +994,26 @@ export type Database = {
           auto_trading: boolean
           balance: number | null
           broker_name: string | null
+          capabilities: string[] | null
           connection_type: string
           created_at: string
           currency: string | null
           ea_key: string
+          ea_version: string | null
           equity: number | null
+          executor_id: string | null
+          executor_seen_at: string | null
           free_margin: number | null
           id: string
           label: string | null
           last_seen_at: string | null
+          last_snapshot_at: string | null
           leverage: number | null
           login: string
           lot_size: number
+          margin_mode: string | null
           platform: string
+          protocol_version: number | null
           server: string | null
           user_id: string
         }
@@ -975,19 +1021,26 @@ export type Database = {
           auto_trading?: boolean
           balance?: number | null
           broker_name?: string | null
+          capabilities?: string[] | null
           connection_type?: string
           created_at?: string
           currency?: string | null
           ea_key?: string
+          ea_version?: string | null
           equity?: number | null
+          executor_id?: string | null
+          executor_seen_at?: string | null
           free_margin?: number | null
           id?: string
           label?: string | null
           last_seen_at?: string | null
+          last_snapshot_at?: string | null
           leverage?: number | null
           login: string
           lot_size?: number
+          margin_mode?: string | null
           platform?: string
+          protocol_version?: number | null
           server?: string | null
           user_id?: string
         }
@@ -995,19 +1048,26 @@ export type Database = {
           auto_trading?: boolean
           balance?: number | null
           broker_name?: string | null
+          capabilities?: string[] | null
           connection_type?: string
           created_at?: string
           currency?: string | null
           ea_key?: string
+          ea_version?: string | null
           equity?: number | null
+          executor_id?: string | null
+          executor_seen_at?: string | null
           free_margin?: number | null
           id?: string
           label?: string | null
           last_seen_at?: string | null
+          last_snapshot_at?: string | null
           leverage?: number | null
           login?: string
           lot_size?: number
+          margin_mode?: string | null
           platform?: string
+          protocol_version?: number | null
           server?: string | null
           user_id?: string
         }
@@ -1103,6 +1163,10 @@ export type Database = {
     }
     Functions: {
       acquire_autopilot_lease: { Args: { _seconds?: number }; Returns: boolean }
+      acquire_autopilot_lease_v2: {
+        Args: { _seconds?: number; _token: string }
+        Returns: boolean
+      }
       claim_commands: {
         Args: { _account: string; _limit?: number }
         Returns: {
@@ -1110,10 +1174,15 @@ export type Database = {
           command: string
           created_at: string
           executed_at: string | null
+          executor_id: string | null
+          expires_at: string | null
+          filled_count: number | null
           id: string
           payload: Json
+          requested_count: number | null
           result: string | null
           status: string
+          updated_at: string
           user_id: string
         }[]
         SetofOptions: {
@@ -1122,6 +1191,35 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      claim_commands_v2: {
+        Args: { _account: string; _executor: string; _limit?: number }
+        Returns: {
+          account_id: string
+          command: string
+          created_at: string
+          executed_at: string | null
+          executor_id: string | null
+          expires_at: string | null
+          filled_count: number | null
+          id: string
+          payload: Json
+          requested_count: number | null
+          result: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trade_commands"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_executor: {
+        Args: { _account: string; _executor: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
@@ -1133,6 +1231,14 @@ export type Database = {
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       make_username: { Args: { _email: string }; Returns: string }
       release_autopilot_lease: { Args: never; Returns: undefined }
+      release_autopilot_lease_v2: {
+        Args: { _token: string }
+        Returns: undefined
+      }
+      renew_autopilot_lease: {
+        Args: { _seconds?: number; _token: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"

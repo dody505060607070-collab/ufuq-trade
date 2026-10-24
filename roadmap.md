@@ -27,3 +27,8 @@
 - [ ] Verify approved/denied OAuth flow with real assistant — blocked: requesting user session and external OAuth client required; republish needed.
 - [x] Run basic security review, harden redirect handling, and verify anonymous MCP requests are refused.
 - [ ] Complete remaining security review — blocked: deep scan is running; findings need its report before further changes.
+
+# Stability release (EA 1.40)
+- [x] Live-price risk, command lifecycle/expiry/unknown, executor ownership, owner lease, deal-based daily P/L, snapshot safety, shadow mode, EA 1.40 source, compile script, demo plan, report.
+- [ ] Compile EA 1.40 — blocked: needs Windows VPS with MetaEditor (user runs compile-ea.ps1).
+- [ ] Demo tests after market open — blocked: market closed, admin-supervised.

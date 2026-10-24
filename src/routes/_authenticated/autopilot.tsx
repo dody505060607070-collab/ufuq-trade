@@ -25,8 +25,8 @@ export const Route = createFileRoute("/_authenticated/autopilot")({
   component: AutoPilot,
 });
 
-type Settings = { enabled: boolean; symbols: string[]; timeframe: string; min_confidence: number; lot_size: number; max_open: number; max_daily: number; avoid_news: boolean; profit_target_usd: number; lock_start_usd: number; giveback_pct: number; cooldown_minutes: number; daily_target_usd: number };
-const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: DEFAULT_TRADE_LOT, max_open: 2, max_daily: 4, avoid_news: true, profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40, cooldown_minutes: 30, daily_target_usd: 0 };
+type Settings = { enabled: boolean; symbols: string[]; timeframe: string; min_confidence: number; lot_size: number; max_open: number; max_daily: number; avoid_news: boolean; profit_target_usd: number; lock_start_usd: number; giveback_pct: number; cooldown_minutes: number; daily_target_usd: number; shadow_mode: boolean };
+const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: DEFAULT_TRADE_LOT, max_open: 2, max_daily: 4, avoid_news: true, profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40, cooldown_minutes: 30, daily_target_usd: 0, shadow_mode: false };
 
 function AutoPilot() {
   const t = useT();
@@ -102,7 +102,8 @@ function AutoPilot() {
           <div className="space-y-2">
             {(accounts.data ?? []).map((a) => (
               <label key={a.id} className="flex items-center justify-between rounded-2xl border border-border bg-background/40 px-4 py-3">
-                <span className="text-sm"><b>{a.label ?? "MT5"}</b> · {a.login} <span className={cn("ms-2 text-xs", isOnline(a) ? "text-success" : "text-muted-foreground")}>{isOnline(a) ? t("connected") : t("offline")}</span></span>
+                <span className="text-sm"><b>{a.label ?? "MT5"}</b> · {a.login} <span className={cn("ms-2 text-xs", isOnline(a) ? "text-success" : "text-muted-foreground")}>{isOnline(a) ? t("connected") : t("offline")}</span>
+                  <span className={cn("ms-2 text-xs", (a.protocol_version ?? 0) >= 2 ? "text-muted-foreground" : "text-warning")}>EA {a.ea_version ?? t("old version")}{(a.protocol_version ?? 0) < 2 ? ` · ${t("update to 1.40 for automatic trading")}` : ""}</span></span>
                 <Switch checked={a.auto_trading} onCheckedChange={(v) => void toggleAccount(a.id, v)} />
               </label>
             ))}
@@ -135,6 +136,10 @@ function AutoPilot() {
           <label className="flex items-center justify-between rounded-2xl border border-border bg-background/40 px-4 py-3">
             <span className="text-sm">{t("Don't trade 30 min around high-impact news")}</span>
             <Switch checked={s.avoid_news} onCheckedChange={(v) => setS({ ...s, avoid_news: v })} />
+          </label>
+          <label className="flex items-center justify-between rounded-2xl border border-border bg-background/40 px-4 py-3">
+            <span className="text-sm">{t("Shadow mode: analyse and record decisions without sending orders")}</span>
+            <Switch checked={s.shadow_mode} onCheckedChange={(v) => void save({ shadow_mode: v })} aria-label={t("Shadow mode")} />
           </label>
         </div>
         <Button variant="hero" className="mt-4 rounded-full" onClick={() => void save()}>{t("Save settings")}</Button>

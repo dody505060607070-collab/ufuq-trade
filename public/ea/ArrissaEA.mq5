@@ -6,7 +6,7 @@
 //|    enable Algo Trading.                                          |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.30"
+#property version   "1.40"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -20,6 +20,7 @@ input int    InpSlippage    = 30;                                              /
 
 CTrade   trade;
 datetime g_lastHistory = 0;
+datetime g_histNext = 0;      // when a history page was cut, resume from here
 string   g_results[];
 string   g_fired[];
 double   g_capLoss = 0;       // negative amount; 0 = off
@@ -32,6 +33,10 @@ double   g_watchPrice[];
 int      g_watchSide[];       // -1 = price was below level, +1 = above, 0 = unknown
 bool     g_warned = false;
 int      g_syncCount = 0;
+string   g_executor = "";     // unique id of this EA instance (account ownership on the server)
+bool     g_execAllowed = true; // false while the server says another instance owns this account
+#define  EA_VERSION "1.40"
+#define  PROTOCOL   2
 input string InpDataSymbol  = "XAUUSD";                                        // Symbol whose broker data is sent for analysis
 input bool   InpProtect     = true;                                            // Auto-protect trades: half close + breakeven at 1R, trail after 1.5R
 
@@ -46,6 +51,8 @@ int OnInit()
    trade.SetExpertMagicNumber(InpMagic);
    trade.SetDeviationInPoints(InpSlippage);
    g_lastHistory = TimeCurrent() - 3 * 86400;
+   MathSrand((uint)GetTickCount());
+   g_executor = IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN)) + "-" + IntegerToString((long)ChartID()) + "-" + IntegerToString((long)GetTickCount()) + "-" + IntegerToString(MathRand());
    EventSetTimer(MathMax(1, InpSyncSeconds));
    Print("ArrissaEA started for account ", AccountInfoInteger(ACCOUNT_LOGIN));
    return(INIT_SUCCEEDED);
@@ -86,12 +93,13 @@ string Iso(datetime serverTime)
 
 string Num(double v, int digits = 5) { return DoubleToString(v, digits); }
 
-void PushResult(string id, bool ok, string msg)
+void PushStatus(string id, string status, string msg, int filled = -1)
   {
    int n = ArraySize(g_results);
    ArrayResize(g_results, n + 1);
-   g_results[n] = "{\"id\":\"" + id + "\",\"status\":\"" + (ok ? "done" : "failed") + "\",\"result\":\"" + Esc(StringSubstr(msg, 0, 400)) + "\"}";
+   g_results[n] = "{\"id\":\"" + id + "\",\"status\":\"" + status + "\",\"result\":\"" + Esc(StringSubstr(msg, 0, 400)) + "\"" + (filled >= 0 ? ",\"filled\":" + IntegerToString(filled) : "") + "}";
   }
+void PushResult(string id, bool ok, string msg) { PushStatus(id, ok ? "done" : "failed", msg); }
 
 bool TrySymbol(string name)
   {
@@ -132,7 +140,9 @@ double NormLot(string sym, double lot)
    double mx = SymbolInfoDouble(sym, SYMBOL_VOLUME_MAX);
    if(step <= 0) step = 0.01;
    lot = MathFloor(lot / step + 0.0000001) * step;
-   return MathMax(mn, MathMin(mx, lot));
+   // Never round up to the broker minimum (that would raise risk): 0 = rejected by the caller.
+   if(lot < mn - 1e-9 || lot > mx + 1e-9) return 0;
+   return NormalizeDouble(lot, 8);
   }
 
 double NormPrice(string sym, double p)
@@ -149,13 +159,15 @@ double FloatingProfit()
    return t;
   }
 
+int g_closeFail = 0;
 int CloseAll()
   {
-   int n = 0;
+   int n = 0; g_closeFail = 0;
    for(int i = PositionsTotal() - 1; i >= 0; i--)
      {
       ulong t = PositionGetTicket(i);
-      if(t > 0 && trade.PositionClose(t)) n++;
+      if(t == 0) continue;
+      if(trade.PositionClose(t) && trade.ResultRetcode() == TRADE_RETCODE_DONE) n++; else g_closeFail++;
      }
    return n;
   }
@@ -167,10 +179,45 @@ int CloseAll()
 //| Command journal: survives restarts so a command ID never runs twice |
 //| state 1 = started (outcome unknown), 2 = done, 3 = failed          |
 //+------------------------------------------------------------------+
-string CmdKey(string id) { return "UFC_" + id; }
-int    CmdState(string id) { return GlobalVariableCheck(CmdKey(id)) ? (int)GlobalVariableGet(CmdKey(id)) : 0; }
+// Keys include the account login so two accounts on one terminal never share state. Old 1.30 keys are still read.
+string Acct() { return IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN)); }
+string CmdKey(string id) { string t = id; StringReplace(t, "-", ""); return "UFC" + Acct() + "_" + t; }
+int    CmdState(string id)
+  {
+   if(GlobalVariableCheck(CmdKey(id))) return (int)GlobalVariableGet(CmdKey(id));
+   if(GlobalVariableCheck("UFC_" + id)) return (int)GlobalVariableGet("UFC_" + id);
+   return 0;
+  }
 void   CmdMark(string id, int st) { GlobalVariableSet(CmdKey(id), st); GlobalVariablesFlush(); }
 string CmdTag(string id) { string t = id; StringReplace(t, "-", ""); return "UF" + StringSubstr(t, 0, 29); }
+// Per-execution tag for multi-trade commands: "U" + 26 chars of the id + "_" + 2-digit index (30 chars).
+string SubPrefix(string id) { string t = id; StringReplace(t, "-", ""); return "U" + StringSubstr(t, 0, 26) + "_"; }
+string SubTag(string id, int k) { return SubPrefix(id) + StringFormat("%02d", k); }
+// Number of distinct broker executions (positions, pending orders, filled entry deals) carrying this command's sub-tags.
+int CountSubTags(string id)
+  {
+   string pre = SubPrefix(id); int L = StringLen(pre);
+   string seen = "|"; int n = 0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--) if(PositionGetTicket(i) > 0) { string c = PositionGetString(POSITION_COMMENT); if(StringSubstr(c, 0, L) == pre && StringFind(seen, "|" + c + "|") < 0) { seen += c + "|"; n++; } }
+   for(int i = OrdersTotal() - 1; i >= 0; i--) if(OrderGetTicket(i) > 0) { string c = OrderGetString(ORDER_COMMENT); if(StringSubstr(c, 0, L) == pre && StringFind(seen, "|" + c + "|") < 0) { seen += c + "|"; n++; } }
+   if(HistorySelect(TimeCurrent() - 7 * 86400, TimeCurrent() + 60))
+      for(int i = HistoryDealsTotal() - 1; i >= 0; i--)
+        {
+         ulong d = HistoryDealGetTicket(i);
+         if(d == 0 || HistoryDealGetInteger(d, DEAL_ENTRY) != DEAL_ENTRY_IN) continue;
+         string c = HistoryDealGetString(d, DEAL_COMMENT);
+         if(StringSubstr(c, 0, L) == pre && StringFind(seen, "|" + c + "|") < 0) { seen += c + "|"; n++; }
+        }
+   return n;
+  }
+bool HasSubTag(string tag)
+  {
+   for(int i = PositionsTotal() - 1; i >= 0; i--) if(PositionGetTicket(i) > 0 && PositionGetString(POSITION_COMMENT) == tag) return true;
+   for(int i = OrdersTotal() - 1; i >= 0; i--) if(OrderGetTicket(i) > 0 && OrderGetString(ORDER_COMMENT) == tag) return true;
+   if(HistorySelect(TimeCurrent() - 7 * 86400, TimeCurrent() + 60))
+      for(int i = HistoryDealsTotal() - 1; i >= 0; i--) { ulong d = HistoryDealGetTicket(i); if(d > 0 && HistoryDealGetString(d, DEAL_COMMENT) == tag) return true; }
+   return false;
+  }
 
 // Broker-side proof that an order with this tag exists (open position, pending order or history).
 bool BrokerHasTag(string tag)
@@ -191,13 +238,24 @@ void Execute(string &f[])
    int st = CmdState(id);
    if(st == 2) { PushResult(id, true, "Already executed (duplicate ignored)"); return; }
    if(st == 3) { PushResult(id, false, "Already failed earlier (not repeated)"); return; }
+   if(st == 4) { PushStatus(id, "unknown", "Outcome unknown earlier - check the broker (not repeated)"); return; }
    bool isOpen = f[2] == "open_trade";
-   if(isOpen && BrokerHasTag(CmdTag(id))) { CmdMark(id, 2); PushResult(id, true, "Verified at broker: already executed"); return; }
-   if(st == 1 && !isOpen) { CmdMark(id, 3); PushResult(id, false, "Interrupted before confirmation - not repeated"); return; }
+   // Expired market orders must not run after a reconnect or at market open.
+   long exp = ArraySize(f) > 15 ? StringToInteger(f[15]) : 0;
+   if(st == 0 && exp > 0 && (long)TimeGMT() > exp) { CmdMark(id, 3); PushStatus(id, "expired", "Expired before execution - not sent to broker"); return; }
+   if(isOpen && st == 0 && BrokerHasTag(CmdTag(id))) { CmdMark(id, 2); PushResult(id, true, "Verified at broker: already executed (1.30 tag)"); return; }
+   if(st == 1)
+     {
+      // Interrupted after start: never blindly repeat. A missing tag alone is not proof that nothing was sent.
+      int have = isOpen ? CountSubTags(id) : 0;
+      if(isOpen && have > 0) { CmdMark(id, 2); PushStatus(id, "partial", "Recovered after restart: " + IntegerToString(have) + " execution(s) found at broker", have); return; }
+      CmdMark(id, 4); PushStatus(id, "unknown", "Interrupted before broker confirmation - check MT5 history; not repeated"); return;
+     }
    CmdMark(id, 1);
    int before = ArraySize(g_results);
    ExecuteCmd(f);
-   bool ok = ArraySize(g_results) > before && StringFind(g_results[ArraySize(g_results) - 1], "\"status\":\"done\"") >= 0;
+   string last = ArraySize(g_results) > before ? g_results[ArraySize(g_results) - 1] : "";
+   bool ok = StringFind(last, "\"status\":\"done\"") >= 0 || StringFind(last, "\"status\":\"partial\"") >= 0;
    CmdMark(id, ok ? 2 : 3);
   }
 
@@ -216,10 +274,26 @@ void ExecuteCmd(string &f[])
       string sym = ResolveSymbol(symIn);
       if(sym == "") { PushResult(id, false, "Symbol " + symIn + " not found at this broker"); return; }
       if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED) || !MQLInfoInteger(MQL_TRADE_ALLOWED)) { PushResult(id, false, "Algo Trading is disabled in MT5"); return; }
-      if(lot <= 0) lot = SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN);
+      if(lot <= 0) { PushResult(id, false, "Missing lot size"); return; }
+      double want = lot;
       lot = NormLot(sym, lot);
+      if(lot <= 0 || MathAbs(lot - want) > SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP) / 2) { PushResult(id, false, "Lot " + Num(want, 2) + " does not match broker min/max/step - rejected (never rounded up)"); return; }
       sl = NormPrice(sym, sl); tp = NormPrice(sym, tp); price = NormPrice(sym, price);
       bool buy = side == "buy";
+      bool guard = ArraySize(f) > 16 && f[16] == "1";
+      double minRR = ArraySize(f) > 17 ? StringToDouble(f[17]) : 1.5;
+      if(guard && otype == "market")
+        {
+         // Re-check at the live fill price right before sending; the server's earlier approval is not enough.
+         double lp = buy ? SymbolInfoDouble(sym, SYMBOL_ASK) : SymbolInfoDouble(sym, SYMBOL_BID);
+         if(lp <= 0 || sl <= 0 || tp <= 0) { PushResult(id, false, "Live price, stop or target missing - not sent"); return; }
+         if(buy ? !(sl < lp && lp < tp) : !(tp < lp && lp < sl)) { PushResult(id, false, "Price moved past stop or target - not sent"); return; }
+         double rr = MathAbs(tp - lp) / MathAbs(lp - sl);
+         if(rr < minRR) { PushResult(id, false, "R/R " + Num(rr, 2) + " at live price is below " + Num(minRR, 2) + " - not sent"); return; }
+         double loss = 0;
+         if(!OrderCalcProfit(buy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, sym, lot, lp, sl, loss)) { PushResult(id, false, "Broker could not calculate the stop loss amount - not sent"); return; }
+         Print("UfuqEA: pre-trade check ok, R/R ", Num(rr, 2), ", loss at stop ", Num(loss, 2), " ", AccountInfoString(ACCOUNT_CURRENCY));
+        }
       int target = untilNoMargin ? 200 : MathMax(1, MathMin(50, count));
       int opened = 0; string err = "";
       for(int k = 0; k < target; k++)
@@ -231,7 +305,8 @@ void ExecuteCmd(string &f[])
             if(!OrderCalcMargin(buy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, sym, lot, px, need) || need >= AccountInfoDouble(ACCOUNT_MARGIN_FREE) * 0.95) break;
            }
          bool ok = false;
-         string tag = CmdTag(id);
+         string tag = SubTag(id, k);
+         if(HasSubTag(tag)) { opened++; continue; }   // this execution already exists at the broker
          if(otype == "limit")      ok = buy ? trade.BuyLimit(lot, price, sym, sl, tp, ORDER_TIME_GTC, 0, tag) : trade.SellLimit(lot, price, sym, sl, tp, ORDER_TIME_GTC, 0, tag);
          else if(otype == "stop")  ok = buy ? trade.BuyStop(lot, price, sym, sl, tp, ORDER_TIME_GTC, 0, tag) : trade.SellStop(lot, price, sym, sl, tp, ORDER_TIME_GTC, 0, tag);
          else                      ok = buy ? trade.Buy(lot, sym, 0, sl, tp, tag) : trade.Sell(lot, sym, 0, sl, tp, tag);
@@ -241,20 +316,27 @@ void ExecuteCmd(string &f[])
          else { err = trade.ResultRetcodeDescription(); if(!untilNoMargin) continue; else break; }
          if(delay > 0 && k < target - 1) Sleep(MathMin(delay, 60) * 1000);
         }
-      PushResult(id, opened > 0, "Opened " + IntegerToString(opened) + " " + side + " " + sym + (err != "" ? " | " + err : ""));
+      string msg = "Opened " + IntegerToString(opened) + "/" + IntegerToString(untilNoMargin ? opened : target) + " " + side + " " + sym + (err != "" ? " | " + err : "");
+      if(opened == 0) PushStatus(id, "failed", msg, 0);
+      else if(!untilNoMargin && opened < target) PushStatus(id, "partial", msg, opened);
+      else PushStatus(id, "done", msg, opened);
       return;
      }
-   if(cmd == "close_all")    { PushResult(id, true, "Closed " + IntegerToString(CloseAll())); return; }
+   if(cmd == "close_all")    { int c = CloseAll(); PushResult(id, g_closeFail == 0, "Closed " + IntegerToString(c) + (g_closeFail > 0 ? ", FAILED " + IntegerToString(g_closeFail) : "")); return; }
    if(cmd == "close_trade")
      {
-      if(!PositionSelectByTicket(ticket)) { PushResult(id, true, "Position #" + IntegerToString((long)ticket) + " already closed"); return; }
+      // The platform stores POSITION_IDENTIFIER; convert it to the live position ticket before closing.
+      ulong real = 0;
+      for(int i = PositionsTotal() - 1; i >= 0; i--) { ulong t = PositionGetTicket(i); if(t > 0 && (ulong)PositionGetInteger(POSITION_IDENTIFIER) == ticket) { real = t; break; } }
+      if(real == 0) { PushResult(id, true, "Position #" + IntegerToString((long)ticket) + " already closed"); return; }
+      ticket = real;
       bool ok = trade.PositionClose(ticket) && trade.ResultRetcode() == TRADE_RETCODE_DONE;
       PushResult(id, ok, ok ? "Closed #" + IntegerToString((long)ticket) : trade.ResultRetcodeDescription());
       return;
      }
    if(cmd == "break_even" || cmd == "delete_sl" || cmd == "set_sl_tp")
      {
-      int n = 0;
+      int n = 0, bad = 0;
       string want = symIn != "" ? ResolveSymbol(symIn) : "";
       for(int i = PositionsTotal() - 1; i >= 0; i--)
         {
@@ -265,23 +347,23 @@ void ExecuteCmd(string &f[])
          if(cmd == "break_even")
            {
             if(PositionGetDouble(POSITION_PROFIT) <= 0) continue;
-            if(trade.PositionModify(t, NormPrice(s, open), cur_tp)) n++;
+            if(trade.PositionModify(t, NormPrice(s, open), cur_tp) && RcOk()) n++; else bad++;
            }
-         else if(cmd == "delete_sl") { if(trade.PositionModify(t, 0, cur_tp)) n++; }
+         else if(cmd == "delete_sl") { if(trade.PositionModify(t, 0, cur_tp) && RcOk()) n++; else bad++; }
          else
            {
             if(want != "" && s != want) continue;
-            if(trade.PositionModify(t, sl > 0 ? NormPrice(s, sl) : cur_sl, tp > 0 ? NormPrice(s, tp) : cur_tp)) n++;
+            if(trade.PositionModify(t, sl > 0 ? NormPrice(s, sl) : cur_sl, tp > 0 ? NormPrice(s, tp) : cur_tp) && RcOk()) n++; else bad++;
            }
         }
-      PushResult(id, true, "Modified " + IntegerToString(n));
+      PushResult(id, bad == 0, "Modified " + IntegerToString(n) + (bad > 0 ? ", FAILED " + IntegerToString(bad) : ""));
       return;
      }
    if(cmd == "clear_pending")
      {
-      int n = 0;
-      for(int i = OrdersTotal() - 1; i >= 0; i--) { ulong t = OrderGetTicket(i); if(t > 0 && trade.OrderDelete(t)) n++; }
-      PushResult(id, true, "Deleted " + IntegerToString(n) + " pending");
+      int n = 0, bad = 0;
+      for(int i = OrdersTotal() - 1; i >= 0; i--) { ulong t = OrderGetTicket(i); if(t == 0) continue; if(trade.OrderDelete(t) && trade.ResultRetcode() == TRADE_RETCODE_DONE) n++; else bad++; }
+      PushResult(id, bad == 0, "Deleted " + IntegerToString(n) + " pending" + (bad > 0 ? ", FAILED " + IntegerToString(bad) : ""));
       return;
      }
    if(cmd == "cap_loss")        { g_capLoss = -MathAbs(threshold); PushResult(id, true, "Cap loss at " + Num(g_capLoss, 2)); return; }
@@ -295,14 +377,27 @@ void ExecuteCmd(string &f[])
 //+------------------------------------------------------------------+
 // State is kept in terminal global variables so it survives EA/MT5 restarts:
 // UFR_<ticket> = original risk distance, UFS_<ticket> = steps done (1 half close, 2 breakeven), UFT_<ticket> = last attempt.
-double ProtGet(string k, ulong tk) { string n = k + IntegerToString((long)tk); return GlobalVariableCheck(n) ? GlobalVariableGet(n) : 0; }
-void   ProtSet(string k, ulong tk, double v) { GlobalVariableSet(k + IntegerToString((long)tk), v); GlobalVariablesFlush(); }
+// Keys: <k><login>_<ticket>. Old 1.30 keys (<k><ticket>) are read once and migrated.
+string ProtName(string k, ulong tk) { return k + Acct() + "_" + IntegerToString((long)tk); }
+double ProtGet(string k, ulong tk)
+  {
+   string n = ProtName(k, tk);
+   if(GlobalVariableCheck(n)) return GlobalVariableGet(n);
+   string old = k + IntegerToString((long)tk);
+   if(GlobalVariableCheck(old)) { double v = GlobalVariableGet(old); GlobalVariableSet(n, v); GlobalVariableDel(old); return v; }
+   return 0;
+  }
+void   ProtSet(string k, ulong tk, double v) { GlobalVariableSet(ProtName(k, tk), v); GlobalVariablesFlush(); }
+bool   g_netWarn = false;
 bool   RcOk() { uint rc = trade.ResultRetcode(); return rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_DONE_PARTIAL || rc == TRADE_RETCODE_NO_CHANGES; }
 int    g_protSweep = 0;
 
 void ProtectPositions()
   {
    if(!InpProtect) return;
+   // Half-close/breakeven is implemented for hedging accounts only.
+   if(AccountInfoInteger(ACCOUNT_MARGIN_MODE) != ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
+     { if(!g_netWarn) { Print("UfuqEA: protection disabled - netting/exchange accounts are not supported"); g_netWarn = true; } return; }
    for(int i = PositionsTotal() - 1; i >= 0; i--)
      {
       ulong tk = PositionGetTicket(i);
@@ -314,18 +409,22 @@ void ProtectPositions()
       double tp   = PositionGetDouble(POSITION_TP);
       double vol  = PositionGetDouble(POSITION_VOLUME);
       bool   buy  = PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY;
+      double pt   = SymbolInfoDouble(sym, SYMBOL_POINT);           // this position's symbol, never the chart's _Point
       double risk = ProtGet("UFR_", tk);
+      double vol0 = ProtGet("UFV_", tk);
       if(risk <= 0)
         {
          // Original risk is only known while the stop is still on the losing side of entry.
-         if(sl > 0 && (buy ? sl < open : sl > open)) { risk = MathAbs(open - sl); ProtSet("UFR_", tk, risk); }
-         else continue;
+         if(sl > 0 && (buy ? sl < open : sl > open)) { risk = MathAbs(open - sl); ProtSet("UFR_", tk, risk); ProtSet("UFV_", tk, vol); vol0 = vol; }
+         else { if(ProtGet("UFW_", tk) == 0) { Print("UfuqEA: ", tk, " original risk unknown - protection skipped (conservative)"); ProtSet("UFW_", tk, 1); } continue; }
         }
+      if(vol0 <= 0) { vol0 = vol; ProtSet("UFV_", tk, vol0); }
       if(TimeCurrent() - (datetime)ProtGet("UFT_", tk) < 10) continue;   // retry failed steps every 10s
       int    stage = (int)ProtGet("UFS_", tk);
       double px    = buy ? SymbolInfoDouble(sym, SYMBOL_BID) : SymbolInfoDouble(sym, SYMBOL_ASK);
       double gain  = buy ? px - open : open - px;
       int    dg    = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
+      double minDist = (double)MathMax(SymbolInfoInteger(sym, SYMBOL_TRADE_STOPS_LEVEL), SymbolInfoInteger(sym, SYMBOL_TRADE_FREEZE_LEVEL)) * pt;
       if(gain < risk) continue;
 
       // Step 1: close half (verified by the broker result and the new volume).
@@ -334,10 +433,16 @@ void ProtectPositions()
          ProtSet("UFT_", tk, (double)TimeCurrent());
          double step = SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP), vmin = SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN);
          if(step <= 0) step = 0.01;
-         double half = MathFloor(vol / 2 / step + 0.0000001) * step;
-         if(half < vmin || vol - half < vmin) { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: ", tk, " too small to half-close, skipping to breakeven"); }
-         else if(trade.PositionClosePartial(tk, half) && RcOk() && PositionSelectByTicket(tk) && PositionGetDouble(POSITION_VOLUME) < vol - step / 2)
-           { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: 1R on ", tk, " - half closed (verified)"); }
+         // Target remaining volume is fixed from the ORIGINAL volume, so a lost flag never closes half of the rest again.
+         double keep = vol0 - MathFloor(vol0 / 2 / step + 0.0000001) * step;
+         double todo = NormalizeDouble(vol - keep, 8);
+         if(keep < vmin || vol0 - keep < vmin) { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: ", tk, " too small to half-close, skipping to breakeven"); }
+         else if(todo < step / 2) { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: ", tk, " half already closed at broker (recovered)"); }
+         else if(trade.PositionClosePartial(tk, todo) && RcOk() && PositionSelectByTicket(tk) && PositionGetDouble(POSITION_VOLUME) < vol - step / 2)
+           {
+            if(PositionGetDouble(POSITION_VOLUME) <= keep + step / 2) { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: 1R on ", tk, " - half closed (verified)"); }
+            else Print("UfuqEA: ", tk, " half close partly filled - remaining part retried");
+           }
          else Print("UfuqEA: half close FAILED on ", tk, ": ", trade.ResultRetcodeDescription(), " - will retry");
         }
       // Step 2: stop to breakeven (independent of step 1; verified by reading the stop back).
@@ -346,8 +451,10 @@ void ProtectPositions()
          if(!PositionSelectByTicket(tk)) continue;
          sl = PositionGetDouble(POSITION_SL); tp = PositionGetDouble(POSITION_TP);
          double be = NormalizeDouble(open, dg);
-         if(buy ? sl >= be - _Point : (sl > 0 && sl <= be + _Point)) { stage |= 2; ProtSet("UFS_", tk, stage); }
-         else if(trade.PositionModify(tk, be, tp) && RcOk() && PositionSelectByTicket(tk) && MathAbs(PositionGetDouble(POSITION_SL) - be) <= _Point * 2)
+         double cur = buy ? SymbolInfoDouble(sym, SYMBOL_BID) : SymbolInfoDouble(sym, SYMBOL_ASK);
+         if(buy ? sl >= be - pt : (sl > 0 && sl <= be + pt)) { stage |= 2; ProtSet("UFS_", tk, stage); }
+         else if(MathAbs(cur - be) <= minDist) { ProtSet("UFT_", tk, (double)TimeCurrent()); Print("UfuqEA: ", tk, " breakeven inside stops/freeze level - waiting"); }
+         else if(trade.PositionModify(tk, be, tp) && RcOk() && PositionSelectByTicket(tk) && MathAbs(PositionGetDouble(POSITION_SL) - be) <= pt * 2)
            { stage |= 2; ProtSet("UFS_", tk, stage); Print("UfuqEA: ", tk, " stop moved to breakeven (verified)"); }
          else { ProtSet("UFT_", tk, (double)TimeCurrent()); Print("UfuqEA: breakeven FAILED on ", tk, ": ", trade.ResultRetcodeDescription(), " - will retry"); }
          continue;
@@ -356,7 +463,7 @@ void ProtectPositions()
       if(gain >= risk * 1.5)
         {
          double ns = NormalizeDouble(buy ? px - risk : px + risk, dg);
-         if(buy ? ns > sl + _Point : (sl == 0 || ns < sl - _Point))
+         if(MathAbs(px - ns) > minDist && (buy ? ns > sl + pt : (sl == 0 || ns < sl - pt)))
             if(!(trade.PositionModify(tk, ns, tp) && RcOk())) { ProtSet("UFT_", tk, (double)TimeCurrent()); Print("UfuqEA: trail FAILED on ", tk, ": ", trade.ResultRetcodeDescription()); }
         }
      }
@@ -366,8 +473,11 @@ void ProtectPositions()
         {
          string nm = GlobalVariableName(g);
          string pre = StringSubstr(nm, 0, 4);
-         if(pre != "UFR_" && pre != "UFS_" && pre != "UFT_") continue;
-         if(!PositionSelectByTicket((ulong)StringToInteger(StringSubstr(nm, 4)))) GlobalVariableDel(nm);
+         if(pre != "UFR_" && pre != "UFS_" && pre != "UFT_" && pre != "UFV_" && pre != "UFW_") continue;
+         string rest = StringSubstr(nm, 4);
+         int us = StringFind(rest, "_");
+         if(us >= 0) { if(StringSubstr(rest, 0, us) != Acct()) continue; rest = StringSubstr(rest, us + 1); }
+         if(!PositionSelectByTicket((ulong)StringToInteger(rest))) GlobalVariableDel(nm);
         }
   }
 
@@ -439,6 +549,9 @@ string MarketJson()
    m += "\"spread\":" + IntegerToString(SymbolInfoInteger(sym, SYMBOL_SPREAD)) + ",\"point\":" + DoubleToString(SymbolInfoDouble(sym, SYMBOL_POINT), 8) + ",";
    m += "\"tick_value\":" + DoubleToString(SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_VALUE) * SymbolInfoDouble(sym, SYMBOL_POINT) / MathMax(SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_SIZE), 1e-10), 8) + ",";
    m += "\"contract_size\":" + Num(SymbolInfoDouble(sym, SYMBOL_TRADE_CONTRACT_SIZE), 2) + ",\"min_lot\":" + Num(SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN), 2) + ",";
+   m += "\"max_lot\":" + Num(SymbolInfoDouble(sym, SYMBOL_VOLUME_MAX), 2) + ",\"lot_step\":" + Num(SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP), 4) + ",";
+   long qt = (long)SymbolInfoInteger(sym, SYMBOL_TIME) - (long)MathRound((TimeTradeServer() - TimeGMT()) / 1800.0) * 1800;
+   m += "\"quote_time\":" + IntegerToString(qt) + "000,";
    m += "\"candles\":{\"M5\":" + CandlesJson(sym, PERIOD_M5, 120) + ",\"M15\":" + CandlesJson(sym, PERIOD_M15, 120) + ",\"H1\":" + CandlesJson(sym, PERIOD_H1, 120) + ",\"H4\":" + CandlesJson(sym, PERIOD_H4, 100) + ",\"D1\":" + CandlesJson(sym, PERIOD_D1, 60) + "}}";
    return m;
   }
@@ -457,11 +570,13 @@ string BuildBody()
 
    b += "\"positions\":[";
    int total = PositionsTotal();
+   bool posOk = true, firstPos = true;
    for(int i = 0; i < total; i++)
      {
       ulong t = PositionGetTicket(i);
-      if(t == 0) continue;
-      if(i > 0) b += ",";
+      if(t == 0) { posOk = false; continue; }   // incomplete snapshot: the server will not close missing positions
+      if(!firstPos) b += ",";
+      firstPos = false;
       b += "{\"ticket\":\"" + IntegerToString((long)PositionGetInteger(POSITION_IDENTIFIER)) + "\",";
       b += "\"symbol\":\"" + Esc(PositionGetString(POSITION_SYMBOL)) + "\",";
       b += "\"side\":\"" + (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY ? "buy" : "sell") + "\",";
@@ -473,22 +588,31 @@ string BuildBody()
       b += "\"opened_at\":\"" + Iso((datetime)PositionGetInteger(POSITION_TIME)) + "\"}";
      }
    b += "],";
+   long mmode = AccountInfoInteger(ACCOUNT_MARGIN_MODE);
+   string mm = mmode == ACCOUNT_MARGIN_MODE_RETAIL_HEDGING ? "hedging" : (mmode == ACCOUNT_MARGIN_MODE_RETAIL_NETTING ? "netting" : "exchange");
+   b += "\"meta\":{\"ea_version\":\"" + EA_VERSION + "\",\"protocol\":" + IntegerToString(PROTOCOL) + ",\"executor\":\"" + Esc(g_executor) + "\",";
+   b += "\"snapshot_at\":" + IntegerToString((long)TimeGMT()) + "000,\"positions_ok\":" + (posOk && PositionsTotal() == total ? "true" : "false") + ",\"margin_mode\":\"" + mm + "\",";
+   b += "\"capabilities\":[\"expiry\",\"guard\",\"subtags\",\"partial\",\"unknown\"]},";
 
    b += "\"closed\":[";
    bool first = true;
+   g_histNext = 0;
    if(HistorySelect(g_lastHistory, TimeCurrent() + 60))
      {
       int deals = HistoryDealsTotal();
-      for(int i = 0; i < deals && i < 400; i++)
+      int sent = 0;
+      for(int i = 0; i < deals; i++)
         {
          ulong d = HistoryDealGetTicket(i);
          if(d == 0) continue;
+         // Pages of 300: the window resumes from the last sent deal next time instead of dropping the rest.
+         if(sent >= 300) { g_histNext = (datetime)HistoryDealGetInteger(d, DEAL_TIME) - 1; break; }
          long entry = HistoryDealGetInteger(d, DEAL_ENTRY);
          if(entry != DEAL_ENTRY_OUT && entry != DEAL_ENTRY_OUT_BY) continue;
          long dtype = HistoryDealGetInteger(d, DEAL_TYPE);
          if(dtype != DEAL_TYPE_BUY && dtype != DEAL_TYPE_SELL) continue;
          if(!first) b += ",";
-         first = false;
+         first = false; sent++;
          double pl = HistoryDealGetDouble(d, DEAL_PROFIT) + HistoryDealGetDouble(d, DEAL_SWAP) + HistoryDealGetDouble(d, DEAL_COMMISSION);
          b += "{\"ticket\":\"" + IntegerToString(HistoryDealGetInteger(d, DEAL_POSITION_ID)) + "\",";
          b += "\"deal\":\"" + IntegerToString((long)d) + "\",";
@@ -535,16 +659,18 @@ void Sync()
    // Delivered: clear the outbox and move the history window.
    ArrayResize(g_results, 0);
    ArrayResize(g_fired, 0);
-   g_lastHistory = TimeCurrent() - 120;
+   g_lastHistory = g_histNext > 0 ? g_histNext : TimeCurrent() - 120;
 
    string lines[];
    int cnt = StringSplit(text, '\n', lines);
+   g_execAllowed = StringFind(text, "\nE|") < 0;
    string seenWatch = "|";
    for(int i = 0; i < cnt; i++)
      {
       string f[];
       int k = StringSplit(lines[i], '|', f);
-      if(k >= 15 && f[0] == "C") Execute(f);
+      if(k >= 2 && f[0] == "E") Print("UfuqEA: ", f[1]);
+      else if(k >= 15 && f[0] == "C") { if(g_execAllowed) Execute(f); }
       else if(k >= 4 && f[0] == "W") { SetWatch(f[1], f[2], StringToDouble(f[3])); seenWatch += f[1] + "|"; }
      }
    // Drop watches the server no longer sends (executed or cancelled).
