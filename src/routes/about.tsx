@@ -23,7 +23,8 @@ function About() {
       <section className="mx-auto max-w-5xl px-4 py-20">
         <SectionHead tag="ABOUT US" title="About Ufuq Trade" sub="Smarter Analysis. Bigger Opportunities." />
         <img src={teamImg} alt={t("Our team of Arab traders and developers")} width={1536} height={768} className="mt-12 w-full rounded-3xl border border-border/60" />
-        <p className="mx-auto mt-8 max-w-3xl text-center text-muted-foreground">{t("Built by Arab traders, MetaTrader engineers and AI developers with more than 8 years of combined experience in gold, forex and automated trading.")}</p>
+        <p className="mx-auto mt-8 max-w-3xl text-center text-lg font-semibold">{t("Built by Arab traders, MetaTrader engineers and AI developers with more than 8 years of combined experience in gold, forex and automated trading.")}</p>
+        <p className="mx-auto mt-4 max-w-3xl text-center text-muted-foreground">{t("Our team spent over 8 years trading gold and global markets, building MetaTrader Expert Advisors and applying AI to trading — achieving strong results along the way. We brought all of that experience together into one platform so every trader can benefit from it.")}</p>
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {items.map((x) => (
             <div key={x.h} className="rounded-2xl border border-border/70 bg-card/50 p-6">
