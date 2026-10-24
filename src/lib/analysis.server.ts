@@ -9,6 +9,7 @@ import { ictText } from "./ict";
 import { priceActionText } from "./priceaction";
 import { memoryText } from "./profitlock";
 import { brainContext } from "./brain.server";
+import { newsSentiment, sentimentText } from "./sentiment";
 
 type DB = SupabaseClient<Database>;
 export type Levels = { direction: "buy" | "sell" | "neutral"; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null; summary: string };
@@ -74,7 +75,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     .slice(0, 25)
     .map((e) => `${e.date.slice(0, 16)} ${e.country} ${e.impact} — ${e.title} (f ${e.forecast || "-"}, p ${e.previous || "-"})`)
     .join("\n");
-  const heads = news.map((n) => `- ${n.title} (${n.source})`).join("\n");
+  const heads = news.map((n) => `- ${n.title} (${n.source})`).join("\n") + `\n${sentimentText(newsSentiment(news.map((n) => n.title)))}`;
   const snap = snapshot(candles);
   const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades:\n${brain.rules}\n\nProvide your directional analysis as json.`;
 
