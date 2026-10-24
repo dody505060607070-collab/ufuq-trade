@@ -57,6 +57,13 @@
       "when": 1792875515594,
       "tag": "0007_execution_safety",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792885471444,
+      "tag": "0008_execution_lifecycle_v2",
+      "breakpoints": true
     }
   ]
 }
