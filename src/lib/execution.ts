@@ -1,7 +1,8 @@
 // Pure rules for the command lifecycle, executions accounting and market hours. Tested in execution.test.ts.
 
 export type CommandStatus = "queued" | "sent" | "done" | "partially_filled" | "failed" | "expired" | "unknown";
-export const OPEN_STATUSES: CommandStatus[] = ["queued", "sent", "unknown", "partially_filled"];
+// Not finished yet (may still create broker executions). partially_filled is final: its fills show up as open trades.
+export const OPEN_STATUSES: CommandStatus[] = ["queued", "sent", "unknown"];
 
 /** EA → server result status. "partial" means some but not all sub-trades opened. */
 export type EaStatus = "done" | "failed" | "partial" | "unknown" | "expired";
@@ -24,12 +25,9 @@ export function executionsOf(payload: unknown): number {
   return Number.isFinite(n) ? Math.max(1, Math.min(50, n)) : 1;
 }
 
-/** Executions still reserved by not-finished commands (unknown counts as possibly filled; partial counts what is filled). */
-export function reservedExecutions(cmds: { status: string; payload: unknown; filled_count?: number | null }[]): number {
-  return cmds.reduce((s, c) => {
-    if (c.status === "partially_filled") return s + (c.filled_count ?? executionsOf(c.payload));
-    return OPEN_STATUSES.includes(c.status as CommandStatus) ? s + executionsOf(c.payload) : s;
-  }, 0);
+/** Executions still reserved by unfinished commands; 'unknown' counts as possibly filled. */
+export function reservedExecutions(cmds: { status: string; payload: unknown }[]): number {
+  return cmds.reduce((s, c) => (OPEN_STATUSES.includes(c.status as CommandStatus) ? s + executionsOf(c.payload) : s), 0);
 }
 
 const CRYPTO = /^(BTC|ETH|SOL|XRP|LTC|ADA|DOGE)/i;

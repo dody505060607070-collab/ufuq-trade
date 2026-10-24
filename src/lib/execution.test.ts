@@ -37,7 +37,7 @@ describe("command lifecycle", () => {
   it("partial maps to partially_filled", () => expect(mapEaStatus("partial")).toBe("partially_filled"));
   it("multi-trade command counts each execution", () => expect(executionsOf({ count: 3 })).toBe(3));
   it("reserved executions include unknown and yesterday's queued", () => {
-    expect(reservedExecutions([{ status: "queued", payload: { count: 2 } }, { status: "unknown", payload: {} }, { status: "done", payload: { count: 5 } }, { status: "partially_filled", payload: { count: 4 }, filled_count: 1 }])).toBe(4);
+    expect(reservedExecutions([{ status: "queued", payload: { count: 2 } }, { status: "unknown", payload: {} }, { status: "done", payload: { count: 5 } }])).toBe(3);
   });
 });
 

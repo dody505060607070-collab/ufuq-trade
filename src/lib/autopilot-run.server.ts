@@ -72,7 +72,7 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
     const [{ data: open }, { data: cmds }, { data: deals }, { data: qrows }] = await Promise.all([
       db.from("trades").select("account_id,symbol,closed_at").in("account_id", ids).eq("status", "open"),
       // Every unfinished command counts, including ones queued on a previous day.
-      db.from("trade_commands").select("account_id,payload,created_at,status,filled_count").in("account_id", ids).eq("command", "open_trade").or(`created_at.gte.${dayIso},status.in.(queued,sent,unknown,partially_filled)`),
+      db.from("trade_commands").select("account_id,payload,created_at,status,filled_count").in("account_id", ids).eq("command", "open_trade").or(`created_at.gte.${dayIso},status.in.(queued,sent,unknown)`),
       db.from("trade_deals").select("account_id,profit,closed_at").in("account_id", ids).gte("closed_at", dayIso).order("closed_at", { ascending: false }),
       db.from("broker_quotes").select("*").in("account_id", ids),
     ]);
@@ -81,7 +81,7 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
     const pause = pauseReason(lastClose ? (Date.now() - new Date(lastClose).getTime()) / 60_000 : null, Number(u.cooldown_minutes ?? 0), userPnl, Number(u.daily_target_usd ?? 0));
     if (pause) { await log("-", "skipped", pause); continue; }
     const quotes = qrows ?? [];
-    const pending = (cmds ?? []).filter((c) => ["queued", "sent", "unknown", "partially_filled"].includes(c.status));
+    const pending = (cmds ?? []).filter((c) => ["queued", "sent", "unknown"].includes(c.status));
     const autoToday = (cmds ?? []).filter((c) => (c.payload as { autopilot?: boolean })?.autopilot && c.created_at >= dayIso && !["failed", "expired"].includes(c.status));
     const added = new Map<string, { total: number; syms: Set<string> }>();
     for (const sym of u.symbols) {
