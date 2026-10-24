@@ -337,7 +337,7 @@ void ProtectPositions()
          double half = MathFloor(vol / 2 / step + 0.0000001) * step;
          if(half < vmin || vol - half < vmin) { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: ", tk, " too small to half-close, skipping to breakeven"); }
          else if(trade.PositionClosePartial(tk, half) && RcOk() && PositionSelectByTicket(tk) && PositionGetDouble(POSITION_VOLUME) < vol - step / 2)
-           { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: 1R on ", tk, " - half closed (verified)"); }
+            { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: 1R on ", tk, " - half closed (verified)"); }
          else Print("UfuqEA: half close FAILED on ", tk, ": ", trade.ResultRetcodeDescription(), " - will retry");
         }
       // Step 2: stop to breakeven (independent of step 1; verified by reading the stop back).
