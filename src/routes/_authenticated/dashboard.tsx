@@ -187,22 +187,35 @@ function Dashboard() {
 
   return (
     <>
-      <header className="space-y-3 p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-bold">{t("Dashboard")}</h1><RestartAutopilotButton /></div><LiveStatusBar /><HelpNote>{"Use the three columns to review AI analysis, place orders in the trade form, and monitor or manage open trades. Select an account and instrument before trading."}</HelpNote></header>
-    <div className="grid min-h-screen xl:grid-cols-[350px_minmax(0,1fr)_350px]">
+      <header className="space-y-3 p-5 pb-4"><div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-3xl font-bold">{t("Dashboard")}</h1><RestartAutopilotButton /></div><LiveStatusBar /><HelpNote>{"Use the three columns to review AI analysis, place orders in the trade form, and monitor or manage open trades. Select an account and instrument before trading."}</HelpNote></header>
+    <div className="grid gap-4 px-5 pb-5 xl:grid-cols-[360px_minmax(0,1fr)_370px]">
       {/* LEFT: analysis */}
-      <aside className="order-2 space-y-4 border-border xl:order-none bg-background p-5 xl:border-e">
-        <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={() => setAnalysisOpen(true)}>{t("Analysis")}</Button>
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold tracking-widest text-muted-foreground">{t("RECENT ANALYSIS")}</h2>
-          <div className="flex gap-2">
-            <Tip label={onlyCurrent ? t("Showing current instrument only") : t("Show current instrument only")} side="bottom">
-              <button onClick={() => setOnlyCurrent((v) => !v)} aria-label={t("Filter")} className={cn("flex h-7 w-7 items-center justify-center rounded-full border border-border", onlyCurrent && "border-primary text-primary-glow")}><ListFilter className="h-3.5 w-3.5" /></button>
-            </Tip>
-            <Tip label={auto ? t("Auto analysis every 10 min: ON") : t("Auto analysis every 10 min: OFF")} side="bottom">
-              <button onClick={toggleAuto} aria-label={t("Auto analysis")} className={cn("flex h-7 w-7 items-center justify-center rounded-full", auto ? "bg-success text-success-foreground" : "border border-border text-muted-foreground")}><Clock className="h-3.5 w-3.5" /></button>
-            </Tip>
-          </div>
+      <aside className="order-2 space-y-4 self-start rounded-2xl border border-border bg-card/40 p-4 xl:order-none">
+        <h2 className="text-xl font-bold">{t("Analysis")}</h2>
+        <div className="grid grid-cols-[1.2fr_1fr_1.4fr] gap-2">
+          <Button variant="hero" className="h-10 rounded-lg" onClick={() => setSettingsOpen((v) => !v)}>{t("Analysis")}</Button>
+          <Tip label={onlyCurrent ? t("Showing current instrument only") : t("Show current instrument only")} side="bottom">
+            <button onClick={() => setOnlyCurrent((v) => !v)} className={cn("flex h-10 items-center justify-center gap-1.5 rounded-lg border border-border text-sm", onlyCurrent && "border-primary text-primary-glow")}><ListFilter className="h-4 w-4" />{t("Filter")}</button>
+          </Tip>
+          <Tip label={auto ? t("Auto analysis every 10 min: ON") : t("Auto analysis every 10 min: OFF")} side="bottom">
+            <button onClick={toggleAuto} className={cn("flex h-10 items-center justify-center gap-1.5 rounded-lg border text-sm", auto ? "border-success bg-success/15 text-success" : "border-border")}><Clock className="h-4 w-4" />{t("Auto analysis")}</button>
+          </Tip>
         </div>
+        <div className="rounded-xl border border-border bg-background/40 p-3">
+          <button onClick={() => setSettingsOpen((v) => !v)} className="flex w-full items-center gap-2 text-sm font-medium"><Settings2 className="h-4 w-4" />{t("Analysis settings")}<ChevronDown className={cn("ms-auto h-4 w-4 transition", settingsOpen && "rotate-180")} /></button>
+          {settingsOpen && (
+            <div className="mt-3 grid grid-cols-[auto_1fr] items-end gap-2">
+              <div><p className="mb-1 text-xs text-muted-foreground">{t("Instrument")}</p>
+                <button onClick={() => setPickerOpen(true)} className="flex h-9 items-center gap-2 rounded-lg border border-border px-2 text-sm font-semibold">{symbol || "…"}<ChevronDown className="h-3.5 w-3.5" /></button></div>
+              <div><p className="mb-1 text-xs text-muted-foreground">{t("Timeframes")}</p>
+                <div className="flex gap-1">
+                  {TF.map((x) => <button key={x} onClick={() => setTf(x)} className={cn("h-9 flex-1 rounded-md border text-xs", tf === x ? "border-primary bg-primary text-primary-foreground" : "border-border")}>{x}</button>)}
+                </div></div>
+              <Button variant="hero" className="col-span-2 h-9 rounded-lg" disabled={busy || !symbol} onClick={() => void runAnalysis(symbol, tf)}>{busy ? <Loader2 className="animate-spin" /> : <Brain />} {t("Analyse")}</Button>
+            </div>
+          )}
+        </div>
+        <h3 className="text-lg font-bold">{t("Recent Analysis")}</h3>
         {busy && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />  {t("Analysing")} {symbol}…</p>}
         {(signals.data ?? []).map((s) => (
           <AnalysisCard key={s.id} tag={t("Platform signal")} symbol={s.symbol} direction={s.direction} entry={s.entry} sl={s.stop_loss} tp={s.take_profit} text={s.note} at={s.created_at} onUse={() => useSignal(s)} />
@@ -213,11 +226,11 @@ function Dashboard() {
           <AnalysisCard key={a.id} symbol={a.symbol} tag={a.timeframe ?? undefined} direction={a.direction} confidence={a.confidence} entry={a.entry} sl={a.stop_loss} tp={a.take_profit} text={a.summary} at={a.created_at} onUse={() => useSignal(a)} />
         ))}
         {shownAnalyses.length > 3 && (
-          <Button variant="secondary" className="w-full rounded-full" onClick={() => setShowAll((v) => !v)}>
+          <Button variant="secondary" className="w-full rounded-lg" onClick={() => setShowAll((v) => !v)}>
             {showAll ? t("Show less") : `${t("Show all")} (${shownAnalyses.length})`}
           </Button>
         )}
-        <p className="text-[11px] text-muted-foreground">{t("AI analysis is not financial advice. Always manage your risk.")}</p>
+        <p className="text-center text-[11px] text-muted-foreground">{t("AI analysis is not financial advice. Always manage your risk.")}</p>
       </aside>
 
       {/* CENTER: trading form */}
