@@ -3,7 +3,7 @@ import { riskCheck, dollarsPerPrice } from "./risk-engine";
 import { backtest, ruleStatus } from "./backtest";
 
 const ctx = { price: 2000, spreadPrice: 0.3, atr: 5, balance: 1000, lot: 0.02, dollarsPerPricePerLot: 100, dayPnl: 0, maxDailyLossPct: 5, maxRiskPct: 5 };
-const buy = { direction: "buy", confidence: 70, entry: 2000, stop_loss: 1993, take_profit: 2010 };
+const buy = { direction: "buy", confidence: 70, entry: 2000, stop_loss: 1993, take_profit: 2012 };
 
 describe("risk engine", () => {
   it("approves a sane buy", () => expect(riskCheck(buy, ctx).allow).toBe(true));
