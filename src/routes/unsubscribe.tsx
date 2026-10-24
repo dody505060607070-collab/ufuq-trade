@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/unsubscribe")({
-  head: () => seo("Unsubscribe", "Manage your Arrissa AI email preferences."),
+  head: () => seo("Unsubscribe", "Manage your Ufuq Trade email preferences."),
   component: Unsubscribe,
 });
 

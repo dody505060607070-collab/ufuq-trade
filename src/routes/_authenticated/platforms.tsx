@@ -7,7 +7,7 @@ import { fmt, isOnline, useAccounts } from "@/lib/trading";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/platforms")({
-  head: () => ({ meta: [{ title: "Connected Platforms | Arrissa AI" }, { name: "description", content: "One AI brain for MT5, TradeLocker and crypto platforms." }, { property: "og:title", content: "Connected Platforms | Arrissa AI" }, { property: "og:description", content: "One AI brain for MT5, TradeLocker and crypto platforms." }] }),
+  head: () => ({ meta: [{ title: "Connected Platforms | Ufuq Trade" }, { name: "description", content: "One AI brain for MT5, TradeLocker and crypto platforms." }, { property: "og:title", content: "Connected Platforms | Ufuq Trade" }, { property: "og:description", content: "One AI brain for MT5, TradeLocker and crypto platforms." }] }),
   component: Platforms,
 });
 

@@ -15,7 +15,7 @@ import { fmt, isOnline, priceDigits, useAccounts, useInstruments } from "@/lib/t
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/hedge")({
-  head: () => ({ meta: [{ title: "Hedge | Arrissa AI" }, { name: "description", content: "Open opposite trades on two groups of your accounts at the same moment." }] }),
+  head: () => ({ meta: [{ title: "Hedge | Ufuq Trade" }, { name: "description", content: "Open opposite trades on two groups of your accounts at the same moment." }] }),
   component: Hedge,
 });
 

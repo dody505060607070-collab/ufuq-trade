@@ -3,7 +3,7 @@ import { LegalPage } from "@/components/site/PublicLayout";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/risk-disclosure")({
-  head: () => seo("Risk Disclosure", "Trading leveraged products carries a high level of risk. Read the Arrissa AI risk disclosure."),
+  head: () => seo("Risk Disclosure", "Trading leveraged products carries a high level of risk. Read the Ufuq Trade risk disclosure."),
   component: () => (
     <LegalPage
       title="Risk Disclosure"

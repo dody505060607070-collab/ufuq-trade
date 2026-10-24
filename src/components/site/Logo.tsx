@@ -8,7 +8,7 @@ export function Logo({ to = "/" }: { to?: "/" | "/dashboard" }) {
         <TrendingUp className="h-4 w-4 text-primary-foreground" />
       </span>
       <span className="text-lg">
-        Arrissa<span className="text-gradient">AI</span>
+        Ufuq<span className="text-gradient">Trade</span>
       </span>
     </Link>
   );

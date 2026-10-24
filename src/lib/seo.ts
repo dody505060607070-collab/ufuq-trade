@@ -1,5 +1,5 @@
 export function seo(title: string, description: string) {
-  const full = `${title} | Arrissa AI`;
+  const full = `${title} | Ufuq Trade`;
   return {
     meta: [
       { title: full },

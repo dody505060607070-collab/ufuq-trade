@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { fmt, isOnline, useAccounts, useProfile, type Account } from "@/lib/trading";
 
 export const Route = createFileRoute("/_authenticated/settings/")({
-  head: () => ({ meta: [{ title: "MT5 EA Configuration | Arrissa AI" }, { name: "description", content: "Connect the Arrissa Expert Advisor to your MT5 account." }] }),
+  head: () => ({ meta: [{ title: "MT5 EA Configuration | Ufuq Trade" }, { name: "description", content: "Connect the Arrissa Expert Advisor to your MT5 account." }] }),
   component: EaConfig,
 });
 

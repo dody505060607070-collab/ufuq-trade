@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/pending")({
-  head: () => seo("Waiting for approval", "Your Arrissa AI account is waiting for admin approval."),
+  head: () => seo("Waiting for approval", "Your Ufuq Trade account is waiting for admin approval."),
   component: Pending,
 });
 

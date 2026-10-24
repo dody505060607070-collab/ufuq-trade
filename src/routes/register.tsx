@@ -16,7 +16,7 @@ import { seo } from "@/lib/seo";
 export const Route = createFileRoute("/register")({
   validateSearch: (s: Record<string, unknown>): { redirect?: string } =>
     typeof s["redirect"] === "string" ? { redirect: s["redirect"] } : {},
-  head: () => seo("Create account", "Create your free Arrissa AI account."),
+  head: () => seo("Create account", "Create your free Ufuq Trade account."),
   component: Register,
 });
 

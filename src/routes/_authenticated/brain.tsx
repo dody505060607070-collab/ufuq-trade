@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const NeuralGalaxy = lazy(() => import("@/components/app/NeuralGalaxy"));
 
 export const Route = createFileRoute("/_authenticated/brain")({
-  head: () => ({ meta: [{ title: "AI Brain — Neural Intelligence | Arrissa AI" }, { name: "description", content: "A live 3D neural globe of every rule, instrument and trade lesson your Arrissa AI has learned." }, { property: "og:title", content: "AI Brain — Neural Intelligence | Arrissa AI" }, { property: "og:description", content: "A live 3D neural globe of every rule, instrument and trade lesson your Arrissa AI has learned." }] }),
+  head: () => ({ meta: [{ title: "AI Brain — Neural Intelligence | Ufuq Trade" }, { name: "description", content: "A live 3D neural globe of every rule, instrument and trade lesson your Ufuq Trade has learned." }, { property: "og:title", content: "AI Brain — Neural Intelligence | Ufuq Trade" }, { property: "og:description", content: "A live 3D neural globe of every rule, instrument and trade lesson your Ufuq Trade has learned." }] }),
   component: BrainPage,
 });
 

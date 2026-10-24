@@ -13,7 +13,7 @@ import { periodStats, PERIODS } from "@/lib/performance";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/performance")({
-  head: () => ({ meta: [{ title: "Performance | Arrissa AI" }, { name: "description", content: "Closed trade history from your MT5 accounts." }] }),
+  head: () => ({ meta: [{ title: "Performance | Ufuq Trade" }, { name: "description", content: "Closed trade history from your MT5 accounts." }] }),
   component: Performance,
 });
 

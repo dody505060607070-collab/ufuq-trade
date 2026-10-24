@@ -60,7 +60,7 @@ export function PublicFooter() {
         </div>
       </div>
       <p className="border-t border-border/60 py-5 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} {t("Arrissa AI. All rights reserved.")} </p>
+        © {new Date().getFullYear()} {t("Ufuq Trade. All rights reserved.")} </p>
     </footer>
   );
 }

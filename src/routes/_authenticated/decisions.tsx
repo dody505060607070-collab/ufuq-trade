@@ -11,7 +11,7 @@ import { getCandlesPublic } from "@/lib/market.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/decisions")({
-  head: () => ({ meta: [{ title: "Decisions & Backtest | Arrissa AI" }, { name: "description", content: "Every AI proposal, the risk engine verdict, and a historical test of the base rules." }, { property: "og:title", content: "Decisions & Backtest | Arrissa AI" }, { property: "og:description", content: "Every AI proposal, the risk engine verdict, and a historical test of the base rules." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Decisions & Backtest | Ufuq Trade" }, { name: "description", content: "Every AI proposal, the risk engine verdict, and a historical test of the base rules." }, { property: "og:title", content: "Decisions & Backtest | Ufuq Trade" }, { property: "og:description", content: "Every AI proposal, the risk engine verdict, and a historical test of the base rules." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Decisions,
 });
 

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/web-app-install-trigger")({
-  head: () => seo("Install the app", "Add Arrissa AI to your home screen for quick access."),
+  head: () => seo("Install the app", "Add Ufuq Trade to your home screen for quick access."),
   component: Install,
 });
 
@@ -22,7 +22,7 @@ function Install() {
     return () => window.removeEventListener("beforeinstallprompt", h);
   }, []);
   return (
-    <AuthCard title="Install Arrissa AI" subtitle="Add the app to your home screen for one-tap access.">
+    <AuthCard title="Install Ufuq Trade" subtitle="Add the app to your home screen for one-tap access.">
       <div className="space-y-5 text-sm">
         {evt && <Button variant="hero" className="w-full" onClick={() => evt.prompt()}><MonitorDown /> {t("Install now")}</Button>}
         <div className="rounded-lg border border-border p-4">

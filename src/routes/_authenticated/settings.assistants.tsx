@@ -6,7 +6,7 @@ import { Page, Card } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { seo } from "@/lib/seo";
 export const Route = createFileRoute("/_authenticated/settings/assistants")({
-  head: () => seo("Assistant access", "Manage and revoke private assistant access to your Arrissa AI account."),
+  head: () => seo("Assistant access", "Manage and revoke private assistant access to your Ufuq Trade account."),
   component: Assistants,
 });
 function Assistants() {

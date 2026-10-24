@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useBrokers } from "@/lib/trading";
 
 export const Route = createFileRoute("/_authenticated/brokers")({
-  head: () => ({ meta: [{ title: "Brokers | Arrissa AI" }, { name: "description", content: "Partner brokers supported on the Arrissa platform." }] }),
+  head: () => ({ meta: [{ title: "Brokers | Ufuq Trade" }, { name: "description", content: "Partner brokers supported on the Arrissa platform." }] }),
   component: Brokers,
 });
 

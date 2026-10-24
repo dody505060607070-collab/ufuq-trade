@@ -22,7 +22,7 @@ import sleepImg from "@/assets/sleep-trader.jpg";
 const NeuralGalaxy = lazy(() => import("@/components/app/NeuralGalaxy"));
 
 export const Route = createFileRoute("/")({
-  head: () => seo("The Future of Trading is Autonomous", "Arrissa AI analyzes global markets, finds high-probability opportunities and executes trades on MetaTrader 5 automatically, 24/7."),
+  head: () => seo("The Future of Trading is Autonomous", "Ufuq Trade analyzes global markets, finds high-probability opportunities and executes trades on MetaTrader 5 automatically, 24/7."),
   component: Landing,
 });
 

@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/contact")({
-  head: () => seo("Contact", "Get in touch with the Arrissa AI team."),
+  head: () => seo("Contact", "Get in touch with the Ufuq Trade team."),
   component: Contact,
 });
 

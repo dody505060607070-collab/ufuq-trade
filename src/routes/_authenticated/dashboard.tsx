@@ -24,7 +24,7 @@ import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton"
 import { LiveStatusBar } from "@/components/app/LiveStatusBar";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard | Arrissa AI" }, { name: "description", content: "AI analysis, execution and trade management for your MT5 accounts." }] }),
+  head: () => ({ meta: [{ title: "Dashboard | Ufuq Trade" }, { name: "description", content: "AI analysis, execution and trade management for your MT5 accounts." }] }),
   component: Dashboard,
 });
 

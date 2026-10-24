@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => seo("Set new password", "Choose a new password for your Arrissa AI account."),
+  head: () => seo("Set new password", "Choose a new password for your Ufuq Trade account."),
   component: Reset,
 });
 

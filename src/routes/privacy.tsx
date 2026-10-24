@@ -3,7 +3,7 @@ import { LegalPage } from "@/components/site/PublicLayout";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/privacy")({
-  head: () => seo("Privacy Policy", "How Arrissa AI collects, uses and protects your data."),
+  head: () => seo("Privacy Policy", "How Ufuq Trade collects, uses and protects your data."),
   component: () => (
     <LegalPage
       title="Privacy Policy"

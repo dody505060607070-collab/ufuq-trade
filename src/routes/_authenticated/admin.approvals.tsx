@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/approvals")({
-  head: () => ({ meta: [{ title: "Sign-up requests | Arrissa AI" }] }),
+  head: () => ({ meta: [{ title: "Sign-up requests | Ufuq Trade" }] }),
   component: Approvals,
 });
 

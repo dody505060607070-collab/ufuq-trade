@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <LiveAlerts />
       <div className="flex min-h-screen">
         <aside className="sticky top-0 z-40 hidden h-screen w-[60px] shrink-0 flex-col items-center border-e border-sidebar-border bg-sidebar py-4 md:flex">
-          <Link to="/dashboard" aria-label={t("Arrissa home")} className="mb-6 text-primary-glow"><Spark /></Link>
+          <Link to="/dashboard" aria-label={t("Ufuq Trade home")} className="mb-6 text-primary-glow"><Spark /></Link>
           <nav className="flex flex-1 flex-col items-center gap-1">
             {nav.map((n) => {
               const active = pathname === n.to;
@@ -97,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Mobile top bar */}
           <header className="sticky top-0 z-40 flex items-center justify-between border-b border-sidebar-border bg-sidebar/95 px-4 py-2 backdrop-blur md:hidden">
-            <Link to="/dashboard" aria-label={t("Arrissa home")} className="text-primary-glow"><Spark /></Link>
+            <Link to="/dashboard" aria-label={t("Ufuq Trade home")} className="text-primary-glow"><Spark /></Link>
             <div className="flex items-center gap-2">
               <LanguageToggle className="rounded-full border border-border px-2 py-1 text-xs" />
               {isAdmin && <Link to="/admin/overview" aria-label={t("Admin panel")} className={cn(railBtn, "h-9 w-9 text-primary-glow")}><ShieldCheck className="h-4 w-4" /></Link>}
@@ -265,7 +265,7 @@ function LiveAlerts() {
     const now = new Set(signals.data.map((s) => s.id));
     const old = prev.current.signals;
     if (old) for (const s of signals.data) if (!old.has(s.id))
-      alertUser(t("New Arrissa signal"), `${s.direction.toUpperCase()} ${s.symbol}${s.entry ? ` @ ${s.entry}` : ""}`, "win");
+      alertUser(t("New Ufuq Trade signal"), `${s.direction.toUpperCase()} ${s.symbol}${s.entry ? ` @ ${s.entry}` : ""}`, "win");
     prev.current.signals = now;
   }, [signals.data]);
 
