@@ -48,6 +48,7 @@ export type Database = {
           direction: string
           entry: number | null
           id: string
+          shared: boolean
           stop_loss: number | null
           summary: string | null
           symbol: string
@@ -61,6 +62,7 @@ export type Database = {
           direction: string
           entry?: number | null
           id?: string
+          shared?: boolean
           stop_loss?: number | null
           summary?: string | null
           symbol: string
@@ -74,6 +76,7 @@ export type Database = {
           direction?: string
           entry?: number | null
           id?: string
+          shared?: boolean
           stop_loss?: number | null
           summary?: string | null
           symbol?: string
@@ -162,7 +165,9 @@ export type Database = {
           lock_start_usd: number
           lot_size: number
           max_daily: number
+          max_daily_loss_pct: number
           max_open: number
+          max_risk_pct: number
           min_confidence: number
           profit_target_usd: number
           symbols: string[]
@@ -179,7 +184,9 @@ export type Database = {
           lock_start_usd?: number
           lot_size?: number
           max_daily?: number
+          max_daily_loss_pct?: number
           max_open?: number
+          max_risk_pct?: number
           min_confidence?: number
           profit_target_usd?: number
           symbols?: string[]
@@ -196,7 +203,9 @@ export type Database = {
           lock_start_usd?: number
           lot_size?: number
           max_daily?: number
+          max_daily_loss_pct?: number
           max_open?: number
+          max_risk_pct?: number
           min_confidence?: number
           profit_target_usd?: number
           symbols?: string[]
@@ -760,6 +769,59 @@ export type Database = {
           },
         ]
       }
+      trade_deals: {
+        Row: {
+          account_id: string
+          closed_at: string
+          created_at: string
+          deal_ticket: string
+          id: string
+          position_ticket: string
+          price: number | null
+          profit: number
+          side: string
+          symbol: string
+          user_id: string
+          volume: number
+        }
+        Insert: {
+          account_id: string
+          closed_at?: string
+          created_at?: string
+          deal_ticket: string
+          id?: string
+          position_ticket: string
+          price?: number | null
+          profit?: number
+          side: string
+          symbol: string
+          user_id: string
+          volume: number
+        }
+        Update: {
+          account_id?: string
+          closed_at?: string
+          created_at?: string
+          deal_ticket?: string
+          id?: string
+          position_ticket?: string
+          price?: number | null
+          profit?: number
+          side?: string
+          symbol?: string
+          user_id?: string
+          volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_deals_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "trading_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_lessons: {
         Row: {
           created_at: string
@@ -822,11 +884,13 @@ export type Database = {
           account_id: string
           close_price: number | null
           closed_at: string | null
+          closed_volume: number
           id: string
           open_price: number | null
           opened_at: string | null
           peak_profit: number | null
           profit: number | null
+          realized_profit: number
           side: string
           status: string
           stop_loss: number | null
@@ -840,11 +904,13 @@ export type Database = {
           account_id: string
           close_price?: number | null
           closed_at?: string | null
+          closed_volume?: number
           id?: string
           open_price?: number | null
           opened_at?: string | null
           peak_profit?: number | null
           profit?: number | null
+          realized_profit?: number
           side: string
           status?: string
           stop_loss?: number | null
@@ -858,11 +924,13 @@ export type Database = {
           account_id?: string
           close_price?: number | null
           closed_at?: string | null
+          closed_volume?: number
           id?: string
           open_price?: number | null
           opened_at?: string | null
           peak_profit?: number | null
           profit?: number | null
+          realized_profit?: number
           side?: string
           status?: string
           stop_loss?: number | null
@@ -1034,6 +1102,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      acquire_autopilot_lease: { Args: { _seconds?: number }; Returns: boolean }
+      claim_commands: {
+        Args: { _account: string; _limit?: number }
+        Returns: {
+          account_id: string
+          command: string
+          created_at: string
+          executed_at: string | null
+          id: string
+          payload: Json
+          result: string | null
+          status: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "trade_commands"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1043,6 +1132,7 @@ export type Database = {
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       make_username: { Args: { _email: string }; Returns: string }
+      release_autopilot_lease: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
