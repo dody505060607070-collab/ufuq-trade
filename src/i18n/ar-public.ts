@@ -1,4 +1,5 @@
 export const AR_PUBLIC: Record<string, string> = {
+  "An Arab trading platform built by traders and developers with over 10 years in the markets.": "منصة تداول عربية بناها متداولون ومطورون عرب بخبرة تتجاوز 10 سنوات في الأسواق.",
   "About": "نبذة عنا",
   "Contact": "تواصل معنا",
   "Risk": "المخاطر",

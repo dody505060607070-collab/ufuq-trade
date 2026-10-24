@@ -64,7 +64,7 @@ function EaConfig() {
       </Card>
 
       <Card title={t("MT5 Web Request Setup")}>
-        <p className="text-sm text-muted-foreground">{t("For the EA to communicate with Arrissa, MetaTrader 5 must be allowed to make web requests to the API URL below. Do this once per MT5 installation.")}</p>
+        <p className="text-sm text-muted-foreground">{t("For the EA to communicate with Ufuq Trade, MetaTrader 5 must be allowed to make web requests to the API URL below. Do this once per MT5 installation.")}</p>
         <div className="mt-4"><CopyRow label={t("API URL")} value={apiUrl} mono /></div>
         <ol className="mt-4 space-y-2 px-5 text-sm text-muted-foreground">
           <li>{t("Open")} <b className="text-foreground">{t("MetaTrader 5")}</b>  {t("and go to")} <b className="text-foreground">{t("Tools → Options")}</b>.</li>
