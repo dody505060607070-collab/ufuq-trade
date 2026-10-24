@@ -50,7 +50,7 @@ function Register() {
   };
 
   return (
-    <AuthCard title="Create your account" subtitle="Free forever. No subscriptions.">
+    <AuthCard title="Create your account" subtitle="Join Ufuq Trade — AI trading on autopilot.">
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-2"><Label htmlFor="full_name">{t("Full name")}</Label><Input id="full_name" name="full_name" required maxLength={100} /></div>
         <div className="space-y-2"><Label htmlFor="email">{t("Email")}</Label><Input id="email" name="email" type="email" required autoComplete="email" /></div>

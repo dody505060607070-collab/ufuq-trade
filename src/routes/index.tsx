@@ -69,7 +69,7 @@ function Landing() {
               })}
             </div>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Button asChild variant="hero" size="lg" className="rounded-xl px-7"><Link to={start}>{t("Start Trading Free")} <ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link></Button>
+              <Button asChild variant="hero" size="lg" className="rounded-xl px-7"><Link to={start}>{t("Start Trading Now")} <ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link></Button>
               <Button asChild variant="outline" size="lg" className="rounded-xl px-7"><a href="#automation"><Play className="h-4 w-4" /> {t("How it works")}</a></Button>
             </div>
             <p className="mt-4 flex gap-4 text-xs text-muted-foreground"><span>{t("No credit card required")}</span><span>✦ {t("Free plan available")}</span></p>
@@ -151,7 +151,7 @@ function Landing() {
       {/* PRICING / BROKERS */}
       <section id="pricing" className="py-16">
         <div className="mx-auto max-w-5xl px-4">
-          <Head tag="PRICING" title="AI Trading at Zero Cost" sub="We partnered with various brokers to provide full access with no subscription fees. Open through partner links to unlock all features." />
+          <Head tag="PRICING" title="One Plan — $250 per Month" sub="Full access to the AI analysis, Auto-Pilot, AI Brain, Whale Radar and 24/7 support. Trade through any of our partner brokers." />
           <div className="mt-10"><BrokerCards /></div>
           <div className="mt-8"><PlatformsStrip /></div>
         </div>
@@ -164,7 +164,7 @@ function Landing() {
           <h2 className="mt-3 text-3xl font-bold">{t("Your Trading Journey Starts Here")}</h2>
           <p className="mt-3 text-sm text-muted-foreground">{t("Join traders who are already using AI to trade smarter, faster and with more discipline.")}</p>
           <div className="mt-6 flex justify-center gap-3">
-            <Button asChild variant="hero" className="rounded-xl px-7"><Link to={start}>{t("Start Trading Free")} <ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link></Button>
+            <Button asChild variant="hero" className="rounded-xl px-7"><Link to={start}>{t("Start Trading Now")} <ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link></Button>
             <Button asChild variant="outline" className="rounded-xl px-7"><Link to="/features">{t("Learn More")}</Link></Button>
           </div>
           <div className="mt-6 flex flex-wrap justify-center gap-5 text-xs text-muted-foreground">

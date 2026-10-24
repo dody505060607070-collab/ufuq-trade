@@ -65,7 +65,7 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 pt-12 text-center">
         <BrandMark className="h-14 w-auto" />
         <p className="text-sm text-muted-foreground">{t("Smarter Analysis. Bigger Opportunities.")}</p>
-        <p className="text-xs text-muted-foreground">{t("An Arab trading platform built by traders and developers with over 10 years in the markets.")}</p>
+        <p className="text-xs text-muted-foreground">{t("Built by Arab traders, MetaTrader engineers and AI developers with more than 8 years of combined experience in gold, forex and automated trading.")}</p>
       </div>
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-4">
         {cols.map(([title, links]) => (
