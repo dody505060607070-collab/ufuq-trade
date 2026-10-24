@@ -43,6 +43,13 @@
       "when": 1792777776079,
       "tag": "0005_exit_review",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792801357117,
+      "tag": "0006_broker_data_decisions_rule_status",
+      "breakpoints": true
     }
   ]
 }

@@ -206,6 +206,90 @@ export type Database = {
         }
         Relationships: []
       }
+      broker_candles: {
+        Row: {
+          account_id: string
+          c: number
+          h: number
+          l: number
+          o: number
+          spread: number
+          symbol: string
+          t: number
+          timeframe: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          c: number
+          h: number
+          l: number
+          o: number
+          spread?: number
+          symbol: string
+          t: number
+          timeframe: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          c?: number
+          h?: number
+          l?: number
+          o?: number
+          spread?: number
+          symbol?: string
+          t?: number
+          timeframe?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      broker_quotes: {
+        Row: {
+          account_id: string
+          ask: number | null
+          bid: number | null
+          broker_symbol: string | null
+          contract_size: number | null
+          min_lot: number | null
+          point: number | null
+          spread_points: number | null
+          symbol: string
+          tick_value: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          ask?: number | null
+          bid?: number | null
+          broker_symbol?: string | null
+          contract_size?: number | null
+          min_lot?: number | null
+          point?: number | null
+          spread_points?: number | null
+          symbol: string
+          tick_value?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          ask?: number | null
+          bid?: number | null
+          broker_symbol?: string | null
+          contract_size?: number | null
+          min_lot?: number | null
+          point?: number | null
+          spread_points?: number | null
+          symbol?: string
+          tick_value?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       brokers: {
         Row: {
           brand_color: string | null
@@ -299,6 +383,60 @@ export type Database = {
           id?: string
           message?: string
           name?: string
+        }
+        Relationships: []
+      }
+      decision_log: {
+        Row: {
+          account_id: string | null
+          ai_confidence: number | null
+          ai_direction: string | null
+          command_id: string | null
+          created_at: string
+          data_source: string | null
+          entry: number | null
+          id: string
+          risk_reason: string | null
+          risk_verdict: string
+          stop_loss: number | null
+          symbol: string
+          take_profit: number | null
+          timeframe: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          ai_confidence?: number | null
+          ai_direction?: string | null
+          command_id?: string | null
+          created_at?: string
+          data_source?: string | null
+          entry?: number | null
+          id?: string
+          risk_reason?: string | null
+          risk_verdict: string
+          stop_loss?: number | null
+          symbol: string
+          take_profit?: number | null
+          timeframe?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          ai_confidence?: number | null
+          ai_direction?: string | null
+          command_id?: string | null
+          created_at?: string
+          data_source?: string | null
+          entry?: number | null
+          id?: string
+          risk_reason?: string | null
+          risk_verdict?: string
+          stop_loss?: number | null
+          symbol?: string
+          take_profit?: number | null
+          timeframe?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -441,9 +579,11 @@ export type Database = {
           id: string
           is_active: boolean
           rule: string
+          status: string
           symbol: string | null
           updated_at: string
           user_id: string
+          version: number
         }
         Insert: {
           created_at?: string
@@ -451,9 +591,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           rule: string
+          status?: string
           symbol?: string | null
           updated_at?: string
           user_id: string
+          version?: number
         }
         Update: {
           created_at?: string
@@ -461,9 +603,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           rule?: string
+          status?: string
           symbol?: string | null
           updated_at?: string
           user_id?: string
+          version?: number
         }
         Relationships: []
       }
