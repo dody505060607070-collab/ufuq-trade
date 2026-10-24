@@ -438,12 +438,13 @@ function AnalysisCard(p: { symbol: string; tag?: string | undefined; direction: 
 function GlobalManage({ accounts, current }: { accounts: Account[]; current: Account | undefined }) {
   const t = useT();
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<"one" | "all">("one");
   const [cap, setCap] = useState("");
   const [trail, setTrail] = useState("");
+  const [filter, setFilter] = useState("all");
   const commands = useQuery({
     queryKey: ["commands"],
+    refetchInterval: 10_000,
     queryFn: async () => (await supabase.from("trade_commands").select("*").order("created_at", { ascending: false }).limit(20)).data ?? [],
   });
   const target = scope === "all" ? accounts : current ? [current] : [];
@@ -451,44 +452,54 @@ function GlobalManage({ accounts, current }: { accounts: Account[]; current: Acc
     if (await queueCommand(target, cmd, payload)) void qc.invalidateQueries({ queryKey: ["commands"] });
   };
   const confirmRun = (msg: string, cmd: Parameters<typeof queueCommand>[1]) => window.confirm(msg) && void run(cmd);
+  const shown = (commands.data ?? []).filter((c) => filter === "all" || c.status === filter);
+  const radio = (v: "one" | "all", label: string) => (
+    <button onClick={() => setScope(v)} className="flex items-center gap-2 text-sm">
+      <span className={cn("flex h-4 w-4 items-center justify-center rounded-full border", scope === v ? "border-primary" : "border-muted-foreground")}>{scope === v && <span className="h-2 w-2 rounded-full bg-primary" />}</span>{label}
+    </button>
+  );
   return (
     <>
-      <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={() => setOpen(true)}>{t("Global Manage")}</Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader><DialogTitle className="text-center">{t("Global Manage")}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-1 rounded-full bg-secondary p-1 text-sm">
-              <button onClick={() => setScope("one")} className={cn("rounded-full py-1.5", scope === "one" ? "bg-background font-semibold" : "text-muted-foreground")}>{t("This account")}</button>
-              <button onClick={() => setScope("all")} className={cn("rounded-full py-1.5", scope === "all" ? "bg-background font-semibold" : "text-muted-foreground")}>{t("All accounts (")}{accounts.length})</button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="rounded-full" onClick={() => confirmRun(t("Close ALL open trades?"), "close_all")}><XCircle />  {t("Close all")}</Button>
-              <Button variant="outline" className="rounded-full" onClick={() => void run("break_even")}><Scale />  {t("Break even")}</Button>
-              <Button variant="outline" className="rounded-full" onClick={() => confirmRun(t("Remove the stop loss from all trades?"), "delete_sl")}><Eraser />  {t("Delete SL")}</Button>
-              <Button variant="outline" className="rounded-full" onClick={() => void run("clear_pending")}><Ban />  {t("Cancel pending")}</Button>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">{t("Cap loss — close everything if floating loss reaches this amount.")}</p>
-              <div className="flex gap-2"><Input placeholder={t("e.g. 200")} inputMode="decimal" value={cap} onChange={(e) => setCap(e.target.value)} className="rounded-full" /><Button variant="secondary" className="rounded-full" onClick={() => Number(cap) > 0 ? void run("cap_loss", { threshold: -Math.abs(Number(cap)) }) : toast.error(t("Enter an amount."))}>{t("Set")}</Button></div>
-              <p className="text-xs text-muted-foreground">{t("Trailing profit — once profit reaches this amount, close all if it gives back 30% from its peak.")}</p>
-              <div className="flex gap-2"><Input placeholder={t("e.g. 100")} inputMode="decimal" value={trail} onChange={(e) => setTrail(e.target.value)} className="rounded-full" /><Button variant="secondary" className="rounded-full" onClick={() => Number(trail) > 0 ? void run("trailing_profit", { threshold: Number(trail) }) : toast.error(t("Enter an amount."))}>{t("Activate")}</Button></div>
-            </div>
-            <div>
-              <p className="mb-2 text-xs font-semibold tracking-widest text-muted-foreground">{t("RECENT COMMANDS")}</p>
-              <ul className="max-h-40 space-y-1 overflow-y-auto text-sm">
-                {(commands.data ?? []).length === 0 && <li className="text-muted-foreground">{t("Nothing yet.")}</li>}
-                {(commands.data ?? []).map((c) => (
-                  <li key={c.id} className="flex justify-between gap-2">
-                    <span className="truncate capitalize">{c.command.replace(/_/g, " ")} <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span></span>
-                    <span title={c.result ?? ""} className={cn("text-xs", c.status === "done" ? "text-success" : c.status === "failed" ? "text-destructive" : "text-warning")}>{c.status}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div className="space-y-4 rounded-2xl border border-border bg-card/40 p-4">
+        <h3 className="font-bold">{t("Management Tools")}</h3>
+        <div>
+          <p className="mb-2 text-sm text-muted-foreground">{t("Account scope")}</p>
+          <div className="flex gap-6">{radio("one", t("This account"))}{radio("all", `${t("All accounts")} (${accounts.length})`)}</div>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          <Button variant="destructive" size="sm" className="h-10 rounded-lg px-1 text-xs" onClick={() => confirmRun(t("Close ALL open trades?"), "close_all")}>{t("Close all")}</Button>
+          <Button variant="outline" size="sm" className="h-10 rounded-lg px-1 text-xs" onClick={() => void run("break_even")}>{t("Break even")}</Button>
+          <Button variant="outline" size="sm" className="h-10 rounded-lg px-1 text-xs" onClick={() => confirmRun(t("Remove the stop loss from all trades?"), "delete_sl")}>{t("Delete SL")}</Button>
+          <Button variant="outline" size="sm" className="h-10 rounded-lg px-1 text-xs" onClick={() => void run("clear_pending")}>{t("Cancel pending")}</Button>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-medium">{t("Cap loss amount (USD)")}</p>
+          <div className="flex gap-2"><Input placeholder={t("e.g. 200")} inputMode="decimal" value={cap} onChange={(e) => setCap(e.target.value)} className="h-10 rounded-lg" /><Button variant="outline" className="h-10 w-20 rounded-lg" onClick={() => Number(cap) > 0 ? void run("cap_loss", { threshold: -Math.abs(Number(cap)) }) : toast.error(t("Enter an amount."))}>{t("Set")}</Button></div>
+          <p className="pt-1 text-sm font-medium">{t("Trailing profit amount (USD)")}</p>
+          <div className="flex gap-2"><Input placeholder={t("e.g. 100")} inputMode="decimal" value={trail} onChange={(e) => setTrail(e.target.value)} className="h-10 rounded-lg" /><Button variant="hero" className="h-10 w-20 rounded-lg" onClick={() => Number(trail) > 0 ? void run("trailing_profit", { threshold: Number(trail) }) : toast.error(t("Enter an amount."))}>{t("Activate")}</Button></div>
+          <p className="text-xs text-muted-foreground">{t("After price moves in your favor, a 30% giveback will be applied.")}</p>
+        </div>
+      </div>
+      <div className="rounded-2xl border border-border bg-card/40 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-bold">{t("Recent commands")}</h3>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="h-8 w-28 rounded-lg text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="all">{t("All")}</SelectItem><SelectItem value="done">{t("Done")}</SelectItem><SelectItem value="failed">{t("Failed")}</SelectItem><SelectItem value="queued">{t("Queued")}</SelectItem></SelectContent>
+          </Select>
+        </div>
+        <ul className="max-h-72 space-y-1 overflow-y-auto text-sm">
+          {shown.length === 0 && <li className="text-muted-foreground">{t("Nothing yet.")}</li>}
+          {shown.map((c) => (
+            <li key={c.id} className="flex items-center gap-2 border-t border-border/50 py-2 first:border-0">
+              <span className={cn("h-2 w-2 shrink-0 rounded-full", c.status === "done" ? "bg-success" : c.status === "failed" ? "bg-destructive" : "bg-warning")} />
+              <span className="min-w-0 flex-1 truncate capitalize">{c.command.replace(/_/g, " ")}</span>
+              <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span>
+              <span title={c.result ?? ""} className={cn("rounded-md px-2 py-0.5 text-xs", c.status === "done" ? "bg-success/15 text-success" : c.status === "failed" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning")}>{t(c.status.charAt(0).toUpperCase() + c.status.slice(1))}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </>
   );
 }
