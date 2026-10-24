@@ -48,7 +48,7 @@ export function dayPnlFromDeals(deals: { profit: number | string; closed_at: str
 }
 
 /** May this positions snapshot be used to close missing positions? Partial or out-of-order snapshots may not. */
-export function snapshotUsable(s: { positionsOk?: boolean; snapshotAt?: number | null; lastSnapshotAt?: number | null }): { use: boolean; closeMissing: boolean } {
+export function snapshotUsable(s: { positionsOk?: boolean | undefined; snapshotAt?: number | null; lastSnapshotAt?: number | null }): { use: boolean; closeMissing: boolean } {
   if (s.snapshotAt != null && s.lastSnapshotAt != null && s.snapshotAt < s.lastSnapshotAt) return { use: false, closeMissing: false };
   return { use: true, closeMissing: s.positionsOk !== false };
 }
