@@ -33,6 +33,7 @@ int      g_watchSide[];       // -1 = price was below level, +1 = above, 0 = unk
 bool     g_warned = false;
 int      g_syncCount = 0;
 input string InpDataSymbol  = "XAUUSD";                                        // Symbol whose broker data is sent for analysis
+input bool   InpProtect     = true;                                            // Auto-protect trades: half close + breakeven at 1R, trail after 1.5R
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -55,6 +56,7 @@ void OnDeinit(const int reason) { EventKillTimer(); }
 void OnTimer()
   {
    CheckCapTrail();
+   ProtectPositions();
    CheckWatches();
    Sync();
   }
@@ -243,6 +245,62 @@ void Execute(string &f[])
    if(cmd == "cap_loss")        { g_capLoss = -MathAbs(threshold); PushResult(id, true, "Cap loss at " + Num(g_capLoss, 2)); return; }
    if(cmd == "trailing_profit") { g_trailStart = MathAbs(threshold); g_trailPeak = 0; g_trailArmed = false; PushResult(id, true, "Trailing from " + Num(g_trailStart, 2)); return; }
    PushResult(id, false, "Unknown command " + cmd);
+  }
+
+//+------------------------------------------------------------------+
+//| Local trade protection (runs even if the website is unreachable) |
+//| 1R profit -> close half + stop to breakeven; 1.5R -> trail at 1R |
+//+------------------------------------------------------------------+
+ulong  g_protTicket[];
+double g_protRisk[];
+bool   g_protHalf[];
+
+int ProtIndex(ulong ticket, double risk)
+  {
+   for(int i = 0; i < ArraySize(g_protTicket); i++) if(g_protTicket[i] == ticket) return i;
+   if(risk <= 0) return -1;
+   int n = ArraySize(g_protTicket);
+   ArrayResize(g_protTicket, n + 1); ArrayResize(g_protRisk, n + 1); ArrayResize(g_protHalf, n + 1);
+   g_protTicket[n] = ticket; g_protRisk[n] = risk; g_protHalf[n] = false;
+   return n;
+  }
+
+void ProtectPositions()
+  {
+   if(!InpProtect) return;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+     {
+      ulong tk = PositionGetTicket(i);
+      if(tk == 0 || !PositionSelectByTicket(tk)) continue;
+      if(PositionGetInteger(POSITION_MAGIC) != InpMagic) continue;
+      string sym  = PositionGetString(POSITION_SYMBOL);
+      double open = PositionGetDouble(POSITION_PRICE_OPEN);
+      double sl   = PositionGetDouble(POSITION_SL);
+      double tp   = PositionGetDouble(POSITION_TP);
+      double vol  = PositionGetDouble(POSITION_VOLUME);
+      bool   buy  = PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY;
+      int    k    = ProtIndex(tk, sl > 0 ? MathAbs(open - sl) : 0);
+      if(k < 0) continue;
+      double risk = g_protRisk[k];
+      double px   = buy ? SymbolInfoDouble(sym, SYMBOL_BID) : SymbolInfoDouble(sym, SYMBOL_ASK);
+      double gain = buy ? px - open : open - px;
+      int    dg   = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
+      if(!g_protHalf[k] && gain >= risk)
+        {
+         double step = SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP), vmin = SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN);
+         double half = MathFloor(vol / 2 / step) * step;
+         if(half >= vmin && vol - half >= vmin) trade.PositionClosePartial(tk, half);
+         trade.PositionModify(tk, NormalizeDouble(open, dg), tp);
+         g_protHalf[k] = true;
+         Print("ArrissaEA: 1R reached on ", tk, " - half closed, stop at breakeven");
+         continue;
+        }
+      if(g_protHalf[k] && gain >= risk * 1.5)
+        {
+         double ns = NormalizeDouble(buy ? px - risk : px + risk, dg);
+         if(buy ? ns > sl + _Point : (sl == 0 || ns < sl - _Point)) trade.PositionModify(tk, ns, tp);
+        }
+     }
   }
 
 void CheckCapTrail()
