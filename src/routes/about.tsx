@@ -3,6 +3,7 @@ import { Target, Cpu, ShieldCheck } from "lucide-react";
 import { SiteLayout, SectionHead, PlatformsStrip } from "@/components/site/SiteChrome";
 import { useT } from "@/lib/i18n";
 import { seo } from "@/lib/seo";
+import teamImg from "@/assets/about-team.jpg";
 
 export const Route = createFileRoute("/about")({
   head: () => seo("About", "Ufuq Trade builds AI-powered analysis and execution tools for MetaTrader 5 traders."),
@@ -21,6 +22,8 @@ function About() {
     <SiteLayout>
       <section className="mx-auto max-w-5xl px-4 py-20">
         <SectionHead tag="ABOUT US" title="About Ufuq Trade" sub="Smarter Analysis. Bigger Opportunities." />
+        <img src={teamImg} alt={t("Our team of Arab traders and developers")} width={1536} height={768} className="mt-12 w-full rounded-3xl border border-border/60" />
+        <p className="mx-auto mt-8 max-w-3xl text-center text-muted-foreground">{t("An Arab trading platform built by traders and developers with over 10 years in the markets.")}</p>
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {items.map((x) => (
             <div key={x.h} className="rounded-2xl border border-border/70 bg-card/50 p-6">

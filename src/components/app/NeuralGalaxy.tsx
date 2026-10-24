@@ -8,8 +8,8 @@ import * as THREE from "three";
 export type Callout = { id: string; kind: "symbol" | "rule" | "win" | "loss" | "layer"; title: string; sub?: string | undefined; value?: string | undefined; tone?: "up" | "down" | undefined };
 
 const R = 9;
-const KIND_COLOR: Record<Callout["kind"], string> = { symbol: "#fbbf24", rule: "#a855f7", layer: "#a855f7", win: "#10e0a0", loss: "#ff3b5c" };
-const PALETTE = ["#7c3aed", "#8b5cf6", "#a855f7", "#c026d3", "#e879f9", "#3b82f6", "#60a5fa", "#22d3ee", "#c4b5fd"];
+const KIND_COLOR: Record<Callout["kind"], string> = { symbol: "#fbbf24", rule: "#22d3ee", layer: "#2dd4bf", win: "#10e0a0", loss: "#ff3b5c" };
+const PALETTE = ["#059669", "#10b981", "#34d399", "#14b8a6", "#5eead4", "#0ea5e9", "#38bdf8", "#22d3ee", "#a7f3d0"];
 
 /* deterministic random so the globe looks the same every visit */
 function rng(seed: number) {
@@ -91,7 +91,7 @@ function buildGlobe() {
 
   // 1) inner nebula: clustered soft clouds (purple / magenta / blue)
   const neb = { pos: [] as number[], col: [] as number[], size: [] as number[] };
-  const clouds = Array.from({ length: 12 }, () => ({ c: new THREE.Vector3().randomDirection().multiplyScalar(R * (0.25 + rand() * 0.55)), r: R * (0.16 + rand() * 0.22), color: ["#c026d3", "#7c3aed", "#9333ea", "#2563eb", "#db2777", "#6d28d9", "#a21caf", "#1d4ed8", "#8b5cf6"][Math.floor(rand() * 9)]! }));
+  const clouds = Array.from({ length: 12 }, () => ({ c: new THREE.Vector3().randomDirection().multiplyScalar(R * (0.25 + rand() * 0.55)), r: R * (0.16 + rand() * 0.22), color: ["#0d9488", "#059669", "#0891b2", "#0369a1", "#047857", "#0f766e", "#155e75", "#1e40af", "#10b981"][Math.floor(rand() * 9)]! }));
   for (let i = 0; i < 3600; i++) {
     const cl = clouds[i % clouds.length]!;
     const v = new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5) * 2, (rand() - 0.5) * 2).multiplyScalar(cl.r * Math.pow(rand(), 0.6)).add(cl.c);
@@ -143,11 +143,11 @@ function buildGlobe() {
     const rx = R * (1.0 + rand() * 0.16), ry = rx * (0.55 + rand() * 0.45);
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI));
     const pts = Array.from({ length: 161 }, (_, k) => { const t = (k / 160) * Math.PI * 2; return new THREE.Vector3(Math.cos(t) * rx, Math.sin(t) * ry, 0).applyQuaternion(q); });
-    pushCurve(pts, i % 3 === 0 ? "#fbbf24" : i % 3 === 1 ? "#a78bfa" : "#60a5fa", 0.55);
+    pushCurve(pts, i % 3 === 0 ? "#fbbf24" : i % 3 === 1 ? "#5eead4" : "#38bdf8", 0.55);
   }
   // 5) bright hubs with rings
   const hubs = { pos: [] as number[], col: [] as number[], size: [] as number[] };
-  const hubColors = ["#22d3ee", "#fbbf24", "#e879f9", "#ffffff", "#ff3b5c", "#10e0a0", "#a78bfa"];
+  const hubColors = ["#22d3ee", "#fbbf24", "#34d399", "#ffffff", "#ff3b5c", "#10e0a0", "#5eead4"];
   for (let i = 0; i < 34; i++) {
     const v = nodes[Math.floor(rand() * nodes.length)]!;
     hubs.pos.push(v.x, v.y, v.z);
@@ -169,7 +169,7 @@ function Atmosphere() {
     vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
     fragmentShader: "varying vec2 vUv; void main(){ float d = length(vUv-0.5)*2.0*1.5; float out_ = smoothstep(0.93,1.0,d); float g = out_*exp(-(d-1.0)*5.0); float inner = 0.0; vec3 c = pow(mix(vec3(0.45,0.25,1.0), vec3(0.55,0.7,1.0), exp(-(d-1.0)*14.0)), vec3(2.2)); gl_FragColor = vec4(c*g*1.4, g*0.7); }",
   }), []);
-  const core = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0d0733", transparent: true, opacity: 0.5, depthWrite: false }), []);
+  const core = useMemo(() => new THREE.MeshBasicMaterial({ color: "#04201f", transparent: true, opacity: 0.5, depthWrite: false }), []);
   return (
     <>
       <Billboard><mesh material={halo} renderOrder={-1}><planeGeometry args={[R * 3, R * 3]} /></mesh></Billboard>
@@ -272,7 +272,7 @@ export default function NeuralGalaxy({ items, onPick, spin = true }: { items: Ca
   return (
     <div className="absolute inset-0">
       <Canvas dpr={[1, 2]} gl={{ antialias: true }} camera={{ position: [0, 0, 24.5], fov: 45 }}>
-        <color attach="background" args={["#070514"]} />
+        <color attach="background" args={["#05121a"]} />
         <SpaceBackdrop />
         <Stars radius={90} depth={50} count={3500} factor={3.2} saturation={0.6} fade speed={0.5} />
         <Globe items={items} overlay={overlay} spin={spin} />

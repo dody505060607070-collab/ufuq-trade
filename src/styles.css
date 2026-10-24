@@ -168,7 +168,6 @@ html[lang="ar"] body { font-family: "IBM Plex Sans Arabic", "Geist", ui-sans-ser
   color: transparent;
 }
 .hero-globe {
-  filter: hue-rotate(-120deg) saturate(1.1);
   -webkit-mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
   mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
 }

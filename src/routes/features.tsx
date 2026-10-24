@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SiteLayout, SectionHead, FeaturesGrid, PlatformsStrip } from "@/components/site/SiteChrome";
 import { useT } from "@/lib/i18n";
 import { seo } from "@/lib/seo";
+import dashImg from "@/assets/features-dashboard.jpg";
 
 export const Route = createFileRoute("/features")({
   head: () => seo("Features", "AI market analysis, automated MT5 execution, smart risk management and an AI Brain that learns from every trade."),
@@ -22,6 +23,7 @@ function Features() {
     <SiteLayout>
       <section className="mx-auto max-w-7xl px-4 py-20">
         <SectionHead tag="POWERFUL FEATURES" title={<>{t("Everything You Need to Trade with")} <span className="text-gradient-violet">{t("Precision")}</span></>} sub="From market analysis to automated execution, our AI handles every step of the trading process." />
+        <img src={dashImg} alt={t("Ufuq Trade dashboard")} width={1536} height={768} className="mt-12 w-full rounded-3xl border border-border/60 shadow-glow" />
         <div className="mt-12"><FeaturesGrid /></div>
       </section>
       <section className="mx-auto max-w-5xl px-4 py-12">
