@@ -485,7 +485,7 @@ function GlobalManage({ accounts, current }: { accounts: Account[]; current: Acc
           <h3 className="font-bold">{t("Recent commands")}</h3>
           <Select value={filter} onValueChange={setFilter}>
             <SelectTrigger className="h-8 w-28 rounded-lg text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="all">{t("All")}</SelectItem><SelectItem value="done">{t("Done")}</SelectItem><SelectItem value="failed">{t("Failed")}</SelectItem><SelectItem value="queued">{t("Queued")}</SelectItem></SelectContent>
+            <SelectContent><SelectItem value="all">{t("All")}</SelectItem><SelectItem value="done">{t("Done")}</SelectItem><SelectItem value="failed">{t("Failed")}</SelectItem><SelectItem value="queued">{t("Queued")}</SelectItem><SelectItem value="unknown">{t("Unknown")}</SelectItem><SelectItem value="expired">{t("Expired")}</SelectItem></SelectContent>
           </Select>
         </div>
         <ul className="max-h-72 space-y-1 overflow-y-auto text-sm">
@@ -495,7 +495,7 @@ function GlobalManage({ accounts, current }: { accounts: Account[]; current: Acc
               <span className={cn("h-2 w-2 shrink-0 rounded-full", c.status === "done" ? "bg-success" : c.status === "failed" ? "bg-destructive" : "bg-warning")} />
               <span className="min-w-0 flex-1 truncate capitalize">{c.command.replace(/_/g, " ")}</span>
               <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span>
-              <span title={c.result ?? ""} className={cn("rounded-md px-2 py-0.5 text-xs", c.status === "done" ? "bg-success/15 text-success" : c.status === "failed" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning")}>{t(c.status.charAt(0).toUpperCase() + c.status.slice(1))}</span>
+              <span title={c.result ?? ""} className={cn("rounded-md px-2 py-0.5 text-xs", c.status === "done" ? "bg-success/15 text-success" : c.status === "failed" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning")}>{t(c.status === "partially_filled" ? "Partially filled" : c.status.charAt(0).toUpperCase() + c.status.slice(1))}</span>
             </li>
           ))}
         </ul>
