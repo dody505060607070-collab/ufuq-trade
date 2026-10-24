@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
   LayoutGrid, Landmark, Monitor, SlidersHorizontal, KeyRound, ArrowRightLeft, BarChart3, User, ShieldCheck, LogOut, FileText, ArrowLeft, Bot, Brain, Radar, Layers,
+  FlaskConical,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
