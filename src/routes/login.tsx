@@ -16,7 +16,7 @@ export const Route = createFileRoute("/login")({
     const value = s["next"] ?? s["redirect"];
     return typeof value === "string" ? { redirect: safeRedirect(value) } : {};
   },
-  head: () => seo("Sign in", "Sign in to your Arrissa AI trading dashboard."),
+  head: () => seo("Sign in", "Sign in to your Ufuq Trade trading dashboard."),
   component: Login,
 });
 

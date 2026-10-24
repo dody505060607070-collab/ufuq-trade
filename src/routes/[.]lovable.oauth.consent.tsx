@@ -6,7 +6,7 @@ import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/.lovable/oauth/consent")({
   ssr: false,
-  head: () => seo("Authorize assistant", "Approve or deny private read-only access to your Arrissa AI account."),
+  head: () => seo("Authorize assistant", "Approve or deny private read-only access to your Ufuq Trade account."),
   validateSearch: (s: Record<string, unknown>) => ({ authorization_id: typeof s["authorization_id"] === "string" ? s["authorization_id"] : "" }),
   beforeLoad: async ({ search, location }) => {
     if (!search.authorization_id) throw new Error("Missing authorization request. Reconnect from your assistant.");

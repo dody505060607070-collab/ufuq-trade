@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/trading";
 
 export const Route = createFileRoute("/_authenticated/settings/profile")({
-  head: () => ({ meta: [{ title: "Personal Profile | Arrissa AI" }, { name: "description", content: "Manage your account information and password." }] }),
+  head: () => ({ meta: [{ title: "Personal Profile | Ufuq Trade" }, { name: "description", content: "Manage your account information and password." }] }),
   component: ProfilePage,
 });
 

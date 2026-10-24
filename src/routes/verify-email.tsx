@@ -10,7 +10,7 @@ import { seo } from "@/lib/seo";
 export const Route = createFileRoute("/verify-email")({
   validateSearch: (s: Record<string, unknown>): { email?: string } =>
     typeof s["email"] === "string" ? { email: s["email"] } : {},
-  head: () => seo("Verify your email", "Confirm your email address to activate your Arrissa AI account."),
+  head: () => seo("Verify your email", "Confirm your email address to activate your Ufuq Trade account."),
   component: Verify,
 });
 

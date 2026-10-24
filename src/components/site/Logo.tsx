@@ -1,15 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { TrendingUp } from "lucide-react";
+import logoEn from "@/assets/logo-en.png";
+import logoAr from "@/assets/logo-ar.png";
+import { useI18n } from "@/lib/i18n";
+
+/** Brand logo image that follows the site language. */
+export function BrandMark({ className = "h-9 w-auto" }: { className?: string }) {
+  const { lang } = useI18n();
+  return <img src={lang === "ar" ? logoAr : logoEn} alt={lang === "ar" ? "أُفُق تريد" : "Ufuq Trade"} className={className} />;
+}
 
 export function Logo({ to = "/" }: { to?: "/" | "/dashboard" }) {
-  return (
-    <Link to={to} className="flex items-center gap-2 font-semibold tracking-tight">
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary shadow-glow">
-        <TrendingUp className="h-4 w-4 text-primary-foreground" />
-      </span>
-      <span className="text-lg">
-        Arrissa<span className="text-gradient">AI</span>
-      </span>
-    </Link>
-  );
+  return <Link to={to} className="flex items-center"><BrandMark /></Link>;
 }

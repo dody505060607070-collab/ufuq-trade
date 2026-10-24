@@ -4,7 +4,7 @@ import { PageHeader, Panel } from "@/components/app/AppShell";
 import { AddAccountForm } from "@/components/app/AddAccountForm";
 
 export const Route = createFileRoute("/_authenticated/accounts/add-tradelocker")({
-  head: () => ({ meta: [{ title: "Add TradeLocker Account | Arrissa AI" }] }),
+  head: () => ({ meta: [{ title: "Add TradeLocker Account | Ufuq Trade" }] }),
   component: AddTradeLocker,
 });
 

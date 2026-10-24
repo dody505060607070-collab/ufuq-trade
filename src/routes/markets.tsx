@@ -8,7 +8,7 @@ import { useT } from "@/lib/i18n";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/markets")({
-  head: () => seo("Markets", "Trade gold, forex, crypto, indices, stocks and commodities with Arrissa AI on MetaTrader 5."),
+  head: () => seo("Markets", "Trade gold, forex, crypto, indices, stocks and commodities with Ufuq Trade on MetaTrader 5."),
   component: Markets,
 });
 

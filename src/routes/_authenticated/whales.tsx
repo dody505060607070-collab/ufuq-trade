@@ -10,7 +10,7 @@ import { cotBias } from "@/lib/brain";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/whales")({
-  head: () => ({ meta: [{ title: "Whale Radar | Arrissa AI" }, { name: "description", content: "How big-money speculators are positioned on gold, oil and the euro." }, { property: "og:title", content: "Whale Radar | Arrissa AI" }, { property: "og:description", content: "How big-money speculators are positioned on gold, oil and the euro." }] }),
+  head: () => ({ meta: [{ title: "Whale Radar | Ufuq Trade" }, { name: "description", content: "How big-money speculators are positioned on gold, oil and the euro." }, { property: "og:title", content: "Whale Radar | Ufuq Trade" }, { property: "og:description", content: "How big-money speculators are positioned on gold, oil and the euro." }] }),
   component: Whales,
 });
 

@@ -24,7 +24,7 @@ import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton"
 import { LiveStatusBar } from "@/components/app/LiveStatusBar";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard | Arrissa AI" }, { name: "description", content: "AI analysis, execution and trade management for your MT5 accounts." }] }),
+  head: () => ({ meta: [{ title: "Dashboard | Ufuq Trade" }, { name: "description", content: "AI analysis, execution and trade management for your MT5 accounts." }] }),
   component: Dashboard,
 });
 
@@ -358,7 +358,7 @@ function Dashboard() {
         <DialogContent className="max-w-sm rounded-3xl">
           <DialogHeader><DialogTitle className="text-center">{t("EA Is Not Connected")}</DialogTitle></DialogHeader>
           <div className="space-y-4 text-sm text-muted-foreground">
-            <p>{t("Your MT5 Expert Advisor (EA) appears to be offline. For Arrissa to send trades and execute your commands, it must be connected to your trading account via an Expert Advisor running inside MetaTrader 5.")}</p>
+            <p>{t("Your MT5 Expert Advisor (EA) appears to be offline. For Ufuq Trade to send trades and execute your commands, it must be connected to your trading account via an Expert Advisor running inside MetaTrader 5.")}</p>
             <p>{t("This is a one-time setup. Once configured, you can manage your entire trading account from this app — placing trades, monitoring positions, and controlling your account — without ever opening your laptop or a trading terminal again.")}</p>
             <Button variant="hero" className="h-11 w-full rounded-full" onClick={() => { setEaModal(false); void navigate({ to: "/settings" }); }}>{t("Go to Settings")}</Button>
           </div>

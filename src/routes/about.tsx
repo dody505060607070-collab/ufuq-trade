@@ -5,7 +5,7 @@ import { useT } from "@/lib/i18n";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/about")({
-  head: () => seo("About", "Arrissa AI builds AI-powered analysis and execution tools for MetaTrader 5 traders."),
+  head: () => seo("About", "Ufuq Trade builds AI-powered analysis and execution tools for MetaTrader 5 traders."),
   component: About,
 });
 
@@ -20,7 +20,7 @@ function About() {
   return (
     <SiteLayout>
       <section className="mx-auto max-w-5xl px-4 py-20">
-        <SectionHead tag="ABOUT US" title="About Arrissa AI" sub="Smarter Analysis. Bigger Opportunities." />
+        <SectionHead tag="ABOUT US" title="About Ufuq Trade" sub="Smarter Analysis. Bigger Opportunities." />
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {items.map((x) => (
             <div key={x.h} className="rounded-2xl border border-border/70 bg-card/50 p-6">

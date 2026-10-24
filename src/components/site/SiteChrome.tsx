@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useT, LanguageToggle } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useBrokers } from "@/lib/trading";
+import { BrandMark } from "./Logo";
 import { BrandLogo, BrokerLogo, type LogoKey } from "@/components/app/InstrumentIcon";
 
 const NAV = [["/", "Home"], ["/features", "Features"], ["/markets", "Markets"], ["/pricing", "Pricing"], ["/about", "About"]] as const;
@@ -19,8 +20,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/50 bg-primary/15 shadow-glow"><Brain className="h-5 w-5 text-primary-glow" /></span>
-          <span className="text-sm font-bold tracking-[0.25em]">ARRISSA AI</span>
+          <BrandMark className="h-9 w-auto" />
         </Link>
         <nav className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
           {NAV.map(([to, l]) => <Link key={to} to={to} className="hover:text-foreground" activeOptions={{ exact: true }} activeProps={{ className: "text-foreground" }}>{t(l)}</Link>)}
@@ -50,17 +50,18 @@ export function SiteFooter() {
   ];
   return (
     <footer className="border-t border-border/50">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/50 bg-primary/15"><Brain className="h-5 w-5 text-primary-glow" /></span>
-          <div><p className="text-sm font-bold tracking-[0.2em]">ARRISSA AI</p><p className="mt-1 text-xs text-muted-foreground">{t("Smarter Analysis. Bigger Opportunities.")}</p></div>
-        </div>
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 pt-12 text-center">
+        <BrandMark className="h-14 w-auto" />
+        <p className="text-sm text-muted-foreground">{t("Smarter Analysis. Bigger Opportunities.")}</p>
+        <p className="text-xs text-muted-foreground">{t("An Arab trading platform built by traders and developers with over 10 years in the markets.")}</p>
+      </div>
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-4">
         {cols.map(([title, links]) => (
           <div key={title}><p className="text-sm font-semibold">{t(title)}</p><ul className="mt-3 space-y-2 text-xs text-muted-foreground">{links.map(([h, l]) => <li key={l}><Link to={h} className="hover:text-foreground">{t(l)}</Link></li>)}{title === "Product" && <li><a href="/ea/ArrissaEA.mq5" className="hover:text-foreground">{t("Download EA")}</a></li>}</ul></div>
         ))}
         <div>
           <div className="flex gap-2 text-muted-foreground">{[Instagram, Send, Youtube, Github].map((I, i) => <span key={i} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border"><I className="h-4 w-4" /></span>)}</div>
-          <p className="mt-4 text-[11px] text-muted-foreground">© {new Date().getFullYear()} {t("ArrissaAI. All rights reserved.")}</p>
+          <p className="mt-4 text-[11px] text-muted-foreground">© {new Date().getFullYear()} {t("Ufuq Trade. All rights reserved.")}</p>
         </div>
       </div>
       <p className="border-t border-border/40 py-4 text-center text-[11px] text-muted-foreground">{t("Trading in derivatives is highly speculative and involves significant risk.")}</p>

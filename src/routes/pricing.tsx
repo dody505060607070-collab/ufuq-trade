@@ -5,7 +5,7 @@ import { useT } from "@/lib/i18n";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/pricing")({
-  head: () => seo("Pricing", "Arrissa AI is free when you open your trading account through one of our partner brokers."),
+  head: () => seo("Pricing", "Ufuq Trade is free when you open your trading account through one of our partner brokers."),
   component: Pricing,
 });
 

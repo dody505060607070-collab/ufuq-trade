@@ -8,7 +8,7 @@ import { useProfile } from "@/lib/trading";
 import { getVoicePref, setVoicePref, speak } from "@/lib/alerts";
 
 export const Route = createFileRoute("/_authenticated/settings/preferences")({
-  head: () => ({ meta: [{ title: "Settings | Arrissa AI" }, { name: "description", content: "Manage your notification and display preferences." }] }),
+  head: () => ({ meta: [{ title: "Settings | Ufuq Trade" }, { name: "description", content: "Manage your notification and display preferences." }] }),
   component: Prefs,
 });
 
