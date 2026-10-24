@@ -180,6 +180,8 @@ function Dashboard() {
   };
   const shownAnalyses = (analyses.data ?? []).filter((a) => !onlyCurrent || a.symbol === symbol);
   const [showAll, setShowAll] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(true);
 
   const broker = (acc?: Account) => brokers.data?.find((b) => acc?.broker_name && b.name.toLowerCase() === acc.broker_name.toLowerCase());
   const [hide, setHide] = useState(false);
@@ -234,24 +236,28 @@ function Dashboard() {
       </aside>
 
       {/* CENTER: trading form */}
-      <section className="order-1 min-w-0 space-y-5 bg-surface p-4 sm:p-5 xl:order-none">
-        <div className="flex items-center gap-6 rounded-full bg-gradient-to-r from-card via-card to-accent px-8 py-4">
-          <Metric label={t("BALANCE")} value={account ? money(account.balance) : null} />
-          <Metric label={t("EQUITY")} value={account ? money(account.equity) : null} />
-          <Metric label={t("PROFIT")} badge={String(accTrades.length)} value={account ? (hide ? "••••••" : `${profit >= 0 ? "+" : ""}${fmt(profit)}`) : null} tone={profit > 0 ? "up" : profit < 0 ? "down" : undefined} />
-          <div className="ms-auto flex gap-2">
-            <Tip label={hide ? t("Show values") : t("Hide values")} side="bottom"><button onClick={() => setHide((v) => !v)} aria-label={t("Hide values")} className="flex h-9 w-9 items-center justify-center rounded-full border border-border">{hide ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}</button></Tip>
+      <section className="order-1 min-w-0 space-y-4 xl:order-none">
+       <div className="space-y-4 rounded-2xl border border-border bg-card/40 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xl font-bold">{t("Account & Trade")}</h2>
+          <div className="flex gap-2">
+            <button onClick={() => setHide((v) => !v)} className="flex h-9 items-center gap-2 rounded-full border border-border px-3 text-xs">{hide ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}{hide ? t("Show values") : t("Hide values")}</button>
             <Tip label={online ? t("EA connected") : t("EA not connected")} side="bottom"><button onClick={() => !online && setEaModal(true)} aria-label={t("EA status")} className={cn("flex h-9 w-9 items-center justify-center rounded-full border", online ? "border-success text-success" : "border-border")}><Target className="h-4 w-4" /></button></Tip>
           </div>
+        </div>
+        <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-xl border border-border bg-background/40 rtl:divide-x-reverse">
+          <Metric label={t("Balance")} value={account ? money(account.balance) : null} />
+          <Metric label={t("Equity")} value={account ? money(account.equity) : null} />
+          <Metric label={t("Profit")} badge={String(accTrades.length)} value={account ? (hide ? "••••••" : `${profit >= 0 ? "+" : ""}${fmt(profit)}`) : null} tone={profit > 0 ? "up" : profit < 0 ? "down" : undefined} />
         </div>
 
         {/* account row */}
         <div className="flex gap-2">
           {(accounts.data ?? []).length === 0 ? (
-            <Link to="/accounts/add-mt5" className="flex h-12 flex-1 items-center rounded-full border border-dashed border-border px-4 text-sm text-muted-foreground hover:text-foreground">{t("+ Add an MT5 account to start trading")}</Link>
+            <Link to="/accounts/add-mt5" className="flex h-12 flex-1 items-center rounded-xl border border-dashed border-border px-4 text-sm text-muted-foreground hover:text-foreground">{t("+ Add an MT5 account to start trading")}</Link>
           ) : (
             <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger className="h-12 flex-1 rounded-full px-3">
+              <SelectTrigger className="h-12 flex-1 rounded-xl px-3">
                 {account && (
                   <div className="flex items-center gap-3 text-start">
                     <BrokerLogo name={account.broker_name} color={broker(account)?.brand_color} className="h-7 w-7 text-xs" />
@@ -265,23 +271,23 @@ function Dashboard() {
               </SelectContent>
             </Select>
           )}
-          <Button variant="outline" className="h-12 rounded-full" disabled={!account} onClick={() => void profile.update({ default_account_id: accountId }, t("Default account saved."))}>
+          <Button variant="outline" className="h-12 rounded-xl" disabled={!account} onClick={() => void profile.update({ default_account_id: accountId }, t("Default account saved."))}>
             <Star className={cn("h-4 w-4", prefs?.default_account_id === accountId && accountId && "fill-warning text-warning")} />  {t("Set Default")} </Button>
-          <Tip label={t("EA configuration")} side="bottom"><Link to="/settings" aria-label={t("EA configuration")} className="flex h-12 w-12 items-center justify-center rounded-full border border-border"><Settings2 className="h-4 w-4" /></Link></Tip>
+          <Link to="/settings" className="flex h-12 items-center gap-2 rounded-xl border border-border px-3 text-sm"><Settings2 className="h-4 w-4" />{t("EA Configuration")}</Link>
         </div>
 
         {/* instrument */}
         <div className="space-y-2">
           <p className="text-sm font-semibold">{t("Select Instrument")}</p>
           <div className="flex gap-2">
-            <button onClick={() => setPickerOpen(true)} className="flex h-12 flex-1 items-center gap-3 rounded-full border border-primary px-3 text-start">
+            <button onClick={() => setPickerOpen(true)} className="flex h-12 flex-1 items-center gap-3 rounded-xl border border-border bg-background/40 px-3 text-start">
               <InstrumentIcon flag={inst?.flag} />
               <span className="font-semibold">{symbol || "…"}</span>
               {price != null && <span className="font-mono text-sm text-muted-foreground">{fmt(price, priceDigits(price))}</span>}
               {quote.data?.change_pct != null && <span className={cn("text-xs", quote.data.change_pct >= 0 ? "text-success" : "text-destructive")}>{quote.data.change_pct >= 0 ? "+" : ""}{quote.data.change_pct.toFixed(2)}%</span>}
               <ChevronDown className="ms-auto h-4 w-4 text-muted-foreground" />
             </button>
-            <Tip label={showChart ? t("Hide chart") : t("Show chart")} side="bottom"><button onClick={() => setShowChart((v) => !v)} aria-label={t("Chart")} className={cn("flex h-12 w-12 items-center justify-center rounded-full border border-border", showChart && "border-primary text-primary-glow")}><CandlestickChart className="h-4 w-4" /></button></Tip>
+            <Tip label={showChart ? t("Hide chart") : t("Show chart")} side="bottom"><button onClick={() => setShowChart((v) => !v)} aria-label={t("Chart")} className={cn("flex h-12 items-center gap-2 rounded-xl border border-border px-4 text-sm", showChart && "border-primary text-primary-glow")}><CandlestickChart className="h-4 w-4" />{t("Chart")}</button></Tip>
           </div>
           {showChart && inst && (
             <div className="space-y-2">
@@ -295,7 +301,7 @@ function Dashboard() {
         {/* direction */}
         <div className="space-y-2">
           <p className="text-sm font-semibold">{t("Trade Direction")}</p>
-          <div className="grid grid-cols-2 overflow-hidden rounded-full">
+          <div className="grid grid-cols-2 overflow-hidden rounded-xl">
             <button onClick={() => setSide("buy")} className={cn("h-12 font-bold tracking-wide", side === "buy" ? "bg-buy text-primary-foreground" : "bg-secondary text-buy")}>{t("BUY")}</button>
             <button onClick={() => setSide("sell")} className={cn("h-12 font-bold tracking-wide", side === "sell" ? "bg-destructive text-destructive-foreground" : "bg-sell-muted text-destructive")}>{t("SELL")}</button>
           </div>
@@ -305,7 +311,7 @@ function Dashboard() {
           <div className="space-y-2">
             <p className="text-sm font-semibold">{t("Order Type")}</p>
             <Select value={orderType} onValueChange={setOrderType}>
-              <SelectTrigger className="h-11 rounded-full px-5"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11 rounded-xl px-4"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="market">{t("Market")}</SelectItem><SelectItem value="limit">{t("Limit")}</SelectItem><SelectItem value="stop">{t("Stop")}</SelectItem></SelectContent>
             </Select>
           </div>
@@ -318,34 +324,38 @@ function Dashboard() {
           <NumField label={t("SL (Optional)")} v={sl} on={setSl} placeholder="0.00" left />
           <NumField label={t("TP (Optional)")} v={tp} on={setTp} placeholder="0.00" left />
         </div>
-        <Button variant="hero" className="h-12 w-full rounded-full text-base" onClick={execute} disabled={sending}>{sending ? <Loader2 className="animate-spin" /> : null}  {t("Execute Trade")}</Button>
+        <Button variant="hero" className="h-12 w-full rounded-xl text-base" onClick={execute} disabled={sending}>{sending ? <Loader2 className="animate-spin" /> : null}  {t("Execute Trade")}</Button>
+       </div>
 
         <NewsPanel />
       </section>
 
       {/* RIGHT: open trades */}
-      <aside className="order-3 space-y-4 bg-background xl:order-none p-5 xl:border-s xl:border-border">
-        <GlobalManage accounts={accounts.data ?? []} current={account} />
+      <aside className="order-3 space-y-4 self-start xl:order-none">
+       <div className="space-y-4 rounded-2xl border border-border bg-card/40 p-4">
+        <Button variant="hero" className="h-12 w-full rounded-xl text-base" onClick={() => setToolsOpen((v) => !v)}>{t("Global Manage")}</Button>
         <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-widest text-muted-foreground">{t("OPEN TRADES")} <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{accTrades.length}</span></h2>
+          <h2 className="flex items-center gap-2 text-xl font-bold">{t("Open Trades")} <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1 text-xs text-primary-foreground">{accTrades.length}</span></h2>
           <span className={cn("text-sm font-semibold", profit < 0 ? "text-destructive" : "text-success")}>{account?.currency ?? "USD"} {fmt(profit)}</span>
         </div>
         {!account ? <p className="pt-6 text-center text-sm text-muted-foreground">{t("Add an MT5 account to see trades.")}</p>
           : !online && accTrades.length === 0 ? <p className="pt-6 text-center text-sm text-muted-foreground">{t("Waiting for MT5 EA connection…")}</p>
           : accTrades.length === 0 ? <p className="pt-6 text-center text-sm text-muted-foreground">{t("No open trades.")}</p>
           : accTrades.map((trade) => (
-            <div key={trade.id} className="rounded-2xl bg-card p-4 text-sm">
+            <div key={trade.id} className="rounded-xl border border-border bg-background/40 p-4 text-sm">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">{trade.symbol} <span className={cn("ms-1 text-xs", trade.side === "buy" ? "text-success" : "text-destructive")}>{t(trade.side.toUpperCase())} {trade.volume}</span></span>
                 <span className={cn("font-semibold", Number(trade.profit) >= 0 ? "text-success" : "text-destructive")}>{fmt(trade.profit)}</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{t("Open")} {fmt(trade.open_price, priceDigits(trade.open_price))}  {t("· SL")} {fmt(trade.stop_loss, priceDigits(trade.open_price))}  {t("· TP")} {fmt(trade.take_profit, priceDigits(trade.open_price))}</p>
-              <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                 <span>#{trade.ticket}{trade.opened_at ? ` · ${timeAgo(trade.opened_at)}` : ""}</span>
-                <button className="text-destructive hover:underline" onClick={() => void queueCommand([account], "close_trade", { ticket: trade.ticket })}>{t("Close")}</button>
+                <Button size="sm" variant="destructive" className="h-8 rounded-lg" onClick={() => void queueCommand([account], "close_trade", { ticket: trade.ticket })}>{t("Close")}</Button>
               </div>
             </div>
           ))}
+       </div>
+        {toolsOpen && <GlobalManage accounts={accounts.data ?? []} current={account} />}
       </aside>
 
       <InstrumentPicker open={pickerOpen} onOpenChange={setPickerOpen} value={symbol} onChange={setSymbol} />
@@ -384,9 +394,9 @@ function Dashboard() {
 function Metric({ label, value, badge, tone }: { label: string; value: string | null; badge?: string; tone?: "up" | "down" | undefined }) {
   const t = useT();
   return (
-    <div className="min-w-0 flex-1">
-      <p className="flex items-center gap-2 text-[11px] font-semibold tracking-widest text-muted-foreground">{label}{badge && <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] text-primary-foreground">{badge}</span>}</p>
-      {value == null ? <div className="mt-2 h-3 w-28 rounded-full bg-muted" /> : <p className={cn("mt-1 truncate font-semibold", tone === "up" && "text-success", tone === "down" && "text-destructive")}>{value}</p>}
+    <div className="min-w-0 p-3">
+      <p className="flex items-center gap-2 text-xs text-muted-foreground">{label}{badge && <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] text-primary-foreground">{badge}</span>}</p>
+      {value == null ? <div className="mt-2 h-3 w-28 rounded-full bg-muted" /> : <p className={cn("mt-1 truncate text-lg font-bold", tone === "up" && "text-success", tone === "down" && "text-destructive")}>{value}</p>}
     </div>
   );
 }
@@ -396,7 +406,7 @@ function NumField({ label, v, on, placeholder, left }: { label: string; v: strin
   return (
     <div className="space-y-2">
       <p className="text-sm font-semibold">{t(label)}</p>
-      <Input inputMode="decimal" value={v} placeholder={placeholder} onChange={(e) => on(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputCls, left && "px-5 text-start")} />
+      <Input inputMode="decimal" value={v} placeholder={placeholder} onChange={(e) => on(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputCls, "rounded-xl", left && "px-4 text-start")} />
     </div>
   );
 }
@@ -405,7 +415,7 @@ function AnalysisCard(p: { symbol: string; tag?: string | undefined; direction: 
   const t = useT();
   const d = priceDigits(p.entry);
   return (
-    <div className="rounded-2xl bg-card p-4 text-sm">
+    <div className={cn("rounded-xl border border-border border-s-4 bg-background/40 p-3 text-sm", p.direction === "buy" ? "border-s-success" : p.direction === "sell" ? "border-s-destructive" : "border-s-warning")}>
       <div className="flex items-center justify-between">
         <span className="font-semibold">{p.symbol} {p.tag && <span className="ms-1 text-xs font-normal text-muted-foreground">{p.tag}</span>}</span>
         <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", p.direction === "buy" ? "bg-success/15 text-success" : p.direction === "sell" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground")}>
@@ -414,12 +424,12 @@ function AnalysisCard(p: { symbol: string; tag?: string | undefined; direction: 
       </div>
       {p.confidence != null && <div className="mt-2 h-1.5 rounded-full bg-muted"><div className="h-1.5 rounded-full bg-gradient-primary" style={{ width: `${p.confidence}%` }} /></div>}
       <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-        {([["Entry", p.entry], ["SL", p.sl], ["TP", p.tp]] as const).map(([l, v]) => <div key={l} className="rounded-lg bg-muted p-1.5"><p className="text-muted-foreground">{t(l)}</p><p className="font-mono">{fmt(v, d)}</p></div>)}
+        {([["Entry", p.entry], ["SL", p.sl], ["TP", p.tp]] as const).map(([l, v]) => <div key={l} className="rounded-md bg-muted/70 p-1.5"><p className="text-muted-foreground">{t(l)}</p><p className="font-mono">{fmt(v, d)}</p></div>)}
       </div>
       {p.text && <p className="mt-3 line-clamp-4 text-xs leading-relaxed text-muted-foreground">{p.text}</p>}
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span>{p.confidence != null ? `${p.confidence}% · ` : ""}{timeAgo(p.at)}</span>
-        {p.direction !== "neutral" && <button onClick={p.onUse} className="rounded-full bg-primary px-3 py-1 font-semibold text-primary-foreground">{t("Use Signal")}</button>}
+        <span>{p.confidence != null ? `${p.confidence}% ${t("model score")} · ` : ""}{timeAgo(p.at)}</span>
+        <button onClick={p.onUse} disabled={p.direction === "neutral"} className="rounded-lg bg-primary px-3 py-1.5 font-semibold text-primary-foreground disabled:bg-secondary disabled:text-muted-foreground">{t("Use Signal")}</button>
       </div>
     </div>
   );
@@ -503,7 +513,7 @@ function NewsPanel() {
     return h < 2 ? "bg-success" : h < 5 ? "bg-warning" : "bg-muted-foreground/50";
   };
   return (
-    <div className="-mx-5 rounded-3xl bg-card/60">
+    <div className="rounded-2xl border border-border bg-card/40">
       <div className="flex gap-1 p-4 pb-2">
         <div className="flex gap-1 rounded-full bg-background p-1 text-xs font-semibold">
           <button onClick={() => setTab("geo")} className={cn("rounded-full px-3 py-1.5", tab === "geo" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>{t("Geopolitics")}</button>
