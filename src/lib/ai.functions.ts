@@ -19,10 +19,12 @@ export const analyzeMarket = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       r = await getCached(supabaseAdmin, data.symbol, data.timeframe);
     }
-    r ??= await runAI(context.supabase, data.symbol, data.timeframe, data.price);
+    // Manual price → personal analysis with the caller's own memory; otherwise a shared market-only analysis.
+    const shared = data.price == null;
+    r ??= await runAI(context.supabase, data.symbol, data.timeframe, data.price, shared ? null : context.userId);
     const { data: row, error } = await context.supabase
       .from("analyses")
-      .insert({ user_id: context.userId, symbol: data.symbol, timeframe: data.timeframe, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary })
+      .insert({ user_id: context.userId, symbol: data.symbol, timeframe: data.timeframe, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary, shared })
       .select()
       .single();
     if (error) throw new Error("Could not save analysis.");

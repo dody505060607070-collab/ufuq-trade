@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { defined } from "@/lib/utils";
+import { fallbackDealId, summarizeDeals } from "@/lib/deals";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,7 @@ const position = z.object({
   profit: z.number().optional(),
   opened_at: z.string().nullable().optional(),
   closed_at: z.string().nullable().optional(),
+  deal: z.union([z.string(), z.number()]).transform(String).optional(),
 });
 
 const body = z.object({
@@ -96,24 +98,47 @@ export const Route = createFileRoute("/api/public/ea/sync")({
           }
         }
 
-        if (p.positions) {
-          const tickets = p.positions.map((x) => x.ticket);
-          if (tickets.length)
-            await db.from("trades").upsert(p.positions.map((x) => defined({ ...x, account_id: acc.id, user_id: acc.user_id, status: "open" })), { onConflict: "account_id,ticket" });
-        }
+        // Exit deals (executions) are stored once per broker deal ticket; a partial close never closes the position.
+        const affected = new Set<string>();
+        const dealSide = new Map<string, { symbol: string; side: string }>();
         if (p.closed?.length) {
-          await db.from("trades").upsert(p.closed.map((x) => defined({ ...x, account_id: acc.id, user_id: acc.user_id, status: "closed", closed_at: x.closed_at ?? now })), { onConflict: "account_id,ticket" });
+          const rows = p.closed.map((x) => ({ account_id: acc.id, user_id: acc.user_id, deal_ticket: x.deal ?? fallbackDealId(x.ticket, x.closed_at, x.volume, x.close_price), position_ticket: x.ticket, symbol: x.symbol, side: x.side, volume: x.volume, price: x.close_price ?? null, profit: x.profit ?? 0, closed_at: x.closed_at ?? now }));
+          await db.from("trade_deals").upsert(rows, { onConflict: "account_id,deal_ticket", ignoreDuplicates: true });
+          for (const r of rows) { affected.add(r.position_ticket); dealSide.set(r.position_ticket, { symbol: r.symbol, side: r.side }); }
+        }
+        const live = new Set((p.positions ?? []).map((x) => x.ticket));
+        if (p.positions?.length) {
+          await db.from("trades").upsert(p.positions.map(({ deal: _d, ...x }) => defined({ ...x, account_id: acc.id, user_id: acc.user_id, status: "open" })), { onConflict: "account_id,ticket" });
         }
         if (p.positions) {
-          // Positions no longer reported by the terminal are closed.
-          const live = new Set(p.positions.map((x) => x.ticket));
-          const { data: openRows } = await db.from("trades").select("id,ticket").eq("account_id", acc.id).eq("status", "open");
-          const stale = (openRows ?? []).filter((r) => !live.has(r.ticket)).map((r) => r.id);
-          if (stale.length) await db.from("trades").update({ status: "closed", closed_at: now }).in("id", stale);
-          await lockProfits(db, acc, p.positions);
+          // Positions no longer reported by the terminal are fully closed.
+          const { data: openRows } = await db.from("trades").select("ticket").eq("account_id", acc.id).eq("status", "open");
+          for (const r of openRows ?? []) if (!live.has(r.ticket)) affected.add(r.ticket);
         }
+        if (affected.size) {
+          const tickets = [...affected];
+          const [{ data: deals }, { data: existing }] = await Promise.all([
+            db.from("trade_deals").select("deal_ticket,position_ticket,volume,price,profit,closed_at").eq("account_id", acc.id).in("position_ticket", tickets),
+            db.from("trades").select("id,ticket,status").eq("account_id", acc.id).in("ticket", tickets),
+          ]);
+          for (const tk of tickets) {
+            const sum = summarizeDeals((deals ?? []).filter((d) => d.position_ticket === tk).map((d) => ({ ...d, volume: Number(d.volume), profit: Number(d.profit), price: d.price == null ? null : Number(d.price) })));
+            const row = (existing ?? []).find((r) => r.ticket === tk);
+            const hasDeals = sum.lastAt != null;
+            const isOpen = p.positions ? live.has(tk) : row?.status === "open";
+            const patch = isOpen
+              ? { realized_profit: sum.realized, closed_volume: sum.closedVolume }
+              : defined({ status: "closed", realized_profit: sum.realized, closed_volume: sum.closedVolume, profit: hasDeals ? sum.realized : undefined, close_price: sum.lastPrice ?? undefined, closed_at: sum.lastAt ?? now });
+            if (row) await db.from("trades").update(patch).eq("id", row.id);
+            else if (hasDeals) {
+              const ds = dealSide.get(tk);
+              if (ds) await db.from("trades").insert({ ...patch, account_id: acc.id, user_id: acc.user_id, ticket: tk, symbol: ds.symbol, side: ds.side, volume: sum.closedVolume, status: isOpen ? "open" : "closed" });
+            }
+          }
+        }
+        if (p.positions) await lockProfits(db, acc, p.positions);
         for (const r of p.results ?? []) {
-          await db.from("trade_commands").update({ status: r.status, result: r.result ?? null, executed_at: now }).eq("id", r.id).eq("account_id", acc.id);
+          await db.from("trade_commands").update({ status: r.status, result: r.result ?? null, executed_at: now }).eq("id", r.id).eq("account_id", acc.id).in("status", ["sent", "queued"]);
         }
 
         // Hedge plans involving this account
@@ -132,8 +157,8 @@ export const Route = createFileRoute("/api/public/ea/sync")({
           if (claimed?.length) await db.from("trade_commands").insert(rows);
         }
 
-        const { data: cmds } = await db.from("trade_commands").select("id,command,payload,created_at").eq("account_id", acc.id).eq("status", "queued").order("created_at").limit(50);
-        if (cmds?.length) await db.from("trade_commands").update({ status: "sent" }).in("id", cmds.map((c) => c.id));
+        // Atomic claim: concurrent syncs can never receive the same command; unanswered ones are re-offered for broker-side verification.
+        const { data: cmds } = await db.rpc("claim_commands", { _account: acc.id, _limit: 50 });
 
         const watch = mine.filter((h) => h.trigger_type === "price").map((h) => ({ id: h.id, symbol: h.symbol, price: h.trigger_price }));
         if (asText) {

@@ -137,10 +137,10 @@ export async function refreshCot(db: DB) {
 }
 
 /** Prompt context: big-money positioning and the learned rule bank. */
-export async function brainContext(db: DB, symbol: string) {
+export async function brainContext(db: DB, symbol: string, userId: string | null = null) {
   const [{ data: w }, { data: rules }] = await Promise.all([
     db.from("whale_signals").select("*").eq("symbol", symbol).order("report_date", { ascending: false }).limit(1).maybeSingle(),
-    db.from("learned_rules").select("rule,hits,symbol").eq("is_active", true).eq("status", "approved").or(`symbol.eq.${symbol},symbol.is.null`).order("hits", { ascending: false }).limit(12),
+    userId ? db.from("learned_rules").select("rule,hits,symbol").eq("user_id", userId).eq("is_active", true).eq("status", "approved").or(`symbol.eq.${symbol},symbol.is.null`).order("hits", { ascending: false }).limit(12) : Promise.resolve({ data: [] as { rule: string; hits: number; symbol: string | null }[] }),
   ]);
   const whale = w ? (() => { const b = cotBias(Number(w.long_pos), Number(w.short_pos), Number(w.change_long), Number(w.change_short)); return `CFTC COT ${w.report_date}: speculators ${b.bias} (net ${b.netPct.toFixed(0)}% of positions, weekly net change ${b.weekly})`; })() : "unavailable";
   return { whale, rules: rulesText(rules ?? []) };

@@ -1,16 +1,20 @@
 // Deterministic risk engine: the AI only proposes; these rules can veto any trade.
 export type Proposal = { direction: string; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null };
 export type RiskContext = {
-  price: number | null;          // current market price
+  price: number | null;          // current broker price (never the signal entry)
+  priceAgeSec?: number | null;   // age of that price; null/undefined = unknown → rejected when requireFreshPrice
   spreadPrice: number | null;    // spread in price units (ask - bid), null if unknown
   atr: number | null;            // ATR in price units, null if unknown
   balance: number | null;
   lot: number;
-  dollarsPerPricePerLot: number; // e.g. 100 for XAUUSD (1 lot = 100 oz)
+  dollarsPerPricePerLot: number | null; // broker value of a 1.0 move per lot; null = unknown
   dayPnl: number;                // realised P/L today
   maxDailyLossPct: number;       // e.g. 5 → stop trading after -5% of balance
   maxRiskPct: number;            // e.g. 5 → one trade may risk at most 5% of balance
+  requireFreshPrice?: boolean;   // automatic trading: demand a live broker price, specs and balance
 };
+
+export const MAX_PRICE_AGE_SEC = 120;
 
 export type RiskVerdict = { allow: boolean; reason: string };
 
@@ -20,6 +24,12 @@ export function riskCheck(p: Proposal, c: RiskContext): RiskVerdict {
   if (entry == null || sl == null || tp == null) return { allow: false, reason: "Missing entry, stop or target" };
   const buy = p.direction === "buy";
   if (buy ? !(sl < entry && entry < tp) : !(tp < entry && entry < sl)) return { allow: false, reason: "Stop/target on the wrong side of entry" };
+  if (c.requireFreshPrice) {
+    if (c.price == null) return { allow: false, reason: "No current broker price" };
+    if (c.priceAgeSec == null || c.priceAgeSec > MAX_PRICE_AGE_SEC) return { allow: false, reason: "Broker price is stale" };
+    if (c.dollarsPerPricePerLot == null) return { allow: false, reason: "Broker contract specs missing" };
+    if (c.balance == null || c.balance <= 0) return { allow: false, reason: "Account balance unknown" };
+  }
   const stopDist = Math.abs(entry - sl);
   const rr = Math.abs(tp - entry) / stopDist;
   if (rr < 1.5) return { allow: false, reason: `Reward/risk ${rr.toFixed(2)} is below 1.5` };
@@ -31,10 +41,15 @@ export function riskCheck(p: Proposal, c: RiskContext): RiskVerdict {
   if (c.spreadPrice != null && c.spreadPrice > stopDist * 0.25) return { allow: false, reason: "Spread is too high for this stop" };
   if (c.balance != null && c.balance > 0) {
     if (c.dayPnl <= -(c.balance * c.maxDailyLossPct) / 100) return { allow: false, reason: `Daily loss limit of ${c.maxDailyLossPct}% reached` };
-    const risk = stopDist * c.lot * c.dollarsPerPricePerLot;
+    const risk = stopDist * c.lot * (c.dollarsPerPricePerLot ?? dollarsPerPrice("XAUUSD"));
     if (risk > (c.balance * c.maxRiskPct) / 100) return { allow: false, reason: `Trade risks $${risk.toFixed(2)}, more than ${c.maxRiskPct}% of balance` };
   }
   return { allow: true, reason: `Approved · R/R ${rr.toFixed(2)}` };
+}
+
+/** Broker value of a 1.0 move per lot, or null when the broker has not sent specs. */
+export function brokerDollarsPerPrice(tickValue?: number | null, point?: number | null): number | null {
+  return tickValue && point && point > 0 ? tickValue / point : null;
 }
 
 /** Dollars per 1.0 price move for 1 lot, using broker specs when known. */

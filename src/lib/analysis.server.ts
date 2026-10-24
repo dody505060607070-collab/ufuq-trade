@@ -35,24 +35,26 @@ export async function getCached(admin: DB, symbol: string, timeframe: string) {
   const { data } = await admin
     .from("analyses")
     .select("direction,confidence,entry,stop_loss,take_profit,summary")
-    .eq("symbol", symbol).eq("timeframe", timeframe).gte("created_at", since)
+    .eq("symbol", symbol).eq("timeframe", timeframe).eq("shared", true).gte("created_at", since)
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
   return data ? ({ ...data, direction: data.direction as Levels["direction"], confidence: data.confidence ?? 0, summary: data.summary ?? "" } as Levels) : null;
 }
 
 /** Broker candles sent by the MT5 EA, when fresh (last bar within 3 bar-lengths); null → use Yahoo. */
-export async function brokerCandles(db: DB, symbol: string, timeframe: string, limit: number) {
+export async function brokerCandles(db: DB, symbol: string, timeframe: string, limit: number, accountId?: string) {
   const sec: Record<string, number> = { M5: 300, M15: 900, H1: 3600, H4: 14400, D1: 86400 };
-  const { data } = await db.from("broker_candles").select("t,o,h,l,c,account_id").eq("symbol", symbol).eq("timeframe", timeframe).order("t", { ascending: false }).limit(limit * 3);
+  let q = db.from("broker_candles").select("t,o,h,l,c,account_id").eq("symbol", symbol).eq("timeframe", timeframe);
+  if (accountId) q = q.eq("account_id", accountId);
+  const { data } = await q.order("t", { ascending: false }).limit(limit * 3);
   if (!data?.length) return null;
   const acc = data[0]!.account_id;
   const rows = data.filter((r) => r.account_id === acc).slice(0, limit).reverse();
   if (Date.now() / 1000 - rows[rows.length - 1]!.t > 3 * (sec[timeframe] ?? 3600) + 600) return null;
-  return rows.length >= 30 ? rows.map((r) => ({ t: r.t, o: r.o, h: r.h, l: r.l, c: r.c })) : null;
+  return rows.length >= Math.min(30, limit) ? rows.map((r) => ({ t: r.t, o: r.o, h: r.h, l: r.l, c: r.c })) : null;
 }
 
-/** Fresh AI analysis from live candles, calendar and headlines. */
-export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null): Promise<Levels> {
+/** Fresh AI analysis from live candles, calendar and headlines. userId=null → shared market-only analysis (no personal trades or rules). */
+export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null, userId: string | null = null): Promise<Levels> {
   const [, { data: inst }] = await Promise.all([
     db.from("ai_models").select("model_id").eq("is_default", true).eq("is_active", true).maybeSingle(),
     db.from("instruments").select("name,yahoo_symbol").eq("symbol", symbol).maybeSingle(),
@@ -61,7 +63,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     brokerCandles(db, symbol, timeframe, 80).then((b) => b ?? (inst?.yahoo_symbol ? fetchCandles(inst.yahoo_symbol, timeframe, 80).catch(() => []) : [])),
     fetchCalendarStatus(),
     fetchNews(15),
-    db.from("trades").select("side,profit,closed_at").ilike("symbol", `${symbol}%`).eq("status", "closed").order("closed_at", { ascending: false }).limit(10).then((r) => r.data ?? []),
+    userId ? db.from("trades").select("side,profit,closed_at").eq("user_id", userId).ilike("symbol", `${symbol}%`).eq("status", "closed").order("closed_at", { ascending: false }).limit(10).then((r) => r.data ?? []) : Promise.resolve([]),
     inst?.yahoo_symbol && timeframe !== "D1" ? fetchCandles(inst.yahoo_symbol, "D1", 20).catch(() => []) : Promise.resolve([]),
   ]);
   const calendar = calStatus.events;
@@ -72,7 +74,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   };
   const [m15, h1, h4] = await Promise.all([tfTrend("M15"), tfTrend("H1"), tfTrend("H4")]);
   const mtf: MtfTrends = { M15: m15, H1: h1, H4: h4 };
-  const brain = await brainContext(db, symbol).catch(() => ({ whale: "unavailable", rules: "none yet" }));
+  const brain = await brainContext(db, symbol, userId).catch(() => ({ whale: "unavailable", rules: "none yet" }));
   const last = candles[candles.length - 1];
   const price = manualPrice ?? last?.c ?? null;
   const dec = price && price < 5 ? 5 : price && price < 500 ? 3 : 2;
