@@ -10,6 +10,7 @@ import { priceActionText } from "./priceaction";
 import { memoryText } from "./profitlock";
 import { brainContext } from "./brain.server";
 import { newsSentiment, sentimentText } from "./sentiment";
+import { mtfConflict, mtfText, type MtfTrends } from "./mtf";
 
 type DB = SupabaseClient<Database>;
 export type Levels = { direction: "buy" | "sell" | "neutral"; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null; summary: string };
@@ -64,6 +65,13 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     inst?.yahoo_symbol && timeframe !== "D1" ? fetchCandles(inst.yahoo_symbol, "D1", 20).catch(() => []) : Promise.resolve([]),
   ]);
   const calendar = calStatus.events;
+  const tfTrend = async (tf: string) => {
+    if (tf === timeframe) return snapshot(candles)?.trend ?? null;
+    const c = (await brokerCandles(db, symbol, tf, 80)) ?? (inst?.yahoo_symbol ? await fetchCandles(inst.yahoo_symbol, tf, 80).catch(() => []) : []);
+    return snapshot(c)?.trend ?? null;
+  };
+  const [m15, h1, h4] = await Promise.all([tfTrend("M15"), tfTrend("H1"), tfTrend("H4")]);
+  const mtf: MtfTrends = { M15: m15, H1: h1, H4: h4 };
   const brain = await brainContext(db, symbol).catch(() => ({ whale: "unavailable", rules: "none yet" }));
   const last = candles[candles.length - 1];
   const price = manualPrice ?? last?.c ?? null;
@@ -77,7 +85,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     .join("\n");
   const heads = news.map((n) => `- ${n.title} (${n.source})`).join("\n") + `\n${sentimentText(newsSentiment(news.map((n) => n.title)))}`;
   const snap = snapshot(candles);
-  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades:\n${brain.rules}\n\nProvide your directional analysis as json.`;
+  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nMulti-timeframe trends:\n${mtfText(mtf)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades:\n${brain.rules}\n\nProvide your directional analysis as json.`;
 
   // Paid Gemini only — no Lovable AI fallback.
   const geminiKey = process.env["GEMINI_API_KEY"];
@@ -93,7 +101,8 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   // Code-side gate: missing/stale data or invalid levels → no trade, with the reason recorded in the summary.
   const blockers = dataBlockers({ lastCandleT: last?.t ?? null, timeframe, calendarOk: calStatus.ok, nowSec: Date.now() / 1000 });
   const bad = levelProblem(out, snap?.atr14 ?? null);
-  const why = [...blockers, ...(bad ? [bad] : [])];
+  const mtfBad = mtfConflict(out.direction, mtf);
+  const why = [...blockers, ...(bad ? [bad] : []), ...(mtfBad ? [mtfBad] : [])];
   if (why.length && out.direction !== "neutral")
     return { ...out, direction: "neutral", entry: null, stop_loss: null, take_profit: null, summary: `No trade (${why.join("; ")}). AI view: ${out.direction.toUpperCase()} ${out.confidence}%. ${out.summary}`.slice(0, 2000) };
   return out;

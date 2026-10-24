@@ -1,3 +1,4 @@
+import { shouldRetireRule } from "./mtf";
 import { GEMINI_MODEL } from "./signal-guard";
 import { ruleStatus } from "./backtest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -80,6 +81,18 @@ export async function processLessons(db: DB) {
   return n;
 }
 
+/** Retires the newest approved rule when the last 2 weeks did clearly worse than the 2 before. */
+async function checkRules(db: DB, uid: string, end: Date) {
+  const from = new Date(end.getTime() - 28 * 86400_000).toISOString();
+  const mid = end.getTime() - 14 * 86400_000;
+  const { data } = await db.from("trades").select("profit,closed_at").eq("user_id", uid).eq("status", "closed").gte("closed_at", from).lt("closed_at", end.toISOString());
+  const rec = { wins: 0, total: 0 }, pri = { wins: 0, total: 0 };
+  for (const t of data ?? []) { const b = new Date(t.closed_at!).getTime() >= mid ? rec : pri; b.total++; if (Number(t.profit) > 0) b.wins++; }
+  if (!shouldRetireRule(rec, pri)) return;
+  const { data: rule } = await db.from("learned_rules").select("id").eq("user_id", uid).eq("status", "approved").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  if (rule) await db.from("learned_rules").update({ status: "retired", updated_at: new Date().toISOString() }).eq("id", rule.id);
+}
+
 /** On Mondays, writes last week's review once per user with trades. */
 export async function weeklyReviews(db: DB) {
   const now = new Date();
@@ -94,6 +107,7 @@ export async function weeklyReviews(db: DB) {
     if (ex) continue;
     const net = rows.reduce((s, r) => s + Number(r.profit), 0);
     const r = await gemini("You are a trading coach. Return ONLY JSON {summary}: max 5 short sentences on what worked, what failed and the focus for next week.", rows.map((x) => `${x.side} ${x.symbol} ${Number(x.profit).toFixed(2)} — ${x.lesson ?? ""}`).join("\n"));
+    await checkRules(db, uid, monday);
     if (typeof r?.summary === "string") await db.from("weekly_reviews").insert({ user_id: uid, week_start: ws, summary: r.summary.slice(0, 1500), trades: rows.length, net });
   }
 }
