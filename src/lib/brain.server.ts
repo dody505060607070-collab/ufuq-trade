@@ -1,3 +1,4 @@
+import { GEMINI_MODEL } from "./signal-guard";
 import { ruleStatus } from "./backtest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -11,7 +12,7 @@ const LESSON_SYS =
 async function gemini(system: string, prompt: string): Promise<{ rule?: unknown; reason?: unknown; lesson?: unknown; tags?: unknown; summary?: unknown } | null> {
   const key = process.env["GEMINI_API_KEY"];
   if (!key) return null;
-  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }),

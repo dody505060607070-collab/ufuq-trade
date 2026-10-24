@@ -92,12 +92,18 @@ export async function fetchNews(limit = 40): Promise<NewsItem[]> {
 export type CalendarEvent = { title: string; country: string; date: string; impact: string; forecast: string; previous: string };
 
 export async function fetchCalendar(): Promise<CalendarEvent[]> {
+  return (await fetchCalendarStatus()).events;
+}
+
+/** Distinguishes "no events" (ok: true, events: []) from "calendar failed to load" (ok: false). */
+export async function fetchCalendarStatus(): Promise<{ ok: boolean; events: CalendarEvent[] }> {
   try {
     const res = await fetch("https://nfs.faireconomy.media/ff_calendar_thisweek.json", { headers: UA });
-    if (!res.ok) return [];
+    if (!res.ok) return { ok: false, events: [] };
     const j = (await res.json()) as CalendarEvent[];
-    return j.map((e) => ({ title: e.title, country: e.country, date: new Date(e.date).toISOString(), impact: e.impact, forecast: e.forecast ?? "", previous: e.previous ?? "" }));
+    if (!Array.isArray(j)) return { ok: false, events: [] };
+    return { ok: true, events: j.map((e) => ({ title: e.title, country: e.country, date: new Date(e.date).toISOString(), impact: e.impact, forecast: e.forecast ?? "", previous: e.previous ?? "" })) };
   } catch {
-    return [];
+    return { ok: false, events: [] };
   }
 }

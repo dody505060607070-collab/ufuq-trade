@@ -22,7 +22,7 @@ export function riskCheck(p: Proposal, c: RiskContext): RiskVerdict {
   if (buy ? !(sl < entry && entry < tp) : !(tp < entry && entry < sl)) return { allow: false, reason: "Stop/target on the wrong side of entry" };
   const stopDist = Math.abs(entry - sl);
   const rr = Math.abs(tp - entry) / stopDist;
-  if (rr < 1) return { allow: false, reason: `Reward/risk ${rr.toFixed(2)} is below 1` };
+  if (rr < 1.5) return { allow: false, reason: `Reward/risk ${rr.toFixed(2)} is below 1.5` };
   if (c.price != null && Math.abs(c.price - entry) > stopDist) return { allow: false, reason: "Entry is too far from the current price" };
   if (c.atr != null && c.atr > 0) {
     if (stopDist < c.atr * 0.3) return { allow: false, reason: "Stop is tighter than market noise (ATR)" };
