@@ -31,7 +31,7 @@ function Markets() {
             </div>
           ))}
         </div>
-        <div className="mt-10 text-center"><Button asChild variant="hero" size="lg" className="rounded-xl"><Link to="/register">{t("Start Trading Free")} <ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link></Button></div>
+        <div className="mt-10 text-center"><Button asChild variant="hero" size="lg" className="rounded-xl"><Link to="/register">{t("Start Trading Now")} <ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link></Button></div>
       </section>
     </SiteLayout>
   );
