@@ -17,6 +17,7 @@ const nav = [
   { to: "/autopilot", label: "Auto-Pilot", icon: Bot },
   { to: "/brain", label: "AI Brain", icon: Brain },
   { to: "/whales", label: "Whale Radar", icon: Radar },
+  { to: "/decisions", label: "Decisions & Backtest", icon: FlaskConical },
   { to: "/platforms", label: "Connected Platforms", icon: Layers },
   { to: "/brokers", label: "Brokers", icon: Landmark },
   { to: "/accounts/add-mt5", label: "Add MT5 Account", icon: Monitor },
