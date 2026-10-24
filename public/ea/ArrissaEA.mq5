@@ -6,7 +6,7 @@
 //|    enable Algo Trading.                                          |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.00"
+#property version   "1.10"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -31,6 +31,8 @@ string   g_watchSym[];
 double   g_watchPrice[];
 int      g_watchSide[];       // -1 = price was below level, +1 = above, 0 = unknown
 bool     g_warned = false;
+int      g_syncCount = 0;
+input string InpDataSymbol  = "XAUUSD";                                        // Symbol whose broker data is sent for analysis
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -287,6 +289,34 @@ void CheckWatches()
 //+------------------------------------------------------------------+
 //| Sync with Arrissa                                                |
 //+------------------------------------------------------------------+
+string CandlesJson(string sym, ENUM_TIMEFRAMES tf, int count)
+  {
+   MqlRates r[];
+   ArraySetAsSeries(r, false);
+   int n = CopyRates(sym, tf, 0, count, r);
+   string s = "[";
+   for(int i = 0; i < n; i++)
+     {
+      if(i > 0) s += ",";
+      s += "[" + IntegerToString((long)r[i].time - (long)MathRound((TimeTradeServer() - TimeGMT()) / 1800.0) * 1800) + "," + Num(r[i].open) + "," + Num(r[i].high) + "," + Num(r[i].low) + "," + Num(r[i].close) + "," + IntegerToString(r[i].spread) + "]";
+     }
+   return s + "]";
+  }
+
+// Broker prices, spread and contract specs for the analysis engine (sent once a minute).
+string MarketJson()
+  {
+   string sym = ResolveSymbol(InpDataSymbol);
+   if(sym == "") return "";
+   string m = "{\"symbol\":\"" + Esc(InpDataSymbol) + "\",\"broker_symbol\":\"" + Esc(sym) + "\",";
+   m += "\"bid\":" + Num(SymbolInfoDouble(sym, SYMBOL_BID)) + ",\"ask\":" + Num(SymbolInfoDouble(sym, SYMBOL_ASK)) + ",";
+   m += "\"spread\":" + IntegerToString(SymbolInfoInteger(sym, SYMBOL_SPREAD)) + ",\"point\":" + DoubleToString(SymbolInfoDouble(sym, SYMBOL_POINT), 8) + ",";
+   m += "\"tick_value\":" + DoubleToString(SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_VALUE) * SymbolInfoDouble(sym, SYMBOL_POINT) / MathMax(SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_SIZE), 1e-10), 8) + ",";
+   m += "\"contract_size\":" + Num(SymbolInfoDouble(sym, SYMBOL_TRADE_CONTRACT_SIZE), 2) + ",\"min_lot\":" + Num(SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN), 2) + ",";
+   m += "\"candles\":{\"M5\":" + CandlesJson(sym, PERIOD_M5, 120) + ",\"M15\":" + CandlesJson(sym, PERIOD_M15, 120) + ",\"H1\":" + CandlesJson(sym, PERIOD_H1, 120) + ",\"H4\":" + CandlesJson(sym, PERIOD_H4, 100) + ",\"D1\":" + CandlesJson(sym, PERIOD_D1, 60) + "}}";
+   return m;
+  }
+
 string BuildBody()
   {
    string b = "{\"account\":{";
@@ -349,7 +379,10 @@ string BuildBody()
    for(int i = 0; i < ArraySize(g_results); i++) { if(i > 0) b += ","; b += g_results[i]; }
    b += "],\"hedge_fired\":[";
    for(int i = 0; i < ArraySize(g_fired); i++) { if(i > 0) b += ","; b += "\"" + g_fired[i] + "\""; }
-   b += "]}";
+   b += "]";
+   if(g_syncCount % 30 == 0) { string m = MarketJson(); if(m != "") b += ",\"market\":[" + m + "]"; }
+   g_syncCount++;
+   b += "}";
    return b;
   }
 
