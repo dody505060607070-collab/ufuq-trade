@@ -127,15 +127,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function Spark() {
-  const t = useT();
-  return (
-    <svg viewBox="0 0 32 32" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
-      <path d="M16 3v26M3 16h26M6.8 6.8l18.4 18.4M25.2 6.8 6.8 25.2" />
-      <circle cx="16" cy="16" r="3" />
-    </svg>
-  );
-}
 
 /** Centered page layout with a Back link, like the original app. */
 export function Page({ title, subtitle, actions, children, wide }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode; wide?: boolean }) {
