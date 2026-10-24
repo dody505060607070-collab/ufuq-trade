@@ -6,7 +6,7 @@
 //|    enable Algo Trading.                                          |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.20"
+#property version   "1.30"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -163,7 +163,45 @@ int CloseAll()
 //+------------------------------------------------------------------+
 //| Command execution                                                |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| Command journal: survives restarts so a command ID never runs twice |
+//| state 1 = started (outcome unknown), 2 = done, 3 = failed          |
+//+------------------------------------------------------------------+
+string CmdKey(string id) { return "UFC_" + id; }
+int    CmdState(string id) { return GlobalVariableCheck(CmdKey(id)) ? (int)GlobalVariableGet(CmdKey(id)) : 0; }
+void   CmdMark(string id, int st) { GlobalVariableSet(CmdKey(id), st); GlobalVariablesFlush(); }
+string CmdTag(string id) { string t = id; StringReplace(t, "-", ""); return "UF" + StringSubstr(t, 0, 29); }
+
+// Broker-side proof that an order with this tag exists (open position, pending order or history).
+bool BrokerHasTag(string tag)
+  {
+   for(int i = PositionsTotal() - 1; i >= 0; i--) if(PositionGetTicket(i) > 0 && PositionGetString(POSITION_COMMENT) == tag) return true;
+   for(int i = OrdersTotal() - 1; i >= 0; i--) if(OrderGetTicket(i) > 0 && OrderGetString(ORDER_COMMENT) == tag) return true;
+   if(HistorySelect(TimeCurrent() - 7 * 86400, TimeCurrent() + 60))
+     {
+      for(int i = HistoryDealsTotal() - 1; i >= 0; i--) { ulong d = HistoryDealGetTicket(i); if(d > 0 && HistoryDealGetString(d, DEAL_COMMENT) == tag) return true; }
+      for(int i = HistoryOrdersTotal() - 1; i >= 0; i--) { ulong o = HistoryOrderGetTicket(i); if(o > 0 && HistoryOrderGetString(o, ORDER_COMMENT) == tag && HistoryOrderGetInteger(o, ORDER_STATE) == ORDER_STATE_FILLED) return true; }
+     }
+   return false;
+  }
+
 void Execute(string &f[])
+  {
+   string id = f[1];
+   int st = CmdState(id);
+   if(st == 2) { PushResult(id, true, "Already executed (duplicate ignored)"); return; }
+   if(st == 3) { PushResult(id, false, "Already failed earlier (not repeated)"); return; }
+   bool isOpen = f[2] == "open_trade";
+   if(isOpen && BrokerHasTag(CmdTag(id))) { CmdMark(id, 2); PushResult(id, true, "Verified at broker: already executed"); return; }
+   if(st == 1 && !isOpen) { CmdMark(id, 3); PushResult(id, false, "Interrupted before confirmation - not repeated"); return; }
+   CmdMark(id, 1);
+   int before = ArraySize(g_results);
+   ExecuteCmd(f);
+   bool ok = ArraySize(g_results) > before && StringFind(g_results[ArraySize(g_results) - 1], "\"status\":\"done\"") >= 0;
+   CmdMark(id, ok ? 2 : 3);
+  }
+
+void ExecuteCmd(string &f[])
   {
    string id = f[1], cmd = f[2], symIn = f[3], side = f[4], otype = f[5];
    double lot = StringToDouble(f[6]), sl = StringToDouble(f[7]), tp = StringToDouble(f[8]), price = StringToDouble(f[9]);
@@ -193,10 +231,13 @@ void Execute(string &f[])
             if(!OrderCalcMargin(buy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, sym, lot, px, need) || need >= AccountInfoDouble(ACCOUNT_MARGIN_FREE) * 0.95) break;
            }
          bool ok = false;
-         if(otype == "limit")      ok = buy ? trade.BuyLimit(lot, price, sym, sl, tp) : trade.SellLimit(lot, price, sym, sl, tp);
-         else if(otype == "stop")  ok = buy ? trade.BuyStop(lot, price, sym, sl, tp) : trade.SellStop(lot, price, sym, sl, tp);
-         else                      ok = buy ? trade.Buy(lot, sym, 0, sl, tp, "Arrissa") : trade.Sell(lot, sym, 0, sl, tp, "Arrissa");
-         if(ok && (trade.ResultRetcode() == TRADE_RETCODE_DONE || trade.ResultRetcode() == TRADE_RETCODE_PLACED)) opened++;
+         string tag = CmdTag(id);
+         if(otype == "limit")      ok = buy ? trade.BuyLimit(lot, price, sym, sl, tp, ORDER_TIME_GTC, 0, tag) : trade.SellLimit(lot, price, sym, sl, tp, ORDER_TIME_GTC, 0, tag);
+         else if(otype == "stop")  ok = buy ? trade.BuyStop(lot, price, sym, sl, tp, ORDER_TIME_GTC, 0, tag) : trade.SellStop(lot, price, sym, sl, tp, ORDER_TIME_GTC, 0, tag);
+         else                      ok = buy ? trade.Buy(lot, sym, 0, sl, tp, tag) : trade.Sell(lot, sym, 0, sl, tp, tag);
+         uint rc = trade.ResultRetcode();
+         // A sent request is not proof: only broker retcodes DONE/DONE_PARTIAL/PLACED with a deal or order ticket count.
+         if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_DONE_PARTIAL || rc == TRADE_RETCODE_PLACED) && (trade.ResultDeal() > 0 || trade.ResultOrder() > 0)) opened++;
          else { err = trade.ResultRetcodeDescription(); if(!untilNoMargin) continue; else break; }
          if(delay > 0 && k < target - 1) Sleep(MathMin(delay, 60) * 1000);
         }
@@ -206,7 +247,8 @@ void Execute(string &f[])
    if(cmd == "close_all")    { PushResult(id, true, "Closed " + IntegerToString(CloseAll())); return; }
    if(cmd == "close_trade")
      {
-      bool ok = PositionSelectByTicket(ticket) && trade.PositionClose(ticket);
+      if(!PositionSelectByTicket(ticket)) { PushResult(id, true, "Position #" + IntegerToString((long)ticket) + " already closed"); return; }
+      bool ok = trade.PositionClose(ticket) && trade.ResultRetcode() == TRADE_RETCODE_DONE;
       PushResult(id, ok, ok ? "Closed #" + IntegerToString((long)ticket) : trade.ResultRetcodeDescription());
       return;
      }
@@ -251,19 +293,12 @@ void Execute(string &f[])
 //| Local trade protection (runs even if the website is unreachable) |
 //| 1R profit -> close half + stop to breakeven; 1.5R -> trail at 1R |
 //+------------------------------------------------------------------+
-ulong  g_protTicket[];
-double g_protRisk[];
-bool   g_protHalf[];
-
-int ProtIndex(ulong ticket, double risk)
-  {
-   for(int i = 0; i < ArraySize(g_protTicket); i++) if(g_protTicket[i] == ticket) return i;
-   if(risk <= 0) return -1;
-   int n = ArraySize(g_protTicket);
-   ArrayResize(g_protTicket, n + 1); ArrayResize(g_protRisk, n + 1); ArrayResize(g_protHalf, n + 1);
-   g_protTicket[n] = ticket; g_protRisk[n] = risk; g_protHalf[n] = false;
-   return n;
-  }
+// State is kept in terminal global variables so it survives EA/MT5 restarts:
+// UFR_<ticket> = original risk distance, UFS_<ticket> = steps done (1 half close, 2 breakeven), UFT_<ticket> = last attempt.
+double ProtGet(string k, ulong tk) { string n = k + IntegerToString((long)tk); return GlobalVariableCheck(n) ? GlobalVariableGet(n) : 0; }
+void   ProtSet(string k, ulong tk, double v) { GlobalVariableSet(k + IntegerToString((long)tk), v); GlobalVariablesFlush(); }
+bool   RcOk() { uint rc = trade.ResultRetcode(); return rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_DONE_PARTIAL || rc == TRADE_RETCODE_NO_CHANGES; }
+int    g_protSweep = 0;
 
 void ProtectPositions()
   {
@@ -279,28 +314,61 @@ void ProtectPositions()
       double tp   = PositionGetDouble(POSITION_TP);
       double vol  = PositionGetDouble(POSITION_VOLUME);
       bool   buy  = PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY;
-      int    k    = ProtIndex(tk, sl > 0 ? MathAbs(open - sl) : 0);
-      if(k < 0) continue;
-      double risk = g_protRisk[k];
-      double px   = buy ? SymbolInfoDouble(sym, SYMBOL_BID) : SymbolInfoDouble(sym, SYMBOL_ASK);
-      double gain = buy ? px - open : open - px;
-      int    dg   = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
-      if(!g_protHalf[k] && gain >= risk)
+      double risk = ProtGet("UFR_", tk);
+      if(risk <= 0)
         {
+         // Original risk is only known while the stop is still on the losing side of entry.
+         if(sl > 0 && (buy ? sl < open : sl > open)) { risk = MathAbs(open - sl); ProtSet("UFR_", tk, risk); }
+         else continue;
+        }
+      if(TimeCurrent() - (datetime)ProtGet("UFT_", tk) < 10) continue;   // retry failed steps every 10s
+      int    stage = (int)ProtGet("UFS_", tk);
+      double px    = buy ? SymbolInfoDouble(sym, SYMBOL_BID) : SymbolInfoDouble(sym, SYMBOL_ASK);
+      double gain  = buy ? px - open : open - px;
+      int    dg    = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
+      if(gain < risk) continue;
+
+      // Step 1: close half (verified by the broker result and the new volume).
+      if((stage & 1) == 0)
+        {
+         ProtSet("UFT_", tk, (double)TimeCurrent());
          double step = SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP), vmin = SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN);
-         double half = MathFloor(vol / 2 / step) * step;
-         if(half >= vmin && vol - half >= vmin) trade.PositionClosePartial(tk, half);
-         trade.PositionModify(tk, NormalizeDouble(open, dg), tp);
-         g_protHalf[k] = true;
-         Print("ArrissaEA: 1R reached on ", tk, " - half closed, stop at breakeven");
+         if(step <= 0) step = 0.01;
+         double half = MathFloor(vol / 2 / step + 0.0000001) * step;
+         if(half < vmin || vol - half < vmin) { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: ", tk, " too small to half-close, skipping to breakeven"); }
+         else if(trade.PositionClosePartial(tk, half) && RcOk() && PositionSelectByTicket(tk) && PositionGetDouble(POSITION_VOLUME) < vol - step / 2)
+           { stage |= 1; ProtSet("UFS_", tk, stage); Print("UfuqEA: 1R on ", tk, " - half closed (verified)"); }
+         else Print("UfuqEA: half close FAILED on ", tk, ": ", trade.ResultRetcodeDescription(), " - will retry");
+        }
+      // Step 2: stop to breakeven (independent of step 1; verified by reading the stop back).
+      if((stage & 2) == 0)
+        {
+         if(!PositionSelectByTicket(tk)) continue;
+         sl = PositionGetDouble(POSITION_SL); tp = PositionGetDouble(POSITION_TP);
+         double be = NormalizeDouble(open, dg);
+         if(buy ? sl >= be - _Point : (sl > 0 && sl <= be + _Point)) { stage |= 2; ProtSet("UFS_", tk, stage); }
+         else if(trade.PositionModify(tk, be, tp) && RcOk() && PositionSelectByTicket(tk) && MathAbs(PositionGetDouble(POSITION_SL) - be) <= _Point * 2)
+           { stage |= 2; ProtSet("UFS_", tk, stage); Print("UfuqEA: ", tk, " stop moved to breakeven (verified)"); }
+         else { ProtSet("UFT_", tk, (double)TimeCurrent()); Print("UfuqEA: breakeven FAILED on ", tk, ": ", trade.ResultRetcodeDescription(), " - will retry"); }
          continue;
         }
-      if(g_protHalf[k] && gain >= risk * 1.5)
+      // Step 3: trail at 1R once 1.5R is reached.
+      if(gain >= risk * 1.5)
         {
          double ns = NormalizeDouble(buy ? px - risk : px + risk, dg);
-         if(buy ? ns > sl + _Point : (sl == 0 || ns < sl - _Point)) trade.PositionModify(tk, ns, tp);
+         if(buy ? ns > sl + _Point : (sl == 0 || ns < sl - _Point))
+            if(!(trade.PositionModify(tk, ns, tp) && RcOk())) { ProtSet("UFT_", tk, (double)TimeCurrent()); Print("UfuqEA: trail FAILED on ", tk, ": ", trade.ResultRetcodeDescription()); }
         }
      }
+   // Occasionally forget state of positions that no longer exist.
+   if(++g_protSweep % 300 == 0)
+      for(int g = GlobalVariablesTotal() - 1; g >= 0; g--)
+        {
+         string nm = GlobalVariableName(g);
+         string pre = StringSubstr(nm, 0, 4);
+         if(pre != "UFR_" && pre != "UFS_" && pre != "UFT_") continue;
+         if(!PositionSelectByTicket((ulong)StringToInteger(StringSubstr(nm, 4)))) GlobalVariableDel(nm);
+        }
   }
 
 void CheckCapTrail()
@@ -423,6 +491,7 @@ string BuildBody()
          first = false;
          double pl = HistoryDealGetDouble(d, DEAL_PROFIT) + HistoryDealGetDouble(d, DEAL_SWAP) + HistoryDealGetDouble(d, DEAL_COMMISSION);
          b += "{\"ticket\":\"" + IntegerToString(HistoryDealGetInteger(d, DEAL_POSITION_ID)) + "\",";
+         b += "\"deal\":\"" + IntegerToString((long)d) + "\",";
          b += "\"symbol\":\"" + Esc(HistoryDealGetString(d, DEAL_SYMBOL)) + "\",";
          b += "\"side\":\"" + (dtype == DEAL_TYPE_SELL ? "buy" : "sell") + "\",";
          b += "\"volume\":" + Num(HistoryDealGetDouble(d, DEAL_VOLUME), 2) + ",";
