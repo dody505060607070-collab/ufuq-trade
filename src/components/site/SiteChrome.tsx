@@ -10,6 +10,18 @@ import { useAuth } from "@/lib/auth";
 import { useBrokers } from "@/lib/trading";
 import { BrandMark } from "./Logo";
 import { BrandLogo, BrokerLogo, type LogoKey } from "@/components/app/InstrumentIcon";
+import fAnalysis from "@/assets/f-analysis.jpg";
+import fMulti from "@/assets/f-multiasset.jpg";
+import fRisk from "@/assets/f-risk.jpg";
+import fStrat from "@/assets/f-strategies.jpg";
+import fExec from "@/assets/f-execution.jpg";
+import fNotify from "@/assets/f-notify.jpg";
+import fBrain from "@/assets/f-brain.jpg";
+import fLock from "@/assets/f-profitlock.jpg";
+import mForex from "@/assets/m-forex.jpg";
+import mGold from "@/assets/m-gold.jpg";
+import mIndices from "@/assets/m-indices.jpg";
+import mComm from "@/assets/m-commodities.jpg";
 
 const NAV = [["/", "Home"], ["/features", "Features"], ["/markets", "Markets"], ["/pricing", "Pricing"], ["/about", "About"]] as const;
 
@@ -79,25 +91,26 @@ export function SectionHead({ tag, title, sub }: { tag: string; title: ReactNode
 }
 
 const features = [
-  { icon: Brain, t: "AI Market Analysis", d: "Real-time analysis of multiple markets using advanced AI models. Spot opportunities before they happen." },
-  { icon: Layers, t: "Multi-Asset Trading", d: "Trade forex, gold, crypto, indices, stocks and more — all in one powerful platform." },
-  { icon: Shield, t: "Smart Risk Management", d: "AI adjusts position sizes, stop loss and take profit based on market conditions and volatility." },
-  { icon: Sparkles, t: "Advanced Strategies", d: "ICT, smart money concepts, price action and trend strengths — combined by the AI." },
-  { icon: Bot, t: "Automated Execution", d: "The AI finds, analyzes and executes trades automatically, 24/7, without human intervention." },
-  { icon: Bell, t: "Real-Time Notifications", d: "Get instant updates on trades, signals, market movements and account events." },
-  { icon: FlaskConical, t: "Learns From Every Trade", d: "Every closed trade becomes a lesson. The AI Brain builds rules from wins and losses." },
-  { icon: SlidersHorizontal, t: "Profit Lock & Risk Slider", d: "Lock profits, rest after a target and choose your own risk level per trade." },
+  { icon: Brain, img: fAnalysis, t: "AI Market Analysis", d: "Real-time analysis of multiple markets using advanced AI models. Spot opportunities before they happen." },
+  { icon: Layers, img: fMulti, t: "Multi-Asset Trading", d: "Trade forex, gold, crypto, indices, stocks and more — all in one powerful platform." },
+  { icon: Shield, img: fRisk, t: "Smart Risk Management", d: "AI adjusts position sizes, stop loss and take profit based on market conditions and volatility." },
+  { icon: Sparkles, img: fStrat, t: "Advanced Strategies", d: "ICT, smart money concepts, price action and trend strengths — combined by the AI." },
+  { icon: Bot, img: fExec, t: "Automated Execution", d: "The AI finds, analyzes and executes trades automatically, 24/7, without human intervention." },
+  { icon: Bell, img: fNotify, t: "Real-Time Notifications", d: "Get instant updates on trades, signals, market movements and account events." },
+  { icon: FlaskConical, img: fBrain, t: "Learns From Every Trade", d: "Every closed trade becomes a lesson. The AI Brain builds rules from wins and losses." },
+  { icon: SlidersHorizontal, img: fLock, t: "Profit Lock & Risk Slider", d: "Lock profits, rest after a target and choose your own risk level per trade." },
 ];
 
 export function FeaturesGrid() {
   const t = useT();
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {features.map((f, i) => (
-        <div key={f.t} className="group relative rounded-2xl border border-border/70 bg-card/50 p-5 backdrop-blur transition hover:border-primary/60 hover:shadow-glow">
-          <span className="absolute end-4 top-4 text-[10px] text-primary-glow">0{i + 1}</span>
-          <div className="flex gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10"><f.icon className="h-5 w-5 text-primary-glow" /></span>
+        <div key={f.t} className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card/50 backdrop-blur transition hover:border-primary/60 hover:shadow-glow">
+          <img src={f.img} alt={t(f.t)} loading="lazy" width={1024} height={640} className="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-105" />
+          <span className="absolute end-3 top-3 rounded-full bg-background/80 px-2 py-0.5 text-[10px] text-primary-glow">0{i + 1}</span>
+          <div className="flex gap-3 p-5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10"><f.icon className="h-4 w-4 text-primary-glow" /></span>
             <div><p className="text-sm font-semibold">{t(f.t)}</p><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t(f.d)}</p></div>
           </div>
         </div>
@@ -106,14 +119,14 @@ export function FeaturesGrid() {
   );
 }
 
-type Market = { t: string; d: string; icon?: typeof Coins; logos?: LogoKey[] };
+type Market = { t: string; d: string; icon?: typeof Coins; logos?: LogoKey[]; img?: string };
 const markets: Market[] = [
-  { icon: DollarSign, t: "Forex", d: "Majors · Minors · Exotics" },
-  { icon: Coins, t: "Gold & Silver", d: "XAUUSD · XAGUSD" },
+  { icon: DollarSign, img: mForex, t: "Forex", d: "Majors · Minors · Exotics" },
+  { icon: Coins, img: mGold, t: "Gold & Silver", d: "XAUUSD · XAGUSD" },
   { logos: ["btc", "eth", "sol"], t: "Cryptocurrencies", d: "BTC · ETH · SOL" },
-  { icon: LineChart, t: "Indices", d: "US30 · NAS100 · SP500" },
+  { icon: LineChart, img: mIndices, t: "Indices", d: "US30 · NAS100 · SP500" },
   { logos: ["apple", "tesla", "nvidia"], t: "Stocks", d: "AAPL · TSLA · NVDA" },
-  { icon: Droplet, t: "Commodities", d: "Oil · Gas" },
+  { icon: Droplet, img: mComm, t: "Commodities", d: "Oil · Gas" },
 ];
 
 export function MarketsGrid() {
@@ -121,12 +134,16 @@ export function MarketsGrid() {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {markets.map((m) => (
-        <div key={m.t} className="rounded-2xl border border-border/70 bg-card/50 p-5 text-center transition hover:-translate-y-1 hover:border-primary/60">
-          {m.logos ? (
-            <div className="mx-auto flex h-14 items-center justify-center -space-x-3 rtl:space-x-reverse">{m.logos.map((l) => <BrandLogo key={l} name={l} className="h-10 w-10 ring-2 ring-background" />)}</div>
-          ) : m.icon && <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 shadow-glow"><m.icon className="h-6 w-6 text-primary-glow" /></span>}
-          <p className="mt-4 text-sm font-semibold">{t(m.t)}</p>
-          <p className="mt-1 text-[10px] text-muted-foreground">{m.d}</p>
+        <div key={m.t} className="overflow-hidden rounded-2xl border border-border/70 bg-card/50 text-center transition hover:-translate-y-1 hover:border-primary/60">
+          {m.img ? (
+            <img src={m.img} alt={t(m.t)} loading="lazy" width={944} height={704} className="aspect-[4/3] w-full object-cover" />
+          ) : (
+            <div className="flex aspect-[4/3] items-center justify-center -space-x-3 bg-primary/5 rtl:space-x-reverse">{m.logos?.map((l) => <BrandLogo key={l} name={l} className="h-10 w-10 ring-2 ring-background" />)}</div>
+          )}
+          <div className="p-4">
+            <p className="text-sm font-semibold">{t(m.t)}</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">{m.d}</p>
+          </div>
         </div>
       ))}
     </div>
