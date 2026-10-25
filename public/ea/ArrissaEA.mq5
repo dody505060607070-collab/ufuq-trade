@@ -266,14 +266,13 @@ bool InTradeSession(string sym)
    if(mode == SYMBOL_TRADE_MODE_DISABLED || mode == SYMBOL_TRADE_MODE_CLOSEONLY) return false;
    MqlDateTime dt; TimeToStruct(TimeTradeServer(), dt);
    long secs = dt.hour * 3600 + dt.min * 60 + dt.sec;
-   datetime from, to; bool any = false;
+   datetime from, to;
    for(uint i = 0; i < 10; i++)
      {
       if(!SymbolInfoSessionTrade(sym, (ENUM_DAY_OF_WEEK)dt.day_of_week, i, from, to)) break;
-      any = true;
       if(secs >= (long)from && secs < (long)to) return true;
      }
-   return !any && mode == SYMBOL_TRADE_MODE_FULL ? false : false;
+   return false;   // no session covers now (or none defined for today)
   }
 
 void ExecuteCmd(string &f[])
