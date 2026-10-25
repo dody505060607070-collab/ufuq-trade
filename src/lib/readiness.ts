@@ -46,6 +46,6 @@ export function reconcile(i: { commands: Cmd[]; trades: Trade[]; account: Acc; n
   const open = i.trades.filter((t) => t.status === "open");
   const snap = i.account.last_snapshot_at ?? i.account.last_seen_at;
   if (open.length && (!snap || nowMs - new Date(snap).getTime() > 10 * 60_000)) out.push(`${open.length} open position(s) not confirmed by MT5 for over 10 minutes`);
-  for (const t of i.trades) if (t.status === "closed" && t.closed_volume != null && t.closed_volume > 0 && t.closed_volume + 1e-6 < Number(t.volume) * 0.5) out.push(`Position #${t.ticket} closed with less volume recorded than opened - deals may be missing`);
+  for (const t of i.trades) if (t.status === "closed" && t.closed_volume != null && t.closed_volume > 0 && t.closed_volume + 1e-6 < Number(t.volume)) out.push(`Position #${t.ticket} closed with less volume recorded than opened - deals may be missing`);
   return out;
 }
