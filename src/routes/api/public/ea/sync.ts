@@ -4,6 +4,7 @@ import { defined } from "@/lib/utils";
 import { fallbackDealId, summarizeDeals } from "@/lib/deals";
 import { canApplyResult, mapEaStatus, snapshotUsable } from "@/lib/execution";
 import { MIN_RR } from "@/lib/signal-guard";
+import { validBar } from "@/lib/candles";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +40,8 @@ const body = z.object({
   }).optional(),
   positions: z.array(position).max(500).optional(),
   closed: z.array(position).max(500).optional(),
+  // EA 1.41+: opening commissions charged on entry deals.
+  fees: z.array(z.object({ ticket: z.union([z.string(), z.number()]).transform(String), deal: z.union([z.string(), z.number()]).transform(String), symbol: z.string().max(30), commission: z.number(), at: z.string().nullable().optional() })).max(500).optional(),
   results: z.array(z.object({ id: z.string().uuid(), status: z.enum(["done", "failed", "partial", "unknown", "expired"]), result: z.string().max(500).optional(), filled: z.number().int().min(0).max(200).optional() })).max(200).optional(),
   // EA 1.40+: identity, protocol and snapshot metadata. Older EAs omit it and keep the legacy behaviour.
   meta: z.object({
@@ -50,7 +53,7 @@ const body = z.object({
     symbol: z.string().max(20),
     broker_symbol: z.string().max(30).optional(),
     bid: z.number().optional(), ask: z.number().optional(), spread: z.number().int().optional(),
-    point: z.number().optional(), tick_value: z.number().optional(), contract_size: z.number().optional(), min_lot: z.number().optional(), max_lot: z.number().optional(), lot_step: z.number().optional(), quote_time: z.number().optional(),
+    point: z.number().optional(), tick_value: z.number().optional(), contract_size: z.number().optional(), min_lot: z.number().optional(), max_lot: z.number().optional(), lot_step: z.number().optional(), quote_time: z.number().optional(), trade_allowed: z.boolean().optional(),
     candles: z.record(z.enum(["M5", "M15", "H1", "H4", "D1"]), z.array(z.tuple([z.number(), z.number(), z.number(), z.number(), z.number(), z.number()])).max(300)).optional(),
   })).max(5).optional(),
 });
@@ -107,9 +110,11 @@ export const Route = createFileRoute("/api/public/ea/sync")({
 
         for (const m of p.market ?? []) {
           const sym = m.symbol.toUpperCase();
-          await db.from("broker_quotes").upsert({ account_id: acc.id, user_id: acc.user_id, symbol: sym, broker_symbol: m.broker_symbol ?? null, bid: m.bid ?? null, ask: m.ask ?? null, spread_points: m.spread ?? null, point: m.point ?? null, tick_value: m.tick_value ?? null, contract_size: m.contract_size ?? null, min_lot: m.min_lot ?? null, max_lot: m.max_lot ?? null, lot_step: m.lot_step ?? null, quote_time: m.quote_time ? new Date(m.quote_time).toISOString() : null, updated_at: now }, { onConflict: "account_id,symbol" });
+          await db.from("broker_quotes").upsert({ account_id: acc.id, user_id: acc.user_id, symbol: sym, broker_symbol: m.broker_symbol ?? null, bid: m.bid ?? null, ask: m.ask ?? null, spread_points: m.spread ?? null, point: m.point ?? null, tick_value: m.tick_value ?? null, contract_size: m.contract_size ?? null, min_lot: m.min_lot ?? null, max_lot: m.max_lot ?? null, lot_step: m.lot_step ?? null, quote_time: m.quote_time ? new Date(m.quote_time).toISOString() : null, trade_allowed: m.trade_allowed ?? null, updated_at: now }, { onConflict: "account_id,symbol" });
           for (const [tf, rows] of Object.entries(m.candles ?? {})) {
-            if (rows?.length) await db.from("broker_candles").upsert(rows.map(([t, o, h, l, c, sp]) => ({ account_id: acc.id, user_id: acc.user_id, symbol: sym, timeframe: tf, t, o, h, l, c, spread: Math.round(sp) })), { onConflict: "account_id,symbol,timeframe,t" });
+            // Malformed bars (bad OHLC, zero prices) are dropped instead of polluting the analysis.
+            const good = (rows ?? []).filter(([t, o, h, l, c]) => validBar({ t, o, h, l, c }));
+            if (good.length) await db.from("broker_candles").upsert(good.map(([t, o, h, l, c, sp]) => ({ account_id: acc.id, user_id: acc.user_id, symbol: sym, timeframe: tf, t, o, h, l, c, spread: Math.round(sp) })), { onConflict: "account_id,symbol,timeframe,t" });
           }
         }
 
@@ -121,6 +126,13 @@ export const Route = createFileRoute("/api/public/ea/sync")({
           const { error: dErr } = await db.from("trade_deals").upsert(rows, { onConflict: "account_id,deal_ticket", ignoreDuplicates: true });
           if (dErr) return fail("could not save deals", 500);
           for (const r of rows) { affected.add(r.position_ticket); dealSide.set(r.position_ticket, { symbol: r.symbol, side: r.side }); }
+        }
+        if (p.fees?.length) {
+          // Entry commissions: volume 0 so they count in realised/daily P/L but never close a position.
+          const rows = p.fees.map((f) => ({ account_id: acc.id, user_id: acc.user_id, deal_ticket: f.deal, position_ticket: f.ticket, symbol: f.symbol, side: "fee", volume: 0, price: null, profit: f.commission, closed_at: f.at ?? now, kind: "entry_fee" }));
+          const { error: fErr } = await db.from("trade_deals").upsert(rows, { onConflict: "account_id,deal_ticket", ignoreDuplicates: true });
+          if (fErr) return fail("could not save fees", 500);
+          for (const r of rows) affected.add(r.position_ticket);
         }
         const live = new Set((p.positions ?? []).map((x) => x.ticket));
         // A late (older) snapshot must not overwrite newer state; a partial one must not close positions.
