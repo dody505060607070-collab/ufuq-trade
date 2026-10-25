@@ -13,6 +13,7 @@ import { useT, HelpNote } from "@/lib/i18n";
 import { useAccounts, useInstruments, isOnline, timeAgo } from "@/lib/trading";
 import { cn } from "@/lib/utils";
 import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton";
+import { HealthCheck } from "@/components/app/HealthCheck";
 import { Slider } from "@/components/ui/slider";
 import { lotForRisk, riskForLot, riskLevel, dollarsPerMove, RISK_MIN, RISK_MAX, RISK_RECOMMENDED, TYPICAL_GOLD_STOP } from "@/lib/risk";
 import { DEFAULT_TRADE_LOT, validAutopilotLot } from "@/lib/lot-settings";
@@ -94,6 +95,8 @@ function AutoPilot() {
           <div className="flex items-center gap-3"><RestartAutopilotButton /><Switch checked={s.enabled} onCheckedChange={(v) => void save({ enabled: v })} aria-label={t("Auto-Pilot")} /></div>
         </div>
       </Card>
+
+      <HealthCheck enabled={s.enabled} shadow={s.shadow_mode} symbols={s.symbols} accounts={accounts.data ?? []} />
 
       <LiveMonitor enabled={s.enabled && autoAccounts.length > 0} events={events.data ?? []} accountIds={autoAccounts.map((a) => a.id)} />
 
