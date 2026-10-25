@@ -65,5 +65,11 @@ export function lotProblem(lot: number, spec: { min?: number | null; max?: numbe
   return null;
 }
 
+/** The broker said its trading session is closed (fresh quote only; unknown never blocks). */
+export function sessionBlocked(q: { trade_allowed?: boolean | null; updated_at?: string | null } | null | undefined, nowMs: number): boolean {
+  if (!q || q.trade_allowed !== false || !q.updated_at) return false;
+  return nowMs - new Date(q.updated_at).getTime() < 10 * 60_000;
+}
+
 export const PROTOCOL_VERSION = 2;
 export const MIN_PROTOCOL_FOR_AUTOPILOT = 2;

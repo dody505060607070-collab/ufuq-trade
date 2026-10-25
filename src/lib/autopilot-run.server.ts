@@ -1,6 +1,6 @@
 import { skipReason } from "@/lib/autopilot";
 import { pauseReason } from "@/lib/profitlock";
-import { executionsOf, reservedExecutions, marketClosed, dayPnlFromDeals, MIN_PROTOCOL_FOR_AUTOPILOT } from "@/lib/execution";
+import { executionsOf, reservedExecutions, marketClosed, dayPnlFromDeals, sessionBlocked, MIN_PROTOCOL_FOR_AUTOPILOT } from "@/lib/execution";
 import { GEMINI_MODEL } from "@/lib/signal-guard";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -34,7 +34,15 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
   // Market hours are per symbol: weekend close stops FX/metals but not crypto.
   const now = new Date();
   const pairs = [...new Set(users.flatMap((u) => u.symbols.filter((s) => !marketClosed(s, now)).map((s) => `${s}|${u.timeframe}`)))].slice(0, 12);
-  if (!pairs.length) return { ok: true, users: 0, queued: 0, closed: true };
+  if (!pairs.length) {
+    // Say why nothing happens (once every 6 hours per user) instead of staying silent all weekend.
+    const since = new Date(Date.now() - 6 * 3600_000).toISOString();
+    for (const u of users) {
+      const { data: last } = await db.from("autopilot_events").select("id").eq("user_id", u.user_id).eq("action", "skipped").like("detail", "Market closed%").gte("created_at", since).limit(1);
+      if (!last?.length) await db.from("autopilot_events").insert({ user_id: u.user_id, symbol: "-", action: "skipped", detail: "Market closed - Auto-Pilot resumes when gold/FX reopen (Sunday 22:00 UTC)" });
+    }
+    return { ok: true, users: 0, queued: 0, closed: true };
+  }
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
   const news = new Map<string, boolean>();
   const owner = users[0]!.user_id;
@@ -106,6 +114,7 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
         if (!why && (acc.protocol_version ?? 0) < MIN_PROTOCOL_FOR_AUTOPILOT) why = "EA is too old for automatic trading - install EA 1.40";
         if (!why && acc.margin_mode === "netting") why = "Netting accounts are not supported for automatic trading";
         const q = quotes.find((x) => x.account_id === acc.id && x.symbol === sym);
+        if (!why && sessionBlocked(q, Date.now())) why = "Broker trading session is closed for this symbol";
         const bc = await brokerCandles(db, sym, u.timeframe, 40, acc.id).catch(() => null);
         const accPnl = dayPnlFromDeals((deals ?? []).filter((t) => t.account_id === acc.id), dayIso);
         const priceAt = q?.quote_time ?? q?.updated_at;

@@ -1,3 +1,4 @@
+import { candleProblem } from "@/lib/candles";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -42,15 +43,16 @@ export async function getCached(admin: DB, symbol: string, timeframe: string) {
 
 /** Broker candles sent by the MT5 EA, when fresh (last bar within 3 bar-lengths); null → use Yahoo. */
 export async function brokerCandles(db: DB, symbol: string, timeframe: string, limit: number, accountId?: string) {
-  const sec: Record<string, number> = { M5: 300, M15: 900, H1: 3600, H4: 14400, D1: 86400 };
   let q = db.from("broker_candles").select("t,o,h,l,c,account_id").eq("symbol", symbol).eq("timeframe", timeframe);
   if (accountId) q = q.eq("account_id", accountId);
   const { data } = await q.order("t", { ascending: false }).limit(limit * 3);
   if (!data?.length) return null;
   const acc = data[0]!.account_id;
-  const rows = data.filter((r) => r.account_id === acc).slice(0, limit).reverse();
-  if (Date.now() / 1000 - rows[rows.length - 1]!.t > 3 * (sec[timeframe] ?? 3600) + 600) return null;
-  return rows.length >= Math.min(30, limit) ? rows.map((r) => ({ t: r.t, o: r.o, h: r.h, l: r.l, c: r.c })) : null;
+  const rows = data.filter((r) => r.account_id === acc).slice(0, limit).reverse().map((r) => ({ t: Number(r.t), o: r.o, h: r.h, l: r.l, c: r.c }));
+  // Invalid, gappy, frozen or stale broker data falls back to Yahoo.
+  const why = candleProblem(rows, timeframe, Date.now() / 1000, Math.min(30, limit));
+  if (why) { console.warn("broker candles rejected", symbol, timeframe, why); return null; }
+  return rows;
 }
 
 /** Fresh AI analysis from live candles, calendar and headlines. userId=null → shared market-only analysis (no personal trades or rules). */

@@ -272,6 +272,7 @@ export type Database = {
           spread_points: number | null
           symbol: string
           tick_value: number | null
+          trade_allowed: boolean | null
           updated_at: string
           user_id: string
         }
@@ -289,6 +290,7 @@ export type Database = {
           spread_points?: number | null
           symbol: string
           tick_value?: number | null
+          trade_allowed?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -306,6 +308,7 @@ export type Database = {
           spread_points?: number | null
           symbol?: string
           tick_value?: number | null
+          trade_allowed?: boolean | null
           updated_at?: string
           user_id?: string
         }
@@ -815,6 +818,7 @@ export type Database = {
           created_at: string
           deal_ticket: string
           id: string
+          kind: string
           position_ticket: string
           price: number | null
           profit: number
@@ -829,6 +833,7 @@ export type Database = {
           created_at?: string
           deal_ticket: string
           id?: string
+          kind?: string
           position_ticket: string
           price?: number | null
           profit?: number
@@ -843,6 +848,7 @@ export type Database = {
           created_at?: string
           deal_ticket?: string
           id?: string
+          kind?: string
           position_ticket?: string
           price?: number | null
           profit?: number

@@ -22,7 +22,7 @@
 
 # Current request
 - [x] Use 0.02 for new account/settings forms and save lot edits when leaving the field.
-- [ ] Update and verify the requesting user's existing lot — blocked: no matching authenticated account; user must sign in.
+- [x] Existing lot is 0.02 on the owner's Auto-Pilot settings.
 - [x] Add OAuth-only read-only assistant tools, consent, revocation, and browser-local settings read.
 - [ ] Verify approved/denied OAuth flow with real assistant — blocked: requesting user session and external OAuth client required; republish needed.
 - [x] Run basic security review, harden redirect handling, and verify anonymous MCP requests are refused.
@@ -32,3 +32,15 @@
 - [x] Live-price risk, command lifecycle/expiry/unknown, executor ownership, owner lease, deal-based daily P/L, snapshot safety, shadow mode, EA 1.40 source, compile script, demo plan, report.
 - [ ] Compile EA 1.40 — blocked: needs Windows VPS with MetaEditor (user runs compile-ea.ps1).
 - [ ] Demo tests after market open — blocked: market closed, admin-supervised.
+
+# Deferred items (Oct 25)
+- [x] Opening commissions in P/L (EA 1.41 fees + entry_fee deals)
+- [x] Broker session hours per symbol (EA reports, Auto-Pilot and EA both block)
+- [x] Broker candle validation (fallback to Yahoo)
+- [x] Automatic comparison with MT5 + "why not trading" health check
+- [x] Load test: 40 parallel syncs, each order delivered once, second EA refused
+- [x] Market-closed message instead of silence
+- [ ] Install/compile EA 1.41 on VPS — blocked: user's Windows VPS
+- [ ] Re-enable Auto-Pilot for owner — blocked: owner decision (it is switched off)
+- [ ] Demo test after market open — blocked: market closed until Sunday 22:00 UTC
+
