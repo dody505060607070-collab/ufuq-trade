@@ -6,7 +6,7 @@
 //|    enable Algo Trading.                                          |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.40"
+#property version   "1.41"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -35,7 +35,7 @@ bool     g_warned = false;
 int      g_syncCount = 0;
 string   g_executor = "";     // unique id of this EA instance (account ownership on the server)
 bool     g_execAllowed = true; // false while the server says another instance owns this account
-#define  EA_VERSION "1.40"
+#define  EA_VERSION "1.41"
 #define  PROTOCOL   2
 input string InpDataSymbol  = "XAUUSD";                                        // Symbol whose broker data is sent for analysis
 input bool   InpProtect     = true;                                            // Auto-protect trades: half close + breakeven at 1R, trail after 1.5R
@@ -259,6 +259,23 @@ void Execute(string &f[])
    CmdMark(id, ok ? 2 : 3);
   }
 
+// Is the broker's trading session open for this symbol right now (broker server time)?
+bool InTradeSession(string sym)
+  {
+   long mode = SymbolInfoInteger(sym, SYMBOL_TRADE_MODE);
+   if(mode == SYMBOL_TRADE_MODE_DISABLED || mode == SYMBOL_TRADE_MODE_CLOSEONLY) return false;
+   MqlDateTime dt; TimeToStruct(TimeTradeServer(), dt);
+   long secs = dt.hour * 3600 + dt.min * 60 + dt.sec;
+   datetime from, to; bool any = false;
+   for(uint i = 0; i < 10; i++)
+     {
+      if(!SymbolInfoSessionTrade(sym, (ENUM_DAY_OF_WEEK)dt.day_of_week, i, from, to)) break;
+      any = true;
+      if(secs >= (long)from && secs < (long)to) return true;
+     }
+   return !any && mode == SYMBOL_TRADE_MODE_FULL ? false : false;
+  }
+
 void ExecuteCmd(string &f[])
   {
    string id = f[1], cmd = f[2], symIn = f[3], side = f[4], otype = f[5];
@@ -275,6 +292,7 @@ void ExecuteCmd(string &f[])
       if(sym == "") { PushResult(id, false, "Symbol " + symIn + " not found at this broker"); return; }
       if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED) || !MQLInfoInteger(MQL_TRADE_ALLOWED)) { PushResult(id, false, "Algo Trading is disabled in MT5"); return; }
       if(lot <= 0) { PushResult(id, false, "Missing lot size"); return; }
+      if(otype == "market" && !InTradeSession(sym)) { PushResult(id, false, "Broker trading session is closed for " + sym + " - not sent"); return; }
       double want = lot;
       lot = NormLot(sym, lot);
       if(lot <= 0 || MathAbs(lot - want) > SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP) / 2) { PushResult(id, false, "Lot " + Num(want, 2) + " does not match broker min/max/step - rejected (never rounded up)"); return; }
@@ -552,6 +570,7 @@ string MarketJson()
    m += "\"max_lot\":" + Num(SymbolInfoDouble(sym, SYMBOL_VOLUME_MAX), 2) + ",\"lot_step\":" + Num(SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP), 4) + ",";
    long qt = (long)SymbolInfoInteger(sym, SYMBOL_TIME) - (long)MathRound((TimeTradeServer() - TimeGMT()) / 1800.0) * 1800;
    m += "\"quote_time\":" + IntegerToString(qt) + "000,";
+   m += "\"trade_allowed\":" + (InTradeSession(sym) ? "true" : "false") + ",";
    m += "\"candles\":{\"M5\":" + CandlesJson(sym, PERIOD_M5, 120) + ",\"M15\":" + CandlesJson(sym, PERIOD_M15, 120) + ",\"H1\":" + CandlesJson(sym, PERIOD_H1, 120) + ",\"H4\":" + CandlesJson(sym, PERIOD_H4, 100) + ",\"D1\":" + CandlesJson(sym, PERIOD_D1, 60) + "}}";
    return m;
   }
@@ -592,9 +611,10 @@ string BuildBody()
    string mm = mmode == ACCOUNT_MARGIN_MODE_RETAIL_HEDGING ? "hedging" : (mmode == ACCOUNT_MARGIN_MODE_RETAIL_NETTING ? "netting" : "exchange");
    b += "\"meta\":{\"ea_version\":\"" + EA_VERSION + "\",\"protocol\":" + IntegerToString(PROTOCOL) + ",\"executor\":\"" + Esc(g_executor) + "\",";
    b += "\"snapshot_at\":" + IntegerToString((long)TimeGMT()) + "000,\"positions_ok\":" + (posOk && PositionsTotal() == total ? "true" : "false") + ",\"margin_mode\":\"" + mm + "\",";
-   b += "\"capabilities\":[\"expiry\",\"guard\",\"subtags\",\"partial\",\"unknown\"]},";
+   b += "\"capabilities\":[\"expiry\",\"guard\",\"subtags\",\"partial\",\"unknown\",\"fees\",\"session\"]},";
 
    b += "\"closed\":[";
+   string fees = "";
    bool first = true;
    g_histNext = 0;
    if(HistorySelect(g_lastHistory, TimeCurrent() + 60))
@@ -608,6 +628,18 @@ string BuildBody()
          // Pages of 300: the window resumes from the last sent deal next time instead of dropping the rest.
          if(sent >= 300) { g_histNext = (datetime)HistoryDealGetInteger(d, DEAL_TIME) - 1; break; }
          long entry = HistoryDealGetInteger(d, DEAL_ENTRY);
+         if(entry == DEAL_ENTRY_IN)
+           {
+            // Opening commission is charged on the entry deal; report it so daily P/L is not overstated.
+            double fee = HistoryDealGetDouble(d, DEAL_COMMISSION);
+            if(fee != 0)
+              {
+               if(fees != "") fees += ",";
+               fees += "{\"ticket\":\"" + IntegerToString(HistoryDealGetInteger(d, DEAL_POSITION_ID)) + "\",\"deal\":\"" + IntegerToString((long)d) + "\",";
+               fees += "\"symbol\":\"" + Esc(HistoryDealGetString(d, DEAL_SYMBOL)) + "\",\"commission\":" + Num(fee, 2) + ",\"at\":\"" + Iso((datetime)HistoryDealGetInteger(d, DEAL_TIME)) + "\"}";
+              }
+            continue;
+           }
          if(entry != DEAL_ENTRY_OUT && entry != DEAL_ENTRY_OUT_BY) continue;
          long dtype = HistoryDealGetInteger(d, DEAL_TYPE);
          if(dtype != DEAL_TYPE_BUY && dtype != DEAL_TYPE_SELL) continue;
@@ -624,7 +656,7 @@ string BuildBody()
          b += "\"closed_at\":\"" + Iso((datetime)HistoryDealGetInteger(d, DEAL_TIME)) + "\"}";
         }
      }
-   b += "],";
+   b += "],\"fees\":[" + fees + "],";
 
    b += "\"results\":[";
    for(int i = 0; i < ArraySize(g_results); i++) { if(i > 0) b += ","; b += g_results[i]; }
