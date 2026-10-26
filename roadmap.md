@@ -34,6 +34,9 @@
 - [ ] Demo tests after market open — blocked: market closed, admin-supervised.
 
 # Deferred items (Oct 25)
+- [ ] Review five-minute cadence, choose M15 for owner with confidence 60%, and preserve capital safety.
+- [ ] Audit simultaneous opportunities, personal AI learning, GitHub references, and improve Auto-Pilot monitoring.
+- [ ] Verify owner settings and visible Brain/Auto-Pilot flows; report external MT5 limitations.
 - [x] Opening commissions in P/L (EA 1.41 fees + entry_fee deals)
 - [x] Broker session hours per symbol (EA reports, Auto-Pilot and EA both block)
 - [x] Broker candle validation (fallback to Yahoo)
