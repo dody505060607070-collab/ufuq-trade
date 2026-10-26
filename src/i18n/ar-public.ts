@@ -210,6 +210,7 @@ export const AR_PUBLIC: Record<string, string> = {
   "Autonomous": "آليًا بالكامل",
   "Our AI analyzes the global markets, finds high-probability opportunities, and executes trades — automatically. 24/7. No emotions. Just logic.": "ذكاؤنا الاصطناعي يحلل الأسواق العالمية، ويجد الفرص الأعلى احتمالًا، وينفّذ الصفقات تلقائيًا. 24/7. بدون عواطف. منطق فقط.",
   "10 min": "10 دقائق",
+  "5 min": "5 دقائق",
   "AI analysis cycle": "دورة تحليل AI",
   "Auto Trading": "تداول آلي",
   "AI experts": "خبراء AI",
