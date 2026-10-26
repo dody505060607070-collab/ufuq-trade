@@ -199,7 +199,7 @@ function Dashboard() {
           <Tip label={onlyCurrent ? t("Showing current instrument only") : t("Show current instrument only")} side="bottom">
             <button onClick={() => setOnlyCurrent((v) => !v)} className={cn("flex h-10 items-center justify-center gap-1.5 rounded-lg border border-border text-sm", onlyCurrent && "border-primary text-primary-glow")}><ListFilter className="h-4 w-4" />{t("Filter")}</button>
           </Tip>
-          <Tip label={auto ? t("Auto analysis every 10 min: ON") : t("Auto analysis every 10 min: OFF")} side="bottom">
+          <Tip label={auto ? t("Auto analysis every 5 min: ON") : t("Auto analysis every 5 min: OFF")} side="bottom">
             <button onClick={toggleAuto} className={cn("flex h-10 items-center justify-center gap-1.5 rounded-lg border text-sm", auto ? "border-success bg-success/15 text-success" : "border-border")}><Clock className="h-4 w-4" />{t("Auto analysis")}</button>
           </Tip>
         </div>

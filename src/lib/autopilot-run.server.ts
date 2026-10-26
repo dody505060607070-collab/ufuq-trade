@@ -17,8 +17,15 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   if ((d === 5 && h >= 21) || d === 6 || (d === 0 && h < 22)) return { ok: true, users: 0, queued: 0, closed: true };
   let sq = db.from("autopilot_settings").select("*").eq("enabled", true);
   if (onlyUser) sq = sq.eq("user_id", onlyUser);
-  const { data: users } = await sq;
-  if (!users?.length) return { ok: true, users: 0, queued: 0 };
+  const { data: all } = await sq;
+  // Only analyse for users with a live MT5 account (seen in the last 5 min) and auto trading on — saves AI calls.
+  const liveSince = new Date(Date.now() - 5 * 60_000).toISOString();
+  const { data: liveAccs } = all?.length
+    ? await db.from("trading_accounts").select("user_id").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
+    : { data: [] as { user_id: string }[] };
+  const liveUsers = new Set((liveAccs ?? []).map((a) => a.user_id));
+  const users = (all ?? []).filter((u) => liveUsers.has(u.user_id));
+  if (!users.length) return { ok: true, users: 0, queued: 0 };
   // One analysis per symbol/timeframe, shared by all users.
   const pairs = [...new Set(users.flatMap((u) => u.symbols.map((s) => `${s}|${u.timeframe}`)))].slice(0, 12);
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();

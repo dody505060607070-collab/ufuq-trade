@@ -63,7 +63,7 @@ function Landing() {
             </h1>
             <p className="mt-5 max-w-lg text-base text-muted-foreground">{t("Our AI analyzes the global markets, finds high-probability opportunities, and executes trades — automatically. 24/7. No emotions. Just logic.")}</p>
             <div className="mt-8 grid max-w-lg grid-cols-2 gap-5 sm:grid-cols-4">
-              {[[Clock, "10 min", "AI analysis cycle"], [BarChart3, "24/7", "Auto Trading"], [Layers, "6", "AI experts"], [Server, "VPS", "Cloud Hosted"]].map(([I, v, l]) => {
+              {[[Clock, "5 min", "AI analysis cycle"], [BarChart3, "24/7", "Auto Trading"], [Layers, "6", "AI experts"], [Server, "VPS", "Cloud Hosted"]].map(([I, v, l]) => {
                 const Icon = I as typeof Clock;
                 return <div key={l as string} className="flex items-center gap-2.5"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10"><Icon className="h-4 w-4 text-primary-glow" /></span><div><p className="text-lg font-bold leading-none">{t(v as string)}</p><p className="mt-1 text-[11px] text-muted-foreground">{t(l as string)}</p></div></div>;
               })}
