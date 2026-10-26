@@ -61,8 +61,34 @@ export function priceActionText(bars: Bar[], daily: Bar[], dec: number): string 
   return [
     `Last candle pattern: ${candlePattern(bars) ?? "none"}`,
     `Displacement (last 3 bars): ${disp ?? "none"}`,
+    `Climax reversal (sharp run then rejection candle): ${climaxReversal(bars) ?? "none"} — when present this is a high-value counter-move entry (buy after a capitulation drop, sell after an exhausted spike); stop beyond the climax extreme, target the run's midpoint or start`,
     `Liquidity pools: BSL (equal highs) ${pools.bsl != null ? f(pools.bsl) : "none"}; SSL (equal lows) ${pools.ssl != null ? f(pools.ssl) : "none"} — price often sweeps these before reversing`,
     d ? `Daily (higher timeframe) bias: ${d.bias}; previous day was ${d.prevDay}; previous day high ${f(d.pdh)}, low ${f(d.pdl)} — trade WITH the daily bias unless a sweep + CHoCH confirms reversal` : "Daily context: unavailable",
     d ? `Previous-day sweep: ${pdSweep(bars, d.pdh, d.pdl) ?? "none"} — high-probability when it agrees with the previous day's direction (bullish day + PDL sweep = buy, bearish day + PDH sweep = sell)` : "Previous-day sweep: unavailable",
   ].join("\n");
+}
+
+/**
+ * M15 climax reversal: a strong one-way run (>= `mult` x ATR over the last `look` bars)
+ * that ends with a rejection candle in the opposite direction. Catches "sharp drop then
+ * snap back up" (buy) and "sharp spike then rejection" (sell) that trend filters miss.
+ */
+export function climaxReversal(bars: Bar[], look = 8, mult = 3): "buy" | "sell" | null {
+  if (bars.length < look + 15) return null;
+  const tr = bars.slice(-look - 15, -look).map((b) => b.h - b.l);
+  const avgRange = tr.reduce((s, v) => s + v, 0) / tr.length;
+  if (avgRange <= 0) return null;
+  const run = bars.slice(-look - 1, -1);
+  const c = bars[bars.length - 1]!;
+  const runHigh = Math.max(...run.map((b) => b.h)), runLow = Math.min(...run.map((b) => b.l));
+  const startC = run[0]!.o, endC = run[run.length - 1]!.c;
+  const body = Math.abs(c.c - c.o), range = c.h - c.l || 1e-9;
+  const upper = c.h - Math.max(c.o, c.c), lower = Math.min(c.o, c.c) - c.l;
+  // sell climax -> bullish rejection
+  if (startC - endC >= mult * avgRange && c.l <= runLow + 0.25 * avgRange && c.c > c.o &&
+      (lower >= 1.5 * body || c.c >= run[run.length - 1]!.o) && c.c - c.l >= 0.5 * range) return "buy";
+  // buy climax -> bearish rejection
+  if (endC - startC >= mult * avgRange && c.h >= runHigh - 0.25 * avgRange && c.c < c.o &&
+      (upper >= 1.5 * body || c.c <= run[run.length - 1]!.o) && c.h - c.c >= 0.5 * range) return "sell";
+  return null;
 }
