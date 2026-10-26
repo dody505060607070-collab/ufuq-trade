@@ -82,7 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Ufuq Trade — AI Trading Signals for MT5" },
-      { name: "description", content: "Ufuq Trade trades gold and forex on MetaTrader 5 for you: AI market analysis every 10 minutes, Auto-Pilot execution, profit lock and smart risk control." },
+      { name: "description", content: "Ufuq Trade trades gold and forex on MetaTrader 5 for you: AI market analysis every 5 minutes, Auto-Pilot execution, profit lock and smart risk control." },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Ufuq Trade" },
       { name: "twitter:card", content: "summary_large_image" },

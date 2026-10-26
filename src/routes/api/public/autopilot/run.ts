@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 
-/** Scheduled every 10 minutes: runs one Auto-Pilot cycle for all enabled users. */
+/** Scheduled every 5 minutes: runs one Auto-Pilot cycle for all enabled users. */
 export const Route = createFileRoute("/api/public/autopilot/run")({
   server: {
     handlers: {
