@@ -39,7 +39,7 @@ export function LiveStatusBar() {
   const lastSeen = accs.map((a) => a.last_seen_at).filter(Boolean).sort().pop();
   const enabled = !!settings.data?.enabled;
   const closed = marketClosed(new Date(now));
-  const next = Math.ceil((now + 1) / 600_000) * 600_000;
+  const next = Math.ceil((now + 1) / 300_000) * 300_000;
   const left = Math.max(0, Math.floor((next - now) / 1000));
   const mm = String(Math.floor(left / 60)).padStart(2, "0"), ss = String(left % 60).padStart(2, "0");
   const ev = last.data;
