@@ -37,7 +37,7 @@ function EaConfig() {
     void qc.invalidateQueries({ queryKey: ["ea-creds"] });
   };
 
-  const fileUrl = ea.data?.file_url || "/ea/ArrissaEA.mq5";
+  const fileUrl = ea.data?.file_url || "/ea/ArrissaEA.mq5?v=1.30";
   const isSource = !ea.data?.file_url;
 
   return (
