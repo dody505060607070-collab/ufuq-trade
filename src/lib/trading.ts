@@ -98,7 +98,7 @@ export async function queueCommand(accounts: Account[], command: CommandName, pa
   }
   const offline = accounts.filter((a) => !isOnline(a)).length;
   toast.success(`${COMMANDS[command]} sent to ${accounts.length} account(s).`, {
-    description: offline ? `${offline} account(s) EA offline — market orders run only if the EA reconnects within 10 minutes.` : undefined,
+    description: offline ? `${offline} account(s) EA offline — will run when the EA reconnects.` : undefined,
   });
   return true;
 }

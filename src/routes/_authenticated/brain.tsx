@@ -12,12 +12,11 @@ import { useT } from "@/lib/i18n";
 import { hourStats } from "@/lib/brain";
 import { fmt, isOnline, useAccounts } from "@/lib/trading";
 import { cn } from "@/lib/utils";
-import { seo } from "@/lib/seo";
 
 const NeuralGalaxy = lazy(() => import("@/components/app/NeuralGalaxy"));
 
 export const Route = createFileRoute("/_authenticated/brain")({
-  head: () => seo("AI Brain", "Your private trading lessons, approved rules and connected MT5 accounts."),
+  head: () => ({ meta: [{ title: "AI Brain — Neural Intelligence | Ufuq Trade" }, { name: "description", content: "A live 3D neural globe of every rule, instrument and trade lesson your Ufuq Trade has learned." }, { property: "og:title", content: "AI Brain — Neural Intelligence | Ufuq Trade" }, { property: "og:description", content: "A live 3D neural globe of every rule, instrument and trade lesson your Ufuq Trade has learned." }] }),
   component: BrainPage,
 });
 
@@ -31,8 +30,8 @@ function Stat({ icon, label, value, sub, tone }: { icon: ReactNode; label: strin
     <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border/50 bg-card/40 px-3 py-2 backdrop-blur-md">
       <span className="text-primary-glow">{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
-        <p className="flex flex-wrap items-baseline gap-1.5"><span className={cn("text-base font-semibold leading-tight", tone === "up" && "text-success", tone === "down" && "text-destructive")}>{value}</span><span className="text-[10px] text-muted-foreground">{sub}</span></p>
+        <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="flex items-baseline gap-1.5"><span className={cn("text-base font-semibold leading-tight", tone === "up" && "text-success", tone === "down" && "text-destructive")}>{value}</span><span className="truncate text-[10px] text-muted-foreground">{sub}</span></p>
       </div>
     </div>
   );
@@ -51,8 +50,8 @@ function BrainPage() {
   const [f, setF] = useState<"all" | "win" | "loss">("all");
   const [range, setRange] = useState<Range>("1W");
   const [picked, setPicked] = useState<Callout | null>(null);
-  const lessons = useQuery({ queryKey: ["lessons"], refetchInterval: 30000, queryFn: async () => (await supabase.from("trade_lessons").select("*").order("created_at", { ascending: false }).limit(300)).data ?? [] });
-  const rules = useQuery({ queryKey: ["rules"], refetchInterval: 30000, queryFn: async () => (await supabase.from("learned_rules").select("*").order("hits", { ascending: false })).data ?? [] });
+  const lessons = useQuery({ queryKey: ["lessons"], queryFn: async () => (await supabase.from("trade_lessons").select("*").order("created_at", { ascending: false }).limit(300)).data ?? [] });
+  const rules = useQuery({ queryKey: ["rules"], queryFn: async () => (await supabase.from("learned_rules").select("*").order("hits", { ascending: false })).data ?? [] });
   const review = useQuery({ queryKey: ["weekly-review"], queryFn: async () => (await supabase.from("weekly_reviews").select("*").order("week_start", { ascending: false }).limit(1).maybeSingle()).data });
   const trades = useQuery({ queryKey: ["closed-trades-hours"], queryFn: async () => (await supabase.from("trades").select("profit,closed_at").eq("status", "closed").limit(1000)).data ?? [] });
   const last = useQuery({ queryKey: ["last-analysis"], refetchInterval: 60_000, queryFn: async () => (await supabase.from("analyses").select("symbol,direction,confidence,created_at,timeframe").order("created_at", { ascending: false }).limit(1).maybeSingle()).data });
@@ -79,7 +78,7 @@ function BrainPage() {
       const mine = inRange.filter((l) => l.symbol === s), net = mine.reduce((a, l) => a + Number(l.profit), 0);
       return { id: `s:${s}`, kind: "symbol", title: s, sub: `${mine.length} ${t("trades")}`, value: mine.length ? money(net) : undefined, tone: net < 0 ? "down" : "up" };
     });
-    R.filter((r) => r.is_active && r.status === "approved").slice(0, 3).forEach((r) => out.push({ id: `r:${r.id}`, kind: "rule", title: short(r.rule), sub: `R-${r.id.slice(0, 4).toUpperCase()} · ${t("seen")} ${r.hits}×` }));
+    R.filter((r) => r.is_active).slice(0, 3).forEach((r) => out.push({ id: `r:${r.id}`, kind: "rule", title: short(r.rule), sub: `R-${r.id.slice(0, 4).toUpperCase()} · ${t("seen")} ${r.hits}×` }));
     inRange.filter((l) => l.outcome === "win").slice(0, 2).forEach((l) => out.push({ id: `l:${l.id}`, kind: "win", title: "WIN TRADE", sub: `${l.side.toUpperCase()} ${l.symbol}`, value: money(Number(l.profit)), tone: "up" }));
     inRange.filter((l) => l.outcome === "loss").slice(0, 2).forEach((l) => out.push({ id: `l:${l.id}`, kind: "loss", title: "LOSS TRADE", sub: `${l.side.toUpperCase()} ${l.symbol}`, value: money(Number(l.profit)), tone: "down" }));
     const a = last.data;
@@ -105,10 +104,9 @@ function BrainPage() {
 
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-background/80 to-transparent px-4 pb-8 pt-3 md:px-6">
           <div className="pointer-events-auto flex flex-wrap items-center gap-2">
-            <p className="me-2 flex items-center gap-2 text-xs font-medium"><Brain className="h-5 w-5 text-primary-glow" />{t("AI Brain")}</p>
-            <div className="order-3 grid w-full grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
+            <p className="me-2 flex items-center gap-2 text-xs font-medium tracking-[0.35em]"><Brain className="h-5 w-5 text-primary-glow" />AI BRAIN</p>
+            <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
               <Stat icon={<Brain className="h-4 w-4" />} label={t("Lessons learned")} value={String(L.length)} sub={`+${today} ${t("today")}`} tone={undefined} />
-              <Stat icon={<Brain className="h-4 w-4" />} label={t("Approved rules")} value={String(R.filter((r) => r.is_active && r.status === "approved").length)} sub={`${R.filter((r) => r.status !== "approved").length} ${t("Under review")}`} />
               <Stat icon={<TrendingUp className="h-4 w-4" />} label={t("Win rate")} value={L.length ? `${((wins / L.length) * 100).toFixed(0)}%` : "—"} sub={`${wins}W / ${losses}L`} tone={L.length ? (wins / L.length >= 0.5 ? "up" : "down") : undefined} />
               <Stat icon={<Clock className="h-4 w-4" />} label={t("Best hour")} value={hh(best)} sub={best ? `${money(best.net)} UTC` : t("No data yet")} />
               <Stat icon={<AlertTriangle className="h-4 w-4" />} label={t("Worst hour")} value={hh(worst)} sub={worst ? `${money(worst.net)} UTC` : t("No data yet")} />
@@ -140,7 +138,7 @@ function BrainPage() {
           )}
 
           <div className="absolute inset-x-0 bottom-4 z-10 flex justify-center px-4">
-            <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/90 p-1.5 backdrop-blur">
+            <div className="flex flex-wrap items-center justify-center gap-2 rounded-full border border-border/60 bg-card/50 p-1.5 backdrop-blur">
               <div className="flex rounded-full border border-border/60 p-0.5">
                 {(Object.keys(RANGES) as Range[]).map((k) => (
                   <button key={k} onClick={() => setRange(k)} className={cn("rounded-full px-4 py-1.5 text-xs transition-colors", range === k ? "bg-primary/20 font-semibold text-foreground shadow-[inset_0_-2px_0_var(--primary)]" : "text-muted-foreground hover:text-foreground")}>{k}</button>
@@ -156,7 +154,7 @@ function BrainPage() {
                     {R.map((r) => (
                       <li key={r.id} className={cn("flex items-start gap-3 rounded-xl border border-border/60 p-3", !r.is_active && "opacity-50")}>
                         <Brain className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <div className="flex-1 text-sm"><p>{r.rule}</p><p className="mt-1 text-xs text-muted-foreground">{r.symbol ?? t("All")} · {t("seen")} {r.hits}× · {t(r.status === "approved" ? "Approved" : r.status === "retired" ? "Retired" : "Under review")}</p></div>
+                        <div className="flex-1 text-sm"><p>{r.rule}</p><p className="mt-1 text-xs text-muted-foreground">{r.symbol ?? t("All")} · {t("seen")} {r.hits}×</p></div>
                         <Switch checked={r.is_active} onCheckedChange={(v) => void toggle(r.id, v)} aria-label={t("Active")} />
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => void remove(r.id)} aria-label={t("Delete")}><Trash2 className="h-3.5 w-3.5" /></Button>
                       </li>
