@@ -16,7 +16,7 @@ import { mtfConflict, mtfText, type MtfTrends } from "./mtf";
 type DB = SupabaseClient<Database>;
 export type Levels = { direction: "buy" | "sell" | "neutral"; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null; summary: string };
 
-export const CACHE_MINUTES = 10;
+export const CACHE_MINUTES = 4;
 
 const resultSchema = z.object({
   direction: z.enum(["buy", "sell", "neutral"]),
