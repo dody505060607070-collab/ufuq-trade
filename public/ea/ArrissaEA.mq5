@@ -4,9 +4,13 @@
 //|    add your API URL (shown in Arrissa > MT5 EA Configuration).   |
 //| 2. Compile in MetaEditor, attach to any chart, fill the inputs,  |
 //|    enable Algo Trading.                                          |
+//| Several terminals on one VPS: install MT5 in separate folders,   |
+//| add the URL in EACH terminal's WebRequest list, attach this EA   |
+//| to one chart per terminal with the same Username + API key.     |
+//| Each MT5 login is registered automatically on the website.      |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.21"
+#property version   "1.30"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -32,6 +36,9 @@ double   g_watchPrice[];
 int      g_watchSide[];       // -1 = price was below level, +1 = above, 0 = unknown
 bool     g_warned = false;
 int      g_syncCount = 0;
+bool     g_connected = false;
+int      g_failStreak = 0;
+bool     g_marketDue = true;   // send broker data on the next successful sync
 input string InpDataSymbol  = "XAUUSD";                                        // Symbol whose broker data is sent for analysis
 input bool   InpProtect     = true;                                            // Auto-protect trades: half close + breakeven at 1R, trail after 1.5R
 
@@ -47,7 +54,9 @@ int OnInit()
    trade.SetDeviationInPoints(InpSlippage);
    g_lastHistory = TimeCurrent() - 3 * 86400;
    EventSetTimer(MathMax(1, InpSyncSeconds));
-   Print("ArrissaEA started for account ", AccountInfoInteger(ACCOUNT_LOGIN));
+   Print("ArrissaEA 1.30 started for account ", AccountInfoInteger(ACCOUNT_LOGIN), " on ", AccountInfoString(ACCOUNT_SERVER), " -> ", InpApiUrl);
+   if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) Print("ArrissaEA: Algo Trading button is OFF - the EA syncs but cannot open trades.");
+   Sync();   // connect immediately instead of waiting for the first timer tick
    return(INIT_SUCCEEDED);
   }
 
@@ -375,7 +384,7 @@ string MarketJson()
    return m;
   }
 
-string BuildBody()
+string BuildBody(bool withMarket)
   {
    string b = "{\"account\":{";
    b += "\"login\":\"" + IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN)) + "\",";
@@ -389,11 +398,13 @@ string BuildBody()
 
    b += "\"positions\":[";
    int total = PositionsTotal();
+   bool firstPos = true;
    for(int i = 0; i < total; i++)
      {
       ulong t = PositionGetTicket(i);
       if(t == 0) continue;
-      if(i > 0) b += ",";
+      if(!firstPos) b += ",";
+      firstPos = false;
       b += "{\"ticket\":\"" + IntegerToString((long)PositionGetInteger(POSITION_IDENTIFIER)) + "\",";
       b += "\"symbol\":\"" + Esc(PositionGetString(POSITION_SYMBOL)) + "\",";
       b += "\"side\":\"" + (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY ? "buy" : "sell") + "\",";
@@ -438,30 +449,66 @@ string BuildBody()
    b += "],\"hedge_fired\":[";
    for(int i = 0; i < ArraySize(g_fired); i++) { if(i > 0) b += ","; b += "\"" + g_fired[i] + "\""; }
    b += "]";
-   if(g_syncCount % 30 == 0) { string m = MarketJson(); if(m != "") b += ",\"market\":[" + m + "]"; }
-   g_syncCount++;
+   if(withMarket) { string m = MarketJson(); if(m != "") b += ",\"market\":[" + m + "]"; }
    b += "}";
    return b;
   }
 
-void Sync()
+// One HTTP attempt. Returns HTTP status, or -1 / MT5 internal code (>= 1000) when the request never got an answer.
+int Post(string body, bool closeConn, string &text)
   {
-   string body = BuildBody();
    char data[], result[];
    int n = StringToCharArray(body, data, 0, WHOLE_ARRAY, CP_UTF8);
    ArrayResize(data, MathMax(0, n - 1));
    string headers = "Content-Type: application/json\r\nX-API-Key: " + InpApiKey + "\r\nX-Username: " + InpUsername + "\r\n";
+   if(closeConn) headers += "Connection: close\r\n";
    string resHeaders;
    string url = InpApiUrl + "/sync?format=text";
    ResetLastError();
-   int code = WebRequest("POST", url, headers, 8000, data, result, resHeaders);
+   int code = WebRequest("POST", url, headers, 15000, data, result, resHeaders);
+   text = code == -1 ? "" : CharArrayToString(result, 0, WHOLE_ARRAY, CP_UTF8);
+   return code;
+  }
+
+string Explain(int code, string text)
+  {
+   if(code == 401) return "Username or API key rejected by the website: " + text;
+   if(code == 400) return "Website could not read the data: " + text;
+   if(code >= 500 && code < 600) return "Website temporarily unavailable, retrying";
+   if(code >= 1000) return "Network error inside MT5 (" + IntegerToString(code) + ") - the request never reached the website. Check that " + InpApiUrl + " (or https://ufuq-trade.lovable.app) is in THIS terminal's Tools > Options > Expert Advisors > Allow WebRequest list, then restart this terminal.";
+   return "HTTP " + IntegerToString(code) + ": " + text;
+  }
+
+void Sync()
+  {
+   bool withMarket = g_marketDue && g_failStreak == 0;
+   string text;
+   int code = Post(BuildBody(withMarket), false, text);
+   // Retry once on a fresh connection without the bulky broker data (MT5 sometimes drops reused/large requests).
+   if(code == -1 || code >= 1000 || (code >= 500 && code < 600))
+     {
+      withMarket = false;
+      code = Post(BuildBody(false), true, text);
+     }
    if(code == -1)
      {
-      if(!g_warned) { Alert("ArrissaEA: add ", InpApiUrl, " to Tools > Options > Expert Advisors > Allow WebRequest. Error ", GetLastError()); g_warned = true; }
+      int err = GetLastError();
+      if(!g_warned) { Alert("ArrissaEA: add ", InpApiUrl, " to Tools > Options > Expert Advisors > Allow WebRequest in this terminal, then restart it. Error ", err); g_warned = true; }
+      if(g_failStreak % 15 == 0) Print("ArrissaEA: WebRequest blocked (error ", err, "). 4014 = URL not allowed in this terminal, 5200-5203 = network problem.");
+      g_failStreak++; g_connected = false;
       return;
      }
-   string text = CharArrayToString(result, 0, WHOLE_ARRAY, CP_UTF8);
-   if(code != 200) { Print("ArrissaEA sync failed (", code, "): ", text); return; }
+   if(code != 200)
+     {
+      if(g_failStreak % 15 == 0) Print("ArrissaEA sync failed (", code, "): ", Explain(code, text));
+      g_failStreak++; g_connected = false;
+      return;
+     }
+   if(!g_connected) Print("ArrissaEA connected - account ", AccountInfoInteger(ACCOUNT_LOGIN), " is online on the website.");
+   g_connected = true; g_failStreak = 0;
+   g_syncCount++;
+   g_marketDue = withMarket ? false : g_marketDue;
+   if(g_syncCount % 30 == 0) g_marketDue = true;
 
    // Delivered: clear the outbox and move the history window.
    ArrayResize(g_results, 0);
