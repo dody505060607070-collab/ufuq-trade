@@ -9,10 +9,11 @@ const BAR_SEC: Record<string, number> = { M5: 300, M15: 900, H1: 3600, H4: 14400
 
 export type DataHealth = { lastCandleT: number | null; timeframe: string; calendarOk: boolean; nowSec: number };
 
-/** Reasons that block a NEW automated trade because required data is missing or stale. Empty = data OK. */
+/** Reasons that block a NEW automated trade because required data is missing or stale. Empty = data OK.
+ *  A calendar outage alone does not block: the free feed rate-limits often, the AI is told news risk is unknown,
+ *  and the risk engine still applies its own news window. Prices are the only hard data requirement. */
 export function dataBlockers(h: DataHealth): string[] {
   const out: string[] = [];
-  if (!h.calendarOk) out.push("Economic calendar failed to load");
   if (h.lastCandleT == null) out.push("No price data");
   else {
     // Allow 3 bars plus 10 min; weekends are handled by the market-closed check before analysis.
