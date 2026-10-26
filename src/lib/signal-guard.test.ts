@@ -6,7 +6,7 @@ const good = { direction: "buy", confidence: 70, entry: 2000, stop_loss: 1994, t
 
 describe("signal guard", () => {
   it("weak signal is rejected", () => expect(levelProblem({ ...good, confidence: 50 }, 5)).toMatch(/Weak/));
-  it("calendar failure blocks trading", () => expect(dataBlockers({ lastCandleT: now, timeframe: "H1", calendarOk: false, nowSec: now })).toContain("Economic calendar failed to load"));
+  it("calendar outage alone does not block trading", () => expect(dataBlockers({ lastCandleT: now, timeframe: "H1", calendarOk: false, nowSec: now })).toEqual([]));
   it("empty calendar that loaded is fine", () => expect(dataBlockers({ lastCandleT: now - 60, timeframe: "H1", calendarOk: true, nowSec: now })).toEqual([]));
   it("stale prices block trading", () => expect(dataBlockers({ lastCandleT: now - 4 * 3600, timeframe: "H1", calendarOk: true, nowSec: now })[0]).toMatch(/stale/));
   it("missing prices block trading", () => expect(dataBlockers({ lastCandleT: null, timeframe: "M15", calendarOk: true, nowSec: now })).toContain("No price data"));

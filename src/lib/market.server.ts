@@ -95,8 +95,21 @@ export async function fetchCalendar(): Promise<CalendarEvent[]> {
   return (await fetchCalendarStatus()).events;
 }
 
+// Last good calendar per worker; ForexFactory rate-limits frequent callers, so reuse it for up to 12h.
+let calCache: { at: number; events: CalendarEvent[] } | null = null;
+
 /** Distinguishes "no events" (ok: true, events: []) from "calendar failed to load" (ok: false). */
 export async function fetchCalendarStatus(): Promise<{ ok: boolean; events: CalendarEvent[] }> {
+  if (calCache && Date.now() - calCache.at < 30 * 60_000) return { ok: true, events: calCache.events };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const r = await loadCalendar();
+    if (r.ok) { calCache = { at: Date.now(), events: r.events }; return r; }
+  }
+  if (calCache && Date.now() - calCache.at < 12 * 3600_000) return { ok: true, events: calCache.events };
+  return { ok: false, events: [] };
+}
+
+async function loadCalendar(): Promise<{ ok: boolean; events: CalendarEvent[] }> {
   try {
     const res = await fetch("https://nfs.faireconomy.media/ff_calendar_thisweek.json", { headers: UA });
     if (!res.ok) return { ok: false, events: [] };
