@@ -12,15 +12,20 @@ export const analyzeMarket = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => input.parse(d))
   .handler(async ({ data, context }) => {
-    const { getCached, runAI } = await import("./analysis.server");
+    const { getCached, getPersonalCached, runAI } = await import("./analysis.server");
+    const [{ data: lessons, error: lessonError }, { data: rules, error: ruleError }] = await Promise.all([
+      context.supabase.from("trade_lessons").select("id").eq("user_id", context.userId).limit(1),
+      context.supabase.from("learned_rules").select("id").eq("user_id", context.userId).eq("is_active", true).eq("status", "approved").limit(1),
+    ]);
+    if (lessonError || ruleError) throw new Error("Could not load your learning context.");
+    const shared = data.price == null && !lessons?.length && !rules?.length;
     let r = null;
-    // Shared result: one AI call per symbol/timeframe every 15 min serves every user (only without a manual price).
-    if (data.price == null) {
+    if (shared) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       r = await getCached(supabaseAdmin, data.symbol, data.timeframe);
+    } else if (data.price == null) {
+      r = await getPersonalCached(context.supabase, data.symbol, data.timeframe, context.userId);
     }
-    // Manual price → personal analysis with the caller's own memory; otherwise a shared market-only analysis.
-    const shared = data.price == null;
     r ??= await runAI(context.supabase, data.symbol, data.timeframe, data.price, shared ? null : context.userId);
     const { data: row, error } = await context.supabase
       .from("analyses")
