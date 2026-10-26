@@ -6,7 +6,7 @@ import { fetchCandles, fetchCalendar, fetchCalendarStatus, fetchNews } from "./m
 import { GEMINI_MODEL, dataBlockers, levelProblem, MIN_RR, STOP_ATR_MIN, STOP_ATR_MAX } from "./signal-guard";
 import { snapshot, snapshotText } from "./indicators";
 import { ictText } from "./ict";
-import { priceActionText } from "./priceaction";
+import { priceActionText, climaxReversal } from "./priceaction";
 import { memoryText } from "./profitlock";
 import { brainContext } from "./brain.server";
 import { newsSentiment, sentimentText } from "./sentiment";
@@ -101,7 +101,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   // Code-side gate: missing/stale data or invalid levels → no trade, with the reason recorded in the summary.
   const blockers = dataBlockers({ lastCandleT: last?.t ?? null, timeframe, calendarOk: calStatus.ok, nowSec: Date.now() / 1000 });
   const bad = levelProblem(out, snap?.atr14 ?? null);
-  const mtfBad = mtfConflict(out.direction, mtf);
+  const mtfBad = mtfConflict(out.direction, mtf, climaxReversal(candles));
   const why = [...blockers, ...(bad ? [bad] : []), ...(mtfBad ? [mtfBad] : [])];
   if (why.length && out.direction !== "neutral")
     return { ...out, direction: "neutral", entry: null, stop_loss: null, take_profit: null, summary: `No trade (${why.join("; ")}). AI view: ${out.direction.toUpperCase()} ${out.confidence}%. ${out.summary}`.slice(0, 2000) };

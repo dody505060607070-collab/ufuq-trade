@@ -6,14 +6,14 @@
 //|    enable Algo Trading.                                          |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.20"
+#property version   "1.21"
 #property strict
 
 #include <Trade/Trade.mqh>
 
 input string InpUsername    = "";                                              // Arrissa username
 input string InpApiKey      = "";                                              // Arrissa API key
-input string InpApiUrl      = "https://build-log-fix-friend.lovable.app/api/public/ea"; // API URL
+input string InpApiUrl      = "https://ufuq-trade.lovable.app/api/public/ea"; // API URL
 input int    InpSyncSeconds = 2;                                               // Sync interval (seconds)
 input long   InpMagic       = 777001;                                          // Magic number
 input int    InpSlippage    = 30;                                              // Max slippage (points)
