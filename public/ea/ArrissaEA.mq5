@@ -474,18 +474,31 @@ string Explain(int code, string text)
   {
    if(code == 401) return "Username or API key rejected by the website: " + text;
    if(code == 400) return "Website could not read the data: " + text;
+   if(code == 429) return "Too many requests from this VPS - slowing down";
    if(code >= 500 && code < 600) return "Website temporarily unavailable, retrying";
-   if(code >= 1000) return "Network error inside MT5 (" + IntegerToString(code) + ") - the request never reached the website. Check that " + InpApiUrl + " (or https://ufuq-trade.lovable.app) is in THIS terminal's Tools > Options > Expert Advisors > Allow WebRequest list, then restart this terminal.";
+   if(code == 1009) return "Connection reset (1009) between this VPS and the website. Usually too many requests from one VPS: set Sync interval to 5 or more in every terminal. Open https://ufuq-trade.lovable.app in the VPS browser to check the internet.";
+   if(code >= 1000) return "Network error inside MT5 (" + IntegerToString(code) + ") - the request never reached the website. Check THIS terminal's Tools > Options > Expert Advisors > Allow WebRequest list contains https://ufuq-trade.lovable.app";
    return "HTTP " + IntegerToString(code) + ": " + text;
+  }
+
+int g_skip = 0;   // timer ticks to wait before the next attempt after a failure (back-off)
+
+void Fail()
+  {
+   g_failStreak++; g_connected = false;
+   // Back off 2, 4, 8 ... up to 60 seconds so several terminals on one VPS don't flood the website.
+   int wait = (int)MathMin(60, MathPow(2, MathMin(g_failStreak, 6)));
+   g_skip = (int)MathCeil((double)wait / MathMax(1, InpSyncSeconds));
   }
 
 void Sync()
   {
+   if(g_skip > 0) { g_skip--; return; }
    bool withMarket = g_marketDue && g_failStreak == 0;
    string text;
    int code = Post(BuildBody(withMarket), false, text);
-   // Retry once on a fresh connection without the bulky broker data (MT5 sometimes drops reused/large requests).
-   if(code == -1 || code >= 1000 || (code >= 500 && code < 600))
+   // One lighter retry only on the first failure (no bulky broker data, fresh connection).
+   if(g_failStreak == 0 && (code == -1 || code >= 1000 || (code >= 500 && code < 600)))
      {
       withMarket = false;
       code = Post(BuildBody(false), true, text);
@@ -494,14 +507,14 @@ void Sync()
      {
       int err = GetLastError();
       if(!g_warned) { Alert("ArrissaEA: add ", InpApiUrl, " to Tools > Options > Expert Advisors > Allow WebRequest in this terminal, then restart it. Error ", err); g_warned = true; }
-      if(g_failStreak % 15 == 0) Print("ArrissaEA: WebRequest blocked (error ", err, "). 4014 = URL not allowed in this terminal, 5200-5203 = network problem.");
-      g_failStreak++; g_connected = false;
+      if(g_failStreak % 10 == 0) Print("ArrissaEA: WebRequest blocked (error ", err, "). 4014 = URL not allowed in this terminal, 5200-5203 = network problem.");
+      Fail();
       return;
      }
    if(code != 200)
      {
-      if(g_failStreak % 15 == 0) Print("ArrissaEA sync failed (", code, "): ", Explain(code, text));
-      g_failStreak++; g_connected = false;
+      if(g_failStreak % 10 == 0) Print("ArrissaEA sync failed (", code, "): ", Explain(code, text), " Retrying automatically.");
+      Fail();
       return;
      }
    if(!g_connected) Print("ArrissaEA connected - account ", AccountInfoInteger(ACCOUNT_LOGIN), " is online on the website.");
