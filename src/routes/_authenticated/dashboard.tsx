@@ -22,9 +22,11 @@ import { fmt, isOnline, priceDigits, queueCommand, timeAgo, useAccounts, useBrok
 import { cn } from "@/lib/utils";
 import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton";
 import { LiveStatusBar } from "@/components/app/LiveStatusBar";
+import { SCAN_INTERVAL_MS } from "@/lib/autopilot-analysis";
+import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard | Ufuq Trade" }, { name: "description", content: "AI analysis, execution and trade management for your MT5 accounts." }] }),
+  head: () => seo("Dashboard", "AI analysis, execution and trade management for your MT5 accounts."),
   component: Dashboard,
 });
 
@@ -160,14 +162,14 @@ function Dashboard() {
   autoRef.current = { symbol, tf };
   useEffect(() => {
     if (!auto) return;
-    const id = window.setInterval(() => void runAnalysis(autoRef.current.symbol, autoRef.current.tf, true), 15 * 60_000);
+    const id = window.setInterval(() => void runAnalysis(autoRef.current.symbol, autoRef.current.tf, true), SCAN_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [auto, runAnalysis]);
   const toggleAuto = () => {
     const v = !auto;
     setAuto(v);
     localStorage.setItem(AUTO_KEY, v ? "on" : "off");
-    toast.success(v ? t("Auto analysis on — every {n} minutes for the selected instrument.", { n: 15 }) : t("Auto analysis off."));
+    toast.success(v ? t("Auto analysis on — every {n} minutes for the selected instrument.", { n: 5 }) : t("Auto analysis off."));
     if (v) void runAnalysis(symbol, tf, true);
   };
   const useSignal = (s: { symbol: string; direction: string; stop_loss: number | null; take_profit: number | null }) => {
@@ -199,7 +201,7 @@ function Dashboard() {
           <Tip label={onlyCurrent ? t("Showing current instrument only") : t("Show current instrument only")} side="bottom">
             <button onClick={() => setOnlyCurrent((v) => !v)} className={cn("flex h-10 items-center justify-center gap-1.5 rounded-lg border border-border text-sm", onlyCurrent && "border-primary text-primary-glow")}><ListFilter className="h-4 w-4" />{t("Filter")}</button>
           </Tip>
-          <Tip label={auto ? t("Auto analysis every 10 min: ON") : t("Auto analysis every 10 min: OFF")} side="bottom">
+          <Tip label={auto ? t("Auto analysis every 5 min: ON") : t("Auto analysis every 5 min: OFF")} side="bottom">
             <button onClick={toggleAuto} className={cn("flex h-10 items-center justify-center gap-1.5 rounded-lg border text-sm", auto ? "border-success bg-success/15 text-success" : "border-border")}><Clock className="h-4 w-4" />{t("Auto analysis")}</button>
           </Tip>
         </div>

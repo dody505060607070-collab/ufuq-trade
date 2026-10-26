@@ -41,6 +41,15 @@ export async function getCached(admin: DB, symbol: string, timeframe: string) {
   return data ? ({ ...data, direction: data.direction as Levels["direction"], confidence: data.confidence ?? 0, summary: data.summary ?? "" } as Levels) : null;
 }
 
+export async function getPersonalCached(db: DB, symbol: string, timeframe: string, userId: string) {
+  const { data, error } = await db.from("analyses").select("direction,confidence,entry,stop_loss,take_profit,summary")
+    .eq("user_id", userId).eq("shared", false).eq("symbol", symbol).eq("timeframe", timeframe)
+    .gte("created_at", new Date(Date.now() - CACHE_MINUTES * 60_000).toISOString())
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw error;
+  return data ? { ...data, direction: data.direction as Levels["direction"], confidence: data.confidence ?? 0, summary: data.summary ?? "" } : null;
+}
+
 /** Broker candles sent by the MT5 EA, when fresh (last bar within 3 bar-lengths); null → use Yahoo. */
 export async function brokerCandles(db: DB, symbol: string, timeframe: string, limit: number, accountId?: string) {
   let q = db.from("broker_candles").select("t,o,h,l,c,account_id").eq("symbol", symbol).eq("timeframe", timeframe);
@@ -56,13 +65,13 @@ export async function brokerCandles(db: DB, symbol: string, timeframe: string, l
 }
 
 /** Fresh AI analysis from live candles, calendar and headlines. userId=null → shared market-only analysis (no personal trades or rules). */
-export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null, userId: string | null = null): Promise<Levels> {
+export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null, userId: string | null = null, accountId?: string): Promise<Levels> {
   const [, { data: inst }] = await Promise.all([
     db.from("ai_models").select("model_id").eq("is_default", true).eq("is_active", true).maybeSingle(),
     db.from("instruments").select("name,yahoo_symbol").eq("symbol", symbol).maybeSingle(),
   ]);
   const [candles, calStatus, news, past, daily] = await Promise.all([
-    brokerCandles(db, symbol, timeframe, 80).then((b) => b ?? (inst?.yahoo_symbol ? fetchCandles(inst.yahoo_symbol, timeframe, 80).catch(() => []) : [])),
+    brokerCandles(db, symbol, timeframe, 80, accountId).then((b) => b ?? (inst?.yahoo_symbol ? fetchCandles(inst.yahoo_symbol, timeframe, 80).catch(() => []) : [])),
     fetchCalendarStatus(),
     fetchNews(15),
     userId ? db.from("trades").select("side,profit,closed_at").eq("user_id", userId).ilike("symbol", `${symbol}%`).eq("status", "closed").order("closed_at", { ascending: false }).limit(10).then((r) => r.data ?? []) : Promise.resolve([]),
@@ -71,7 +80,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   const calendar = calStatus.events;
   const tfTrend = async (tf: string) => {
     if (tf === timeframe) return snapshot(candles)?.trend ?? null;
-    const c = (await brokerCandles(db, symbol, tf, 80)) ?? (inst?.yahoo_symbol ? await fetchCandles(inst.yahoo_symbol, tf, 80).catch(() => []) : []);
+    const c = (await brokerCandles(db, symbol, tf, 80, accountId)) ?? (inst?.yahoo_symbol ? await fetchCandles(inst.yahoo_symbol, tf, 80).catch(() => []) : []);
     return snapshot(c)?.trend ?? null;
   };
   const [m15, h1, h4] = await Promise.all([tfTrend("M15"), tfTrend("H1"), tfTrend("H4")]);

@@ -57,9 +57,11 @@ export async function processLessons(db: DB) {
     }
     const ex = exitReview(profit, peak, missed);
     const exitLine = `Exit review: ${ex.verdict.toUpperCase()} — gave back $${ex.giveback.toFixed(2)} from peak $${peak.toFixed(2)}; price would have added $${missed.toFixed(2)} more within 2h after close.`;
-    const { data: an } = await db.from("analyses").select("direction,confidence,summary,created_at").eq("symbol", sym).lte("created_at", t.opened_at ?? t.closed_at ?? new Date().toISOString()).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: an } = await db.from("analyses").select("direction,confidence,summary,created_at").eq("symbol", sym).eq("user_id", t.user_id).lte("created_at", t.opened_at ?? t.closed_at ?? new Date().toISOString()).order("created_at", { ascending: false }).limit(1).maybeSingle();
     const prompt = `Trade: ${t.side.toUpperCase()} ${t.symbol} ${t.volume} lot\nOpen ${t.opened_at} @ ${t.open_price}\nClose ${t.closed_at} @ ${t.close_price}\nSL ${t.stop_loss} TP ${t.take_profit}\nProfit ${profit.toFixed(2)} USD (peak ${peak.toFixed(2)})\n${exitLine}\nAI analysis before entry: ${an ? `${an.direction} ${an.confidence}% — ${an.summary}` : "none"}\nIf the exit was EARLY or LATE, explain why and make the rule about exit timing.`;
     const r = await gemini(LESSON_SYS, prompt);
+    // Failed reviews remain retryable, never record an empty lesson as completed.
+    if (typeof r?.reason !== "string" || typeof r.lesson !== "string" || !r.lesson.trim()) continue;
     const rule = typeof r?.rule === "string" ? r.rule.trim().slice(0, 160) : "";
     const { error } = await db.from("trade_lessons").insert({
       user_id: t.user_id, trade_id: t.id, symbol: sym, side: t.side, profit, outcome: outcomeOf(profit),

@@ -34,6 +34,9 @@
 - [ ] Demo tests after market open — blocked: market closed, admin-supervised.
 
 # Deferred items (Oct 25)
+- [x] Review five-minute cadence, choose M15 for owner with confidence 60%, and preserve capital safety.
+- [x] Audit simultaneous opportunities, personal AI learning, GitHub references, and improve Auto-Pilot monitoring (TRADING-REVIEW.md).
+- [x] Verify owner settings and visible Brain/Auto-Pilot flows; report external MT5 limitations.
 - [x] Opening commissions in P/L (EA 1.41 fees + entry_fee deals)
 - [x] Broker session hours per symbol (EA reports, Auto-Pilot and EA both block)
 - [x] Broker candle validation (fallback to Yahoo)
@@ -41,6 +44,6 @@
 - [x] Load test: 40 parallel syncs, each order delivered once, second EA refused
 - [x] Market-closed message instead of silence
 - [ ] Install/compile EA 1.41 on VPS — blocked: user's Windows VPS
-- [ ] Re-enable Auto-Pilot for owner — blocked: owner decision (it is switched off)
-- [ ] Demo test after market open — blocked: market closed until Sunday 22:00 UTC
+- [x] Verify owner's Auto-Pilot is already enabled with EA 1.41 online.
+- [ ] Broker execution demo tests — blocked: supervised MT5 execution/MetaEditor outside this sandbox.
 

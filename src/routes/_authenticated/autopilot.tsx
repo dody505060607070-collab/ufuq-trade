@@ -20,6 +20,7 @@ import { DEFAULT_TRADE_LOT, validAutopilotLot } from "@/lib/lot-settings";
 import { seo } from "@/lib/seo";
 import { useWebMCP } from "use-webmcp-tool";
 import { runWebMCPTool } from "@/lib/webmcp-telemetry";
+import { SCAN_INTERVAL_MS } from "@/lib/autopilot-analysis";
 
 export const Route = createFileRoute("/_authenticated/autopilot")({
   head: () => seo("Auto-Pilot", "Automatic AI trading with configurable risk limits."),
@@ -81,7 +82,7 @@ function AutoPilot() {
 
   return (
     <Page title={t("Auto-Pilot")} subtitle={t("Fully automatic AI trading with strict risk limits.")}>
-      <HelpNote>{"Every 10 minutes the AI analyses your chosen instruments. When a signal is strong enough and every safety rule passes, a trade with Stop Loss and Take Profit is sent to your MT5 accounts automatically — no need to keep this page open. MT5 with the EA must stay running (for example on your Windows server). Test on a demo account first."}</HelpNote>
+      <HelpNote>{"Every 5 minutes the AI analyses your chosen instruments. When a signal is strong enough and every safety rule passes, a trade with Stop Loss and Take Profit is sent to your MT5 accounts automatically — no need to keep this page open. MT5 with the EA must stay running (for example on your Windows server). Test on a demo account first."}</HelpNote>
 
       <Card title={t("Status")}>
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -96,6 +97,12 @@ function AutoPilot() {
         </div>
       </Card>
 
+      <div className="grid grid-cols-2 gap-3 border-b border-border pb-4 sm:grid-cols-4">
+        <Stat label={t("Scan interval")} value={t("Every 5 minutes")} />
+        <Stat label={t("Timeframe")} value={s.timeframe} />
+        <Stat label={t("Minimum AI confidence (%)")} value={`${s.min_confidence}%`} />
+        <Stat label={t("Max open trades per account")} value={String(s.max_open)} />
+      </div>
       <HealthCheck enabled={s.enabled} shadow={s.shadow_mode} symbols={s.symbols} accounts={accounts.data ?? []} />
 
       <LiveMonitor enabled={s.enabled && autoAccounts.length > 0} events={events.data ?? []} accountIds={autoAccounts.map((a) => a.id)} />
@@ -130,7 +137,7 @@ function AutoPilot() {
       <Card title={t("Safety rules")}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("Timeframe")}>
-            <div className="flex gap-1">{["M15", "H1", "H4"].map((tf) => <button key={tf} onClick={() => setS({ ...s, timeframe: tf })} className={cn("flex-1 rounded-full border px-3 py-1.5 text-xs", s.timeframe === tf ? "border-primary bg-primary text-primary-foreground" : "border-border")}>{tf}</button>)}</div>
+            <div className="flex gap-1">{["M5", "M15", "H1", "H4"].map((tf) => <Button size="sm" variant={s.timeframe === tf ? "default" : "outline"} key={tf} onClick={() => void save({ timeframe: tf })} disabled={saving} aria-pressed={s.timeframe === tf} className="flex-1 rounded-md">{tf}</Button>)}</div>
           </Field>
           <Field label={t("Minimum AI confidence (%)")}><Input type="number" min={50} max={95} value={s.min_confidence} onChange={(e) => num("min_confidence", e.target.value)} /></Field>
           <Field label={t("Lot size per trade")}><Input aria-label={t("Lot size per trade")} type="number" step={0.01} min={0.01} max={10} disabled={saving || q.isPending || q.isError} value={s.lot_size} onChange={(e) => num("lot_size", e.target.value)} onBlur={(e) => { const lot = Number(e.currentTarget.value); if (validAutopilotLot(lot) && lot !== Number(q.data?.lot_size)) void save({ lot_size: lot }); }} /></Field>
@@ -162,7 +169,7 @@ function AutoPilot() {
       </Card>
 
       <Card title={t("Activity")}>
-        {(events.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{t("No activity yet. The first check runs within 10 minutes after you turn Auto-Pilot on.")}</p> : (
+        {(events.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{t("No activity yet. The first check runs within 5 minutes after you turn Auto-Pilot on.")}</p> : (
           <ul className="space-y-1 text-sm">
             {(events.data ?? []).map((e) => (
               <li key={e.id} className="flex gap-3 border-t border-border/40 py-1.5">
@@ -183,7 +190,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div><div className="mb-1 text-xs font-semibold text-muted-foreground">{label}</div>{children}</div>;
 }
 
-const CYCLE = 5 * 60_000;
+const CYCLE = SCAN_INTERVAL_MS;
 
 function LiveMonitor({ enabled, events, accountIds }: { enabled: boolean; events: { action: string; created_at: string }[]; accountIds: string[] }) {
   const t = useT();
@@ -199,7 +206,6 @@ function LiveMonitor({ enabled, events, accountIds }: { enabled: boolean; events
   const mm = String(Math.floor(left / 60_000)).padStart(2, "0");
   const ss = String(Math.floor((left % 60_000) / 1000)).padStart(2, "0");
   const pct = now ? 100 - (left / CYCLE) * 100 : 0;
-  const scanning = enabled && left > CYCLE - 20_000;
   const dayStart = new Date(n); dayStart.setHours(0, 0, 0, 0);
   const today = events.filter((e) => e.action === "opened" && new Date(e.created_at).getTime() >= dayStart.getTime()).length;
   const last = events[0]?.created_at;
@@ -215,7 +221,7 @@ function LiveMonitor({ enabled, events, accountIds }: { enabled: boolean; events
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="font-mono text-3xl font-bold tabular-nums" dir="ltr">{now ? `${mm}:${ss}` : "--:--"}</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("Scans every 10 minutes")}</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("Every 5 minutes")}</span>
           </div>
         </div>
         <div className="w-full flex-1 space-y-3">
@@ -224,7 +230,7 @@ function LiveMonitor({ enabled, events, accountIds }: { enabled: boolean; events
               {enabled && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />}
               <span className={cn("relative inline-flex h-3 w-3 rounded-full", enabled ? "bg-success" : "bg-muted-foreground")} />
             </span>
-            <span className="text-lg font-semibold">{!enabled ? t("Paused — turn Auto-Pilot on") : scanning ? t("Scanning market now…") : `${t("Next AI scan in")} ${mm}:${ss}`}</span>
+            <span className="text-lg font-semibold">{!enabled ? t("Paused — turn Auto-Pilot on") : `${t("Next scheduled check in")} ${mm}:${ss}`}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat label={t("Next scan at")} value={now ? new Date(next).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />

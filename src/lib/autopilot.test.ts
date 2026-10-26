@@ -14,6 +14,9 @@ describe("autopilot rules", () => {
   it("respects max open trades", () => expect(skipReason(sig, rules, { ...st, openTotal: 2 })).not.toBeNull());
   it("respects daily limit", () => expect(skipReason(sig, rules, { ...st, todayCount: 4 })).not.toBeNull());
   it("no duplicate on same symbol", () => expect(skipReason(sig, rules, { ...st, openOnSymbol: 1 })).not.toBeNull());
+  it("accepts exactly 60% confidence when all other rules pass", () => expect(skipReason({ ...sig, confidence: 60 }, { ...rules, min_confidence: 60 }, st)).toBeNull());
+  it("rejects confidence below 60%", () => expect(skipReason({ ...sig, confidence: 59 }, { ...rules, min_confidence: 60 }, st)).toBe("Confidence 59% below 60%"));
+  it("allows another instrument while one position is open within the account limit", () => expect(skipReason(sig, rules, { ...st, openTotal: 1, openOnSymbol: 0 })).toBeNull());
 });
 
 describe("unlimited daily trades", () => {

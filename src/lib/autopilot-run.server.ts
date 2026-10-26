@@ -2,10 +2,11 @@ import { skipReason } from "@/lib/autopilot";
 import { pauseReason } from "@/lib/profitlock";
 import { executionsOf, reservedExecutions, marketClosed, dayPnlFromDeals, sessionBlocked, MIN_PROTOCOL_FOR_AUTOPILOT } from "@/lib/execution";
 import { GEMINI_MODEL } from "@/lib/signal-guard";
+import { selectAutopilotAnalysis } from "@/lib/autopilot-analysis";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-export const PROMPT_VERSION = "analysis-v3";
+export const PROMPT_VERSION = "analysis-v4-personal";
 const LEASE_SEC = 240;
 
 /** One Auto-Pilot cycle: analyses each enabled symbol once and queues trades. Pass onlyUser to run for a single user. */
@@ -20,7 +21,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
 }
 
 async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>, onlyUser?: string) {
-  const { getCached, runAI, newsNearby, brokerCandles } = await import("@/lib/analysis.server");
+  const { getCached, getPersonalCached, runAI, newsNearby, brokerCandles } = await import("@/lib/analysis.server");
   if (!onlyUser) {
     const b = await import("@/lib/brain.server");
     await b.processLessons(db).catch((e) => console.error("lessons", e));
@@ -31,6 +32,12 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
   if (onlyUser) sq = sq.eq("user_id", onlyUser);
   const { data: users } = await sq;
   if (!users?.length) return { ok: true, users: 0, queued: 0 };
+  const [{ data: knownLessons, error: lessonError }, { data: knownRules, error: ruleError }] = await Promise.all([
+    db.from("trade_lessons").select("user_id").in("user_id", users.map((u) => u.user_id)),
+    db.from("learned_rules").select("user_id").in("user_id", users.map((u) => u.user_id)).eq("is_active", true).eq("status", "approved"),
+  ]);
+  if (lessonError || ruleError) return { ok: false, users: users.length, queued: 0, error: "Learning context unavailable" };
+  const personalOwners = new Set([...(knownLessons ?? []), ...(knownRules ?? [])].map((row) => row.user_id));
   // Market hours are per symbol: weekend close stops FX/metals but not crypto.
   const now = new Date();
   const pairs = [...new Set(users.flatMap((u) => u.symbols.filter((s) => !marketClosed(s, now)).map((s) => `${s}|${u.timeframe}`)))].slice(0, 12);
@@ -45,16 +52,20 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
   }
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
   const news = new Map<string, boolean>();
-  const owner = users[0]!.user_id;
+  const firstUser = users[0];
+  if (!firstUser) return { ok: true, users: 0, queued: 0 };
+  const owner = firstUser.user_id;
   await Promise.all(pairs.map(async (k) => {
     const [sym = "", tf = "H1"] = k.split("|");
     try {
-      let r = await getCached(db, sym, tf);
-      if (!r) {
-        r = await runAI(db, sym, tf, null, null);
-        await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary, shared: true });
+      if (users.some((u) => !personalOwners.has(u.user_id) && u.symbols.includes(sym) && u.timeframe === tf)) {
+        let r = await getCached(db, sym, tf);
+        if (!r) {
+          r = await runAI(db, sym, tf, null, null);
+          await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary, shared: true });
+        }
+        results.set(k, r);
       }
-      results.set(k, r);
     } catch (e) { console.error("autopilot analysis", k, e); results.set(k, null); }
     // Calendar failure must not read as "no news": treat it as news nearby (blocks when avoid_news is on).
     if (!news.has(sym)) news.set(sym, await newsNearby(sym).catch(() => true));
@@ -81,20 +92,33 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
       db.from("trades").select("account_id,symbol,closed_at").in("account_id", ids).eq("status", "open"),
       // Every unfinished command counts, including ones queued on a previous day.
       db.from("trade_commands").select("account_id,payload,created_at,status,filled_count").in("account_id", ids).eq("command", "open_trade").or(`created_at.gte.${dayIso},status.in.(queued,sent,unknown)`),
-      db.from("trade_deals").select("account_id,profit,closed_at").in("account_id", ids).gte("closed_at", dayIso).order("closed_at", { ascending: false }),
+      db.from("trade_deals").select("account_id,profit,closed_at,kind").in("account_id", ids).gte("closed_at", dayIso).order("closed_at", { ascending: false }),
       db.from("broker_quotes").select("*").in("account_id", ids),
     ]);
-    const lastClose = deals?.[0]?.closed_at;
+    const lastClose = deals?.find((d) => d.kind !== "entry_fee")?.closed_at;
     const userPnl = dayPnlFromDeals(deals ?? [], dayIso);
     const pause = pauseReason(lastClose ? (Date.now() - new Date(lastClose).getTime()) / 60_000 : null, Number(u.cooldown_minutes ?? 0), userPnl, Number(u.daily_target_usd ?? 0));
     if (pause) { await log("-", "skipped", pause); continue; }
     const quotes = qrows ?? [];
     const pending = (cmds ?? []).filter((c) => ["queued", "sent", "unknown"].includes(c.status));
     const autoToday = (cmds ?? []).filter((c) => (c.payload as { autopilot?: boolean })?.autopilot && c.created_at >= dayIso && !["failed", "expired"].includes(c.status));
+    const personal = personalOwners.has(u.user_id);
     const added = new Map<string, { total: number; syms: Set<string> }>();
     for (const sym of u.symbols) {
       if (marketClosed(sym, now)) { await log(sym, "skipped", "Market closed for this symbol"); continue; }
-      const r = results.get(`${sym}|${u.timeframe}`);
+      let r: Awaited<ReturnType<typeof runAI>> | null = null;
+      try {
+        r = await selectAutopilotAnalysis(u.user_id, personal, {
+          shared: async () => results.get(`${sym}|${u.timeframe}`) ?? null,
+          cachedPersonal: (uid) => getPersonalCached(db, sym, u.timeframe, uid),
+          freshPersonal: async (uid) => {
+            const value = await runAI(db, sym, u.timeframe, null, uid, live[0]?.id);
+            const { error } = await db.from("analyses").insert({ user_id: uid, symbol: sym, timeframe: u.timeframe, ...value, confidence: Math.round(value.confidence), shared: false });
+            if (error) throw error;
+            return value;
+          },
+        });
+      } catch (e) { console.error("personal autopilot analysis", e); }
       if (!r) { await log(sym, "error", "Analysis unavailable"); continue; }
       const rows: Database["public"]["Tables"]["trade_commands"]["Insert"][] = [];
       const decisionIds: string[] = [];

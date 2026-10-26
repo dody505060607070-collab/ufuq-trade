@@ -15,6 +15,9 @@ describe("risk engine", () => {
   const auto = { ...ctx, requireFreshPrice: true, priceAgeSec: 10 };
   it("auto: approves with a fresh broker price", () => expect(riskCheck(buy, auto).allow).toBe(true));
   it("auto: rejects a stale price", () => expect(riskCheck(buy, { ...auto, priceAgeSec: 600 }).reason).toBe("Broker price is stale"));
+  it("auto: rejects invalid or future quote timestamps", () => {
+    for (const age of [NaN, Infinity, -1]) expect(riskCheck(buy, { ...auto, priceAgeSec: age }).allow).toBe(false);
+  });
   it("auto: rejects when no current price", () => expect(riskCheck(buy, { ...auto, price: null }).reason).toBe("No current broker price"));
   it("auto: rejects when broker specs are missing", () => expect(riskCheck(buy, { ...auto, dollarsPerPricePerLot: null }).allow).toBe(false));
   it("uses the user's daily loss %, not a fixed 5%", () => {

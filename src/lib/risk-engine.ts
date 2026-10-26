@@ -43,7 +43,7 @@ export function riskCheck(p: Proposal, c: RiskContext): RiskVerdict {
   if (entry <= 0 || sl <= 0 || tp <= 0 || c.lot <= 0 || (c.spreadPrice ?? 0) < 0) return { allow: false, reason: "Negative or zero values are not allowed" };
   if (c.requireFreshPrice) {
     if (c.price == null) return { allow: false, reason: "No current broker price" };
-    if (c.priceAgeSec == null || c.priceAgeSec > MAX_PRICE_AGE_SEC) return { allow: false, reason: "Broker price is stale" };
+    if (c.priceAgeSec == null || !finite(c.priceAgeSec) || c.priceAgeSec < 0 || c.priceAgeSec > MAX_PRICE_AGE_SEC) return { allow: false, reason: "Broker price is stale" };
     if (c.spreadPrice == null) return { allow: false, reason: "Broker spread unknown" };
     if (c.dollarsPerPricePerLot == null) return { allow: false, reason: "Broker contract specs missing" };
     if (c.balance == null || c.balance <= 0) return { allow: false, reason: "Account balance unknown" };
