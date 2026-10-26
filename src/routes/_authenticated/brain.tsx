@@ -31,8 +31,8 @@ function Stat({ icon, label, value, sub, tone }: { icon: ReactNode; label: strin
     <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border/50 bg-card/40 px-3 py-2 backdrop-blur-md">
       <span className="text-primary-glow">{icon}</span>
       <div className="min-w-0">
-        <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="flex items-baseline gap-1.5"><span className={cn("text-base font-semibold leading-tight", tone === "up" && "text-success", tone === "down" && "text-destructive")}>{value}</span><span className="truncate text-[10px] text-muted-foreground">{sub}</span></p>
+        <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+        <p className="flex flex-wrap items-baseline gap-1.5"><span className={cn("text-base font-semibold leading-tight", tone === "up" && "text-success", tone === "down" && "text-destructive")}>{value}</span><span className="text-[10px] text-muted-foreground">{sub}</span></p>
       </div>
     </div>
   );
@@ -105,8 +105,8 @@ function BrainPage() {
 
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-background/80 to-transparent px-4 pb-8 pt-3 md:px-6">
           <div className="pointer-events-auto flex flex-wrap items-center gap-2">
-            <p className="me-2 flex items-center gap-2 text-xs font-medium tracking-[0.35em]"><Brain className="h-5 w-5 text-primary-glow" />AI BRAIN</p>
-            <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
+            <p className="me-2 flex items-center gap-2 text-xs font-medium"><Brain className="h-5 w-5 text-primary-glow" />{t("AI Brain")}</p>
+            <div className="order-3 grid w-full grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
               <Stat icon={<Brain className="h-4 w-4" />} label={t("Lessons learned")} value={String(L.length)} sub={`+${today} ${t("today")}`} tone={undefined} />
               <Stat icon={<Brain className="h-4 w-4" />} label={t("Approved rules")} value={String(R.filter((r) => r.is_active && r.status === "approved").length)} sub={`${R.filter((r) => r.status !== "approved").length} ${t("Under review")}`} />
               <Stat icon={<TrendingUp className="h-4 w-4" />} label={t("Win rate")} value={L.length ? `${((wins / L.length) * 100).toFixed(0)}%` : "—"} sub={`${wins}W / ${losses}L`} tone={L.length ? (wins / L.length >= 0.5 ? "up" : "down") : undefined} />
@@ -140,7 +140,7 @@ function BrainPage() {
           )}
 
           <div className="absolute inset-x-0 bottom-4 z-10 flex justify-center px-4">
-            <div className="flex flex-wrap items-center justify-center gap-2 rounded-full border border-border/60 bg-card/50 p-1.5 backdrop-blur">
+            <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/90 p-1.5 backdrop-blur">
               <div className="flex rounded-full border border-border/60 p-0.5">
                 {(Object.keys(RANGES) as Range[]).map((k) => (
                   <button key={k} onClick={() => setRange(k)} className={cn("rounded-full px-4 py-1.5 text-xs transition-colors", range === k ? "bg-primary/20 font-semibold text-foreground shadow-[inset_0_-2px_0_var(--primary)]" : "text-muted-foreground hover:text-foreground")}>{k}</button>

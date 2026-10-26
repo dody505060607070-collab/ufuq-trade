@@ -32,6 +32,12 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
   if (onlyUser) sq = sq.eq("user_id", onlyUser);
   const { data: users } = await sq;
   if (!users?.length) return { ok: true, users: 0, queued: 0 };
+  const [{ data: knownLessons, error: lessonError }, { data: knownRules, error: ruleError }] = await Promise.all([
+    db.from("trade_lessons").select("user_id").in("user_id", users.map((u) => u.user_id)),
+    db.from("learned_rules").select("user_id").in("user_id", users.map((u) => u.user_id)).eq("is_active", true).eq("status", "approved"),
+  ]);
+  if (lessonError || ruleError) return { ok: false, users: users.length, queued: 0, error: "Learning context unavailable" };
+  const personalOwners = new Set([...(knownLessons ?? []), ...(knownRules ?? [])].map((row) => row.user_id));
   // Market hours are per symbol: weekend close stops FX/metals but not crypto.
   const now = new Date();
   const pairs = [...new Set(users.flatMap((u) => u.symbols.filter((s) => !marketClosed(s, now)).map((s) => `${s}|${u.timeframe}`)))].slice(0, 12);
@@ -52,12 +58,14 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
   await Promise.all(pairs.map(async (k) => {
     const [sym = "", tf = "H1"] = k.split("|");
     try {
-      let r = await getCached(db, sym, tf);
-      if (!r) {
-        r = await runAI(db, sym, tf, null, null);
-        await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary, shared: true });
+      if (users.some((u) => !personalOwners.has(u.user_id) && u.symbols.includes(sym) && u.timeframe === tf)) {
+        let r = await getCached(db, sym, tf);
+        if (!r) {
+          r = await runAI(db, sym, tf, null, null);
+          await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary, shared: true });
+        }
+        results.set(k, r);
       }
-      results.set(k, r);
     } catch (e) { console.error("autopilot analysis", k, e); results.set(k, null); }
     // Calendar failure must not read as "no news": treat it as news nearby (blocks when avoid_news is on).
     if (!news.has(sym)) news.set(sym, await newsNearby(sym).catch(() => true));
@@ -94,11 +102,7 @@ async function cycle(db: SupabaseClient<Database>, holds: () => Promise<boolean>
     const quotes = qrows ?? [];
     const pending = (cmds ?? []).filter((c) => ["queued", "sent", "unknown"].includes(c.status));
     const autoToday = (cmds ?? []).filter((c) => (c.payload as { autopilot?: boolean })?.autopilot && c.created_at >= dayIso && !["failed", "expired"].includes(c.status));
-    const [{ data: lessons }, { data: rules }] = await Promise.all([
-      db.from("trade_lessons").select("id").eq("user_id", u.user_id).limit(1),
-      db.from("learned_rules").select("id").eq("user_id", u.user_id).eq("is_active", true).eq("status", "approved").limit(1),
-    ]);
-    const personal = !!(lessons?.length || rules?.length);
+    const personal = personalOwners.has(u.user_id);
     const added = new Map<string, { total: number; syms: Set<string> }>();
     for (const sym of u.symbols) {
       if (marketClosed(sym, now)) { await log(sym, "skipped", "Market closed for this symbol"); continue; }
