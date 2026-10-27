@@ -177,3 +177,22 @@ export async function verifyTrade(symbol: string, timeframe: string, p: Levels, 
     return { agree: j.agree === true, confidence: Math.max(0, Math.min(100, Math.round(Number(j.confidence) || 0))), reason: String(j.reason ?? "").slice(0, 300) };
   } catch { return { agree: false, confidence: 0, reason: "Second check failed to answer" }; }
 }
+
+const DEBATE_SYS = "You run a short trading-desk debate (roles inside ONE model, not independent agents). Bull researcher: strongest evidence FOR the trade. Bear researcher: strongest evidence AGAINST it and concrete ways it fails. Research manager: weigh both against the tool evidence, costs and open exposure, and decide. Never accept just because confidence is high; prefer 'wait' when evidence is mixed or data is missing. Return ONLY JSON: {bull: string[] (max 3), bear: string[] (max 3), failure: string[] (max 2, what would prove it wrong), missing: string[] (data you lacked), decision: 'accept'|'reject'|'wait', confidence: 0-100 integer (probability target before stop), reason: string (max 2 sentences)}.";
+
+export type Debate = { bull: string[]; bear: string[]; failure: string[]; missing: string[]; decision: "accept" | "reject" | "wait"; confidence: number; reason: string; model: string };
+/** Bull/bear/manager debate on a proposed demo trade. One Gemini call. Fails closed to 'wait'. */
+export async function debateTrade(symbol: string, timeframe: string, p: Levels, evidence: string, context: string, price: number | null): Promise<Debate> {
+  const fail = (reason: string): Debate => ({ bull: [], bear: [], failure: [], missing: ["AI debate unavailable"], decision: "wait", confidence: 0, reason, model: GEMINI_MODEL });
+  const key = process.env["GEMINI_API_KEY"];
+  if (!key) return fail("No AI key");
+  const prompt = `Proposed ${p.direction.toUpperCase()} ${symbol} (${timeframe}) at ${p.entry}, stop ${p.stop_loss}, target ${p.take_profit}; proposer confidence ${p.confidence}%. Live price ${price ?? "unknown"}. UTC ${new Date().toISOString()}.\n\nProposer reasoning:\n${p.summary}\n\nTool evidence (computed in code from current bars only):\n${evidence}\n\nContext:\n${context}`;
+  const text = await callGemini(key, prompt, DEBATE_SYS).catch(() => null);
+  try {
+    const j = JSON.parse(text?.match(/\{[\s\S]*\}/)?.[0] ?? "null") as Record<string, unknown> | null;
+    if (!j) throw new Error();
+    const arr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x).slice(0, 200)).slice(0, 3) : []);
+    const d = j["decision"];
+    return { bull: arr(j["bull"]), bear: arr(j["bear"]), failure: arr(j["failure"]), missing: arr(j["missing"]), decision: d === "accept" || d === "reject" ? d : "wait", confidence: Math.max(0, Math.min(100, Math.round(Number(j["confidence"]) || 0))), reason: String(j["reason"] ?? "").slice(0, 300), model: GEMINI_MODEL };
+  } catch { return fail("Debate returned no valid answer"); }
+}
