@@ -386,6 +386,63 @@ export type Database = {
         }
         Relationships: []
       }
+      challenges: {
+        Row: {
+          account_id: string
+          ended_at: string | null
+          floor_balance: number
+          id: string
+          last_cycle_at: string | null
+          max_daily_loss_pct: number
+          max_risk_pct: number
+          mode: string
+          peak_balance: number
+          start_balance: number
+          started_at: string
+          status: string
+          stop_reason: string | null
+          target_balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          ended_at?: string | null
+          floor_balance?: number
+          id?: string
+          last_cycle_at?: string | null
+          max_daily_loss_pct?: number
+          max_risk_pct?: number
+          mode?: string
+          peak_balance: number
+          start_balance: number
+          started_at?: string
+          status?: string
+          stop_reason?: string | null
+          target_balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          ended_at?: string | null
+          floor_balance?: number
+          id?: string
+          last_cycle_at?: string | null
+          max_daily_loss_pct?: number
+          max_risk_pct?: number
+          mode?: string
+          peak_balance?: number
+          start_balance?: number
+          started_at?: string
+          status?: string
+          stop_reason?: string | null
+          target_balance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
