@@ -3,7 +3,7 @@ export type LockRules = { profit_target_usd: number; lock_start_usd: number; giv
 
 /** Allowed giveback shrinks as the peak grows; never looser than the user's setting. */
 export function givebackFor(peak: number, userPct: number): number {
-  const tier = peak < 15 ? 40 : peak < 30 ? 25 : 20;
+  const tier = peak < 8 ? 40 : peak < 15 ? 20 : peak < 30 ? 18 : 15;
   return Math.min(userPct, tier);
 }
 
@@ -28,6 +28,14 @@ export function exitReview(profit: number, peak: number, missed: number): { verd
 }
 
 /** Blocks new trades during cooldown after a close, or once the daily profit goal is met. */
+/** Rest adapts to recent results: after a win the market is moving our way, so rest is short; loss streaks rest longer. */
+export function adaptiveCooldown(base: number, recentProfits: number[]): number {
+  if (base <= 0 || !recentProfits.length) return base;
+  if ((recentProfits[0] ?? 0) > 0) return Math.min(base, 5);
+  let streak = 0; for (const p of recentProfits) { if (p < 0) streak++; else break; }
+  return streak >= 2 ? Math.min(base * 2, 120) : base;
+}
+
 export function pauseReason(minutesSinceLastClose: number | null, cooldown: number, todayProfit: number, dailyTarget: number): string | null {
   if (dailyTarget > 0 && todayProfit >= dailyTarget) return `Daily goal $${dailyTarget} reached — resting until tomorrow`;
   if (cooldown > 0 && minutesSinceLastClose != null && minutesSinceLastClose < cooldown) return `Resting ${Math.ceil(cooldown - minutesSinceLastClose)} min after last close`;

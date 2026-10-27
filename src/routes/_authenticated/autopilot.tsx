@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/autopilot")({
 });
 
 type Settings = { enabled: boolean; symbols: string[]; timeframe: string; min_confidence: number; lot_size: number; max_open: number; max_daily: number; avoid_news: boolean; profit_target_usd: number; lock_start_usd: number; giveback_pct: number; cooldown_minutes: number; daily_target_usd: number };
-const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: DEFAULT_TRADE_LOT, max_open: 2, max_daily: 4, avoid_news: true, profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40, cooldown_minutes: 30, daily_target_usd: 0 };
+const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: DEFAULT_TRADE_LOT, max_open: 2, max_daily: 4, avoid_news: true, profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40, cooldown_minutes: 15, daily_target_usd: 0 };
 
 function AutoPilot() {
   const t = useT();

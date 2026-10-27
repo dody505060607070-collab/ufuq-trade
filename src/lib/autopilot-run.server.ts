@@ -1,5 +1,5 @@
 import { skipReason, tradeLot, SINGLE_AI_CALL } from "@/lib/autopilot";
-import { pauseReason } from "@/lib/profitlock";
+import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -73,7 +73,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     const { data: closedToday } = await db.from("trades").select("profit,closed_at").in("account_id", ids).eq("status", "closed").gte("closed_at", dayStart.toISOString()).order("closed_at", { ascending: false });
     const ext = u as unknown as { cooldown_minutes?: number; daily_target_usd?: number };
     const lastClose = closedToday?.[0]?.closed_at;
-    const pause = pauseReason(lastClose ? (Date.now() - new Date(lastClose).getTime()) / 60_000 : null, Number(ext.cooldown_minutes ?? 0), (closedToday ?? []).reduce((a, t) => a + Number(t.profit ?? 0), 0), Number(ext.daily_target_usd ?? 0));
+    const pause = pauseReason(lastClose ? (Date.now() - new Date(lastClose).getTime()) / 60_000 : null, adaptiveCooldown(Number(ext.cooldown_minutes ?? 0), (closedToday ?? []).map((t) => Number(t.profit ?? 0))), (closedToday ?? []).reduce((a, t) => a + Number(t.profit ?? 0), 0), Number(ext.daily_target_usd ?? 0));
     if (pause) { await log("-", "skipped", pause); continue; }
     const { data: qrows } = await db.from("broker_quotes").select("*").in("account_id", ids);
     const quotes = qrows ?? [];

@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { exitReview, lockReason, pauseReason } from "./profitlock";
+import { adaptiveCooldown, exitReview, lockReason, pauseReason } from "./profitlock";
 
 const r = { profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40 };
 
 describe("profit lock", () => {
   it("closes at the $20 target", () => expect(lockReason(20, 20, r)).not.toBeNull());
   it("keeps open below target with no peak", () => expect(lockReason(15, 15, r)).toBeNull());
-  it("$25 peak locks by $18, not $10", () => {
-    expect(lockReason(18, 25, r)).not.toBeNull();
-    expect(lockReason(19, 25, r)).toBeNull();
+  it("$24 peak locks near $19.7", () => {
+    expect(lockReason(19.5, 24, r)).not.toBeNull();
+    expect(lockReason(19.9, 24, r)).toBeNull();
   });
   it("does not lock a loss", () => expect(lockReason(-2, 25, r)).toBeNull());
   it("lets a strong trend run past $20", () => expect(lockReason(22, 22, r, true)).toBeNull());
@@ -18,4 +18,8 @@ describe("profit lock", () => {
   it("stops after daily goal", () => expect(pauseReason(null, 30, 50, 50)).not.toBeNull());
   it("closed $20 but price gave $80 more = early", () => expect(exitReview(20, 21, 80).verdict).toBe("early"));
   it("peak $25 closed $10 = late", () => expect(exitReview(10, 25, 0).verdict).toBe("late"));
+  it("peak $13 locks at about $10.4, not $7", () => { expect(lockReason(10.3, 13, r)).not.toBeNull(); expect(lockReason(10.6, 13, r)).toBeNull(); });
+  it("rests only 5 min after a win", () => expect(adaptiveCooldown(30, [7])).toBe(5));
+  it("rests full time after one loss", () => expect(adaptiveCooldown(30, [-5, 7])).toBe(30));
+  it("rests double after two losses", () => expect(adaptiveCooldown(30, [-5, -3])).toBe(60));
 });
