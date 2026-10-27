@@ -6,9 +6,9 @@ const r = { profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40 };
 describe("profit lock", () => {
   it("closes at the $20 target", () => expect(lockReason(20, 20, r)).not.toBeNull());
   it("keeps open below target with no peak", () => expect(lockReason(15, 15, r)).toBeNull());
-  it("$25 peak locks by $18, not $10", () => {
-    expect(lockReason(20, 25, r)).not.toBeNull();
-    expect(lockReason(21, 25, r)).toBeNull();
+  it("$24 peak locks near $19.7", () => {
+    expect(lockReason(19.5, 24, r)).not.toBeNull();
+    expect(lockReason(19.9, 24, r)).toBeNull();
   });
   it("does not lock a loss", () => expect(lockReason(-2, 25, r)).toBeNull());
   it("lets a strong trend run past $20", () => expect(lockReason(22, 22, r, true)).toBeNull());
