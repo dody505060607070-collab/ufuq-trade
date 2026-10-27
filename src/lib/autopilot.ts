@@ -31,3 +31,6 @@ export function tradeLot(baseLot: number, confidence: number): number {
   const lot = confidence >= STRONG_CONFIDENCE ? baseLot * STRONG_LOT_MULT : baseLot;
   return Math.round(lot * 100) / 100;
 }
+
+/** Credit saver: only one AI analysis per trade decision (no second AI opinion / debate). Code risk checks still veto. */
+export const SINGLE_AI_CALL = true;

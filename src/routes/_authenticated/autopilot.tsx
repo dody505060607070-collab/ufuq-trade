@@ -80,7 +80,7 @@ function AutoPilot() {
 
   return (
     <Page title={t("Auto-Pilot")} subtitle={t("Fully automatic AI trading with strict risk limits.")}>
-      <HelpNote>{"Every 5 minutes the AI analyses your chosen instruments. When a signal is strong enough and every safety rule passes, a trade with Stop Loss and Take Profit is sent to your MT5 accounts automatically — no need to keep this page open. MT5 with the EA must stay running (for example on your Windows server). Test on a demo account first."}</HelpNote>
+      <HelpNote>{"Every 10 minutes the AI analyses your chosen instruments. When a signal is strong enough and every safety rule passes, a trade with Stop Loss and Take Profit is sent to your MT5 accounts automatically — no need to keep this page open. MT5 with the EA must stay running (for example on your Windows server). Test on a demo account first."}</HelpNote>
 
       <Card title={t("Status")}>
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -154,7 +154,7 @@ function AutoPilot() {
       </Card>
 
       <Card title={t("Activity")}>
-        {(events.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{t("No activity yet. The first check runs within 5 minutes after you turn Auto-Pilot on.")}</p> : (
+        {(events.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">{t("No activity yet. The first check runs within 10 minutes after you turn Auto-Pilot on.")}</p> : (
           <ul className="space-y-1 text-sm">
             {(events.data ?? []).map((e) => (
               <li key={e.id} className="flex gap-3 border-t border-border/40 py-1.5">
@@ -175,7 +175,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div><div className="mb-1 text-xs font-semibold text-muted-foreground">{label}</div>{children}</div>;
 }
 
-const CYCLE = 5 * 60_000;
+const CYCLE = 10 * 60_000;
 
 function LiveMonitor({ enabled, events, accountIds }: { enabled: boolean; events: { action: string; created_at: string }[]; accountIds: string[] }) {
   const t = useT();
@@ -207,7 +207,7 @@ function LiveMonitor({ enabled, events, accountIds }: { enabled: boolean; events
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="font-mono text-3xl font-bold tabular-nums" dir="ltr">{now ? `${mm}:${ss}` : "--:--"}</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("Scans every 5 minutes")}</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("Scans every 10 minutes")}</span>
           </div>
         </div>
         <div className="w-full flex-1 space-y-3">

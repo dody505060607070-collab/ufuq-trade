@@ -67,7 +67,7 @@ export function LiveStatusBar() {
           sub={`${t("Auto trading on")} ${autoAccs.length}/${accs.length}`} />
         <Cell icon={<Clock className="h-4 w-4" />} ok={!closed && enabled} label={t("Next analysis")}
           value={closed ? t("Market closed") : enabled ? `${mm}:${ss}` : "—"}
-          sub={closed ? t("Weekend") : t("Every 5 minutes")} />
+          sub={closed ? t("Weekend") : t("Every 10 minutes")} />
         <Cell icon={ev?.action === "opened" ? <Activity className="h-4 w-4" /> : <Brain className="h-4 w-4" />} ok={ev?.action === "opened"} neutral={ev?.action === "skipped"} label={t("Last AI decision")}
           value={ev ? `${ev.symbol !== "-" ? ev.symbol + " · " : ""}${ev.action === "opened" ? t("Opened a trade") : ev.action === "skipped" ? t("Skipped") : t("Error")}` : t("No decisions yet")}
           sub={ev ? `${t(ev.detail ?? "")} · ${timeAgo(ev.created_at)}` : ""} />

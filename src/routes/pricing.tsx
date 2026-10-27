@@ -10,7 +10,7 @@ export const Route = createFileRoute("/pricing")({
   component: Pricing,
 });
 
-const included = ["AI analysis every 5 minutes", "24/7 Auto-Pilot", "AI Brain that learns from every trade", "Whale Radar", "Profit lock & risk slider", "Premium AI models & powerful servers", "24/7 support & continuous development"];
+const included = ["AI analysis every 10 minutes", "24/7 Auto-Pilot", "AI Brain that learns from every trade", "Whale Radar", "Profit lock & risk slider", "Premium AI models & powerful servers", "24/7 support & continuous development"];
 
 function Pricing() {
   const t = useT();

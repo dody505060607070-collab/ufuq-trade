@@ -109,7 +109,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         if (!verdict.allow) { reason = verdict.reason; continue; }
         // Second opinion: an independent AI check must agree, and the average confidence must stay above the floor.
         let v = checks.get(sym);
-        if (!v) { v = await verifyTrade(sym, u.timeframe, r, live0 ?? null); checks.set(sym, v); }
+        if (!v) { v = SINGLE_AI_CALL ? { agree: true, confidence: r.confidence, reason: "single analysis (credit saver)" } : await verifyTrade(sym, u.timeframe, r, live0 ?? null); checks.set(sym, v); }
         const combined = Math.round((r.confidence + v.confidence) / 2);
         if (!v.agree || combined < Math.max(MIN_CONFIDENCE_FLOOR, Number(u.min_confidence))) {
           reason = `Second AI check said no (${v.confidence}%, combined ${combined}%): ${v.reason}`;
