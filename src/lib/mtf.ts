@@ -20,8 +20,20 @@ export function mtfConflict(direction: "buy" | "sell" | "neutral", t: MtfTrends,
 /** ADX level at which an M15+H1 move may trade against a lagging H4. */
 export const MOMENTUM_ADX = 40;
 
-export function mtfText(t: MtfTrends): string {
-  return `M15 ${t.M15 ?? "n/a"} | H1 ${t.H1 ?? "n/a"} | H4 ${t.H4 ?? "n/a"} (trade with H1/H4; if M15+H1 agree and ADX >= 40, a lagging H4 is not a conflict — trade with H1 at moderate confidence)`;
+/** Direction allowed by strong momentum (M15+H1 agree, H4 lags/against, ADX >= MOMENTUM_ADX), else null. */
+export function momentumBias(t: MtfTrends, adx: number | null): "buy" | "sell" | null {
+  if (adx == null || adx < MOMENTUM_ADX) return null;
+  if (t.M15 === "up" && t.H1 === "up" && t.H4 !== "up") return "buy";
+  if (t.M15 === "down" && t.H1 === "down" && t.H4 !== "down") return "sell";
+  return null;
+}
+
+export function mtfText(t: MtfTrends, adx: number | null = null): string {
+  const base = `M15 ${t.M15 ?? "n/a"} | H1 ${t.H1 ?? "n/a"} | H4 ${t.H4 ?? "n/a"}`;
+  const m = momentumBias(t, adx);
+  if (m)
+    return `${base}\nMOMENTUM MODE ACTIVE: M15 and H1 both ${t.H1}, ADX ${adx!.toFixed(1)} >= ${MOMENTUM_ADX}. This is NOT a timeframe conflict — the H4 is lagging. A ${m.toUpperCase()} is allowed and preferred; do not return neutral because of the H4. Overbought/oversold RSI and premium/discount extremes are normal in a strong trend and are not on their own a reason for neutral. Return neutral only for a clear reversal candle against the move, a high-impact event within 30 minutes, or missing data. Confidence 65-75. Stop beyond the last M15 swing, target at least the minimum RR.`;
+  return `${base} (trade with H1/H4 when they agree; an M15 move against them is a pullback entry)`;
 }
 
 /** Learned-rule check: retire the newest approved rule when results got clearly worse after it. */

@@ -28,3 +28,10 @@ describe("strong momentum vs lagging H4", () => {
   it("still blocks when ADX is 30", () => { expect(mc2("buy", { M15: "up", H1: "up", H4: "down" }, null, 30)).not.toBeNull(); });
   it("still blocks when H1 is against", () => { expect(mc2("buy", { M15: "up", H1: "down", H4: "up" }, null, 57)).not.toBeNull(); });
 });
+
+import { momentumBias, mtfText } from "./mtf";
+describe("momentum mode for the AI prompt", () => {
+  it("gold M15+H1 up, H4 down, ADX 57.8 → buy allowed", () => { expect(momentumBias({ M15: "up", H1: "up", H4: "down" }, 57.8)).toBe("buy"); });
+  it("ADX 35 → no momentum mode", () => { expect(momentumBias({ M15: "up", H1: "up", H4: "down" }, 35)).toBeNull(); });
+  it("prompt text tells the AI momentum mode is active", () => { expect(mtfText({ M15: "up", H1: "up", H4: "down" }, 57.8)).toContain("MOMENTUM MODE ACTIVE"); });
+});
