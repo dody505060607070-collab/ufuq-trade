@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useT } from "@/lib/i18n";
 import { challengeProgress, drawdownPct } from "@/lib/challenge";
 import { emergencyStopSim } from "@/lib/sim.functions";
+import { riskAdjusted } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
 
 const TITLE = "$100 to $1M Multi-Asset Demo Challenge | Ufuq Trade";
@@ -31,8 +32,9 @@ function Challenge() {
   const c = ch.data;
   const trades = useQuery({ queryKey: ["sim-trades", c?.id], enabled: !!c, refetchInterval: 15_000, queryFn: async () => (await supabase.from("sim_trades").select("*").eq("challenge_id", c!.id).order("opened_at", { ascending: false }).limit(300)).data ?? [] });
   const events = useQuery({ queryKey: ["sim-events", c?.id], enabled: !!c, refetchInterval: 15_000, queryFn: async () => (await supabase.from("sim_events").select("*").eq("challenge_id", c!.id).order("created_at", { ascending: false }).limit(60)).data ?? [] });
-  const decisions = useQuery({ queryKey: ["sim-dec", c?.id], enabled: !!c, refetchInterval: 30_000, queryFn: async () => (await supabase.from("sim_decisions").select("id,symbol,timeframe,direction,outcome,scanner_score,reviewer,supervisor,created_at").eq("challenge_id", c!.id).order("created_at", { ascending: false }).limit(500)).data ?? [] });
+  const decisions = useQuery({ queryKey: ["sim-dec", c?.id], enabled: !!c, refetchInterval: 30_000, queryFn: async () => (await supabase.from("sim_decisions").select("id,symbol,timeframe,direction,outcome,scanner_score,reviewer,supervisor,evidence,checklist,debate,strategy_version,hindsight,created_at").eq("challenge_id", c!.id).order("created_at", { ascending: false }).limit(500)).data ?? [] });
 
+  const reviews = useQuery({ queryKey: ["sim-rev", c?.id], enabled: !!c, refetchInterval: 60_000, queryFn: async () => (await supabase.from("sim_reviews").select("*").eq("challenge_id", c!.id).order("created_at", { ascending: false }).limit(100)).data ?? [] });
   const active = c && (c.status === "running" || c.status === "paused");
   const all = trades.data ?? [];
   const closed = all.filter((x) => x.status === "closed"), open = all.filter((x) => x.status === "open");
@@ -156,6 +158,8 @@ function Challenge() {
         </section>
       )}
 
+      <AgentReports dec={dec} reviews={reviews.data ?? []} />
+
       <section className="mt-6 overflow-x-auto rounded-xl border border-border bg-card">
         <h2 className="p-4 font-semibold">{t("Bot decisions")}</h2>
         <table className="w-full text-sm"><tbody>
@@ -180,5 +184,56 @@ function Stat({ label, value, tone, sub }: { label: string; value: string; tone?
       <div className={cn("mt-1 text-lg font-semibold", tone === "up" && "text-success", tone === "down" && "text-destructive")}>{value}</div>
       {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
     </div>
+  );
+}
+
+type Dec = { id: string; symbol: string; timeframe: string; direction: string; outcome: string; created_at: string; strategy_version: string | null; hindsight: string | null; evidence: unknown; checklist: unknown; debate: unknown; reviewer: unknown };
+type Rev = { id: string; symbol: string; timeframe: string | null; profit: number; r_multiple: number; process_score: number; outcome_class: string; followed_plan: boolean; lessons: unknown; strategy_version: string | null };
+function AgentReports({ dec, reviews }: { dec: Dec[]; reviews: Rev[] }) {
+  const t = useT();
+  const graded = dec.filter((d) => d.hindsight && d.hindsight !== "neither hit in 24h");
+  const acc = graded.filter((d) => d.outcome === "opened"), rej = graded.filter((d) => d.outcome !== "opened");
+  const tpRate = (a: Dec[]) => a.length ? `${Math.round((a.filter((d) => d.hindsight === "tp_first").length / a.length) * 100)}% (${a.length})` : "—";
+  const ra = riskAdjusted(reviews.map((r) => Number(r.r_multiple)));
+  const lessons = new Map<string, number>();
+  for (const r of reviews) for (const l of (r.lessons as string[]) ?? []) lessons.set(l, (lessons.get(l) ?? 0) + 1);
+  return (
+    <>
+      <section className="mt-6 grid gap-3 md:grid-cols-4">
+        <div className="rounded-xl border border-border bg-card p-4 text-sm"><div className="text-xs text-muted-foreground">{t("Accepted ideas that hit target first")}</div><div className="mt-1 text-lg font-semibold">{tpRate(acc)}</div></div>
+        <div className="rounded-xl border border-border bg-card p-4 text-sm"><div className="text-xs text-muted-foreground">{t("Rejected ideas that would have hit target first")}</div><div className="mt-1 text-lg font-semibold">{tpRate(rej)}</div></div>
+        <div className="rounded-xl border border-border bg-card p-4 text-sm"><div className="text-xs text-muted-foreground">{t("Risk-adjusted return (mean R / stdev)")}</div><div className="mt-1 text-lg font-semibold">{ra ?? "—"}</div></div>
+        <div className="rounded-xl border border-border bg-card p-4 text-sm"><div className="text-xs text-muted-foreground">{t("Strategy version")}</div><div className="mt-1 text-lg font-semibold">{dec[0]?.strategy_version ?? "—"}</div></div>
+      </section>
+      <p className="mt-2 text-xs text-muted-foreground">{t("These are live demo results, not historical backtests. Rejected ideas are graded only with prices after the decision.")}</p>
+
+      <section className="mt-6 rounded-xl border border-border bg-card p-4">
+        <h2 className="font-semibold">{t("Agent reports")}</h2>
+        <div className="mt-3 space-y-3">
+          {dec.slice(0, 15).map((d) => {
+            const ev = d.evidence as { tools?: { name: string; used: boolean; why: string; result?: string }[] } | null;
+            const db = d.debate as { bull?: string[]; bear?: string[]; failure?: string[]; missing?: string[]; decision?: string; reason?: string; model?: string } | null;
+            const cl = d.checklist as { q: string; ok: boolean | null; note: string }[] | null;
+            return (
+              <details key={d.id} className="rounded-lg border border-border p-3 text-sm">
+                <summary className="cursor-pointer">{new Date(d.created_at).toLocaleString()} · <b>{d.symbol}</b> {d.timeframe} {d.direction.toUpperCase()} · {t(d.outcome)}{d.hindsight ? ` · ${t("hindsight")}: ${d.hindsight}` : ""}</summary>
+                {ev?.tools && <div className="mt-2"><div className="font-medium">{t("Tools")}</div>{ev.tools.map((x) => <div key={x.name} className={cn("text-xs", !x.used && "text-muted-foreground")}>{x.used ? "✓" : "—"} {x.name}: {x.used ? x.result : x.why}</div>)}</div>}
+                {db && <div className="mt-2 grid gap-2 md:grid-cols-2"><div><div className="font-medium text-success">{t("Bull researcher")}</div>{(db.bull ?? []).map((x) => <div key={x} className="text-xs">• {x}</div>)}</div><div><div className="font-medium text-destructive">{t("Bear researcher")}</div>{[...(db.bear ?? []), ...(db.failure ?? [])].map((x) => <div key={x} className="text-xs">• {x}</div>)}</div><div className="text-xs md:col-span-2">{t("Research manager")}: <b>{db.decision}</b> — {db.reason} <span className="text-muted-foreground">({db.model})</span></div></div>}
+                {cl && <div className="mt-2"><div className="font-medium">{t("Checklist")}</div>{cl.map((x) => <div key={x.q} className="text-xs">{x.ok === true ? "✓" : x.ok === false ? "✗" : "?"} {x.q} — {x.note}</div>)}</div>}
+              </details>
+            );
+          })}
+          {!dec.length && <p className="text-sm text-muted-foreground">{t("No decisions yet.")}</p>}
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-xl border border-border bg-card p-4">
+        <h2 className="font-semibold">{t("Post-trade reviews")}</h2>
+        {reviews.map((r) => <div key={r.id} className="mt-2 border-t border-border pt-2 text-sm"><b>{r.symbol}</b> {r.timeframe} · {r.r_multiple}R · {t("process")} {r.process_score}% · {t(r.outcome_class)} · {r.followed_plan ? t("followed plan") : t("left the plan")}<div className="text-xs text-muted-foreground">{((r.lessons as string[]) ?? []).join(" · ")}</div></div>)}
+        {!reviews.length && <p className="mt-2 text-sm text-muted-foreground">{t("No closed demo trades to review yet.")}</p>}
+        {lessons.size > 0 && <div className="mt-3"><div className="font-medium text-sm">{t("Repeated lessons")}</div>{[...lessons.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([l, n]) => <div key={l} className="text-xs">×{n} {l}</div>)}</div>}
+        <p className="mt-2 text-xs text-muted-foreground">{t("Lessons are recorded for review only; they never change risk limits or trade size automatically.")}</p>
+      </section>
+    </>
   );
 }

@@ -852,6 +852,7 @@ export type Database = {
           target_balance: number
           timeframe: string
           updated_at: string
+          use_evidence: boolean
           user_id: string
         }
         Insert: {
@@ -887,6 +888,7 @@ export type Database = {
           target_balance?: number
           timeframe?: string
           updated_at?: string
+          use_evidence?: boolean
           user_id: string
         }
         Update: {
@@ -922,6 +924,7 @@ export type Database = {
           target_balance?: number
           timeframe?: string
           updated_at?: string
+          use_evidence?: boolean
           user_id?: string
         }
         Relationships: []
@@ -929,13 +932,22 @@ export type Database = {
       sim_decisions: {
         Row: {
           challenge_id: string
+          checklist: Json | null
           created_at: string
+          debate: Json | null
           direction: string
+          evidence: Json | null
+          graded_at: string | null
+          hindsight: string | null
           id: string
           outcome: string
+          plan_entry: number | null
+          plan_sl: number | null
+          plan_tp: number | null
           reviewer: Json | null
           scanner: Json
           scanner_score: number | null
+          strategy_version: string | null
           supervisor: Json | null
           symbol: string
           timeframe: string
@@ -943,13 +955,22 @@ export type Database = {
         }
         Insert: {
           challenge_id: string
+          checklist?: Json | null
           created_at?: string
+          debate?: Json | null
           direction: string
+          evidence?: Json | null
+          graded_at?: string | null
+          hindsight?: string | null
           id?: string
           outcome: string
+          plan_entry?: number | null
+          plan_sl?: number | null
+          plan_tp?: number | null
           reviewer?: Json | null
           scanner: Json
           scanner_score?: number | null
+          strategy_version?: string | null
           supervisor?: Json | null
           symbol: string
           timeframe: string
@@ -957,13 +978,22 @@ export type Database = {
         }
         Update: {
           challenge_id?: string
+          checklist?: Json | null
           created_at?: string
+          debate?: Json | null
           direction?: string
+          evidence?: Json | null
+          graded_at?: string | null
+          hindsight?: string | null
           id?: string
           outcome?: string
+          plan_entry?: number | null
+          plan_sl?: number | null
+          plan_tp?: number | null
           reviewer?: Json | null
           scanner?: Json
           scanner_score?: number | null
+          strategy_version?: string | null
           supervisor?: Json | null
           symbol?: string
           timeframe?: string
@@ -1014,6 +1044,72 @@ export type Database = {
           },
         ]
       }
+      sim_reviews: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          followed_plan: boolean
+          id: string
+          lessons: Json
+          outcome_class: string
+          process_score: number
+          profit: number
+          r_multiple: number
+          strategy_version: string | null
+          symbol: string
+          timeframe: string | null
+          trade_id: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          followed_plan: boolean
+          id?: string
+          lessons?: Json
+          outcome_class: string
+          process_score: number
+          profit: number
+          r_multiple: number
+          strategy_version?: string | null
+          symbol: string
+          timeframe?: string | null
+          trade_id: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          followed_plan?: boolean
+          id?: string
+          lessons?: Json
+          outcome_class?: string
+          process_score?: number
+          profit?: number
+          r_multiple?: number
+          strategy_version?: string | null
+          symbol?: string
+          timeframe?: string | null
+          trade_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_reviews_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "sim_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sim_reviews_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: true
+            referencedRelation: "sim_trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sim_trades: {
         Row: {
           challenge_id: string
@@ -1026,6 +1122,7 @@ export type Database = {
           fees: number
           float_pnl: number | null
           id: string
+          last_check: string | null
           last_price: number | null
           leverage: number | null
           lot: number
@@ -1037,6 +1134,7 @@ export type Database = {
           side: string
           status: string
           stop_loss: number
+          strategy_version: string | null
           swap: number
           symbol: string
           take_profit: number
@@ -1054,6 +1152,7 @@ export type Database = {
           fees?: number
           float_pnl?: number | null
           id?: string
+          last_check?: string | null
           last_price?: number | null
           leverage?: number | null
           lot: number
@@ -1065,6 +1164,7 @@ export type Database = {
           side: string
           status?: string
           stop_loss: number
+          strategy_version?: string | null
           swap?: number
           symbol: string
           take_profit: number
@@ -1082,6 +1182,7 @@ export type Database = {
           fees?: number
           float_pnl?: number | null
           id?: string
+          last_check?: string | null
           last_price?: number | null
           leverage?: number | null
           lot?: number
@@ -1093,6 +1194,7 @@ export type Database = {
           side?: string
           status?: string
           stop_loss?: number
+          strategy_version?: string | null
           swap?: number
           symbol?: string
           take_profit?: number

@@ -1,9 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import {
-  ASSETS, EXCLUDED_ASSETS, SCAN_MIN_SCORE, assetSpec, exitOnBars, fillPrice, group, liquidated, pnl, quoteToUsd, rollovers, scanAsset, supervise,
+  ASSETS, EXCLUDED_ASSETS, trendOf, SCAN_MIN_SCORE, assetSpec, exitOnBars, fillPrice, group, liquidated, pnl, quoteToUsd, rollovers, scanAsset, supervise,
   type AssetSpec, type Bar, type OpenPos, type ScanResult, type ScanTf, type SimTrade,
 } from "@/lib/challenge";
+
+import { STRATEGY_VERSION, buildEvidence, checklistVerdict, preTradeChecklist, reviewTrade, thesisBroken, type Checklist } from "@/lib/evidence";
+import { gradePath } from "@/lib/hindsight";
 
 /**
  * Free demo challenge cycle (paper only): writes sim_* tables, never trade_commands or real accounts.
@@ -107,6 +110,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
     balance += p; fees += Number(t.fees);
     await db.from("sim_trades").update({ status: "closed", exit_price: price, profit: Math.round(p * 100) / 100, close_reason: reason, closed_at: now, float_pnl: null }).eq("id", t.id);
     await log("closed", `${t.symbol} ${t.side.toUpperCase()} ${t.lot} @ ${price} · ${reason} · ${p >= 0 ? "+" : ""}$${p.toFixed(2)}`);
+    await writeReview(db, t, p, reason);
   };
 
   // 1) Manage open positions on every asset (stop/target on M5 bars since the last cycle, swap, mark-to-market).
@@ -122,11 +126,13 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
     if (nights > 0) t.swap = Number(t.swap) + nights * spec.swapPerLotNight * Number(t.lot) * conv;
     const from = Math.max(sinceSec, Math.floor(new Date(t.opened_at).getTime() / 1000)) - 300;
     const hit = exitOnBars(t as unknown as SimTrade, m.m5.filter((b) => b.t >= from));
+    const broken = c.use_evidence ? thesisBroken(t.side as "buy" | "sell", { H1: m.tf.H1 ? trendOf(m.tf.H1) : null, H4: m.tf.H4 ? trendOf(m.tf.H4) : null }) : null;
     if (c.status === "stopped") await close(t, fillPrice(t.side as "buy" | "sell", m.mid, spec, true), "emergency stop", conv);
     else if (hit) await close(t, hit.price, hit.reason, conv);
+    else if (broken) { await log("thesis", `${t.symbol}: ${broken} — closing early`); await close(t, fillPrice(t.side as "buy" | "sell", m.mid, spec, true), "thesis invalidated", conv); }
     else {
       const float = pnl(t as unknown as SimTrade, fillPrice(t.side as "buy" | "sell", m.mid, spec, true), spec, conv) - Number(t.swap);
-      await db.from("sim_trades").update({ float_pnl: Math.round(float * 100) / 100, last_price: m.mid, swap: t.swap }).eq("id", t.id);
+      await db.from("sim_trades").update({ float_pnl: Math.round(float * 100) / 100, last_price: m.mid, swap: t.swap, last_check: `${now.slice(11, 16)} UTC · thesis intact · stop/target unchanged` }).eq("id", t.id);
       remaining.push({ t, float });
     }
   }
@@ -163,7 +169,8 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
     const openSyms = new Set(remaining.map((r) => r.t.symbol));
     const cands = results.filter((r) => r.direction && r.score >= SCAN_MIN_SCORE && !openSyms.has(r.symbol)).sort((a, b) => b.score - a.score).slice(0, AI_CANDIDATES_PER_CYCLE);
     if (!cands.length) await log("waiting", `Scanned ${results.length} assets · no setup with score ≥ ${SCAN_MIN_SCORE} (best: ${results.sort((a, b) => b.score - a.score)[0]?.symbol ?? "—"} ${results[0]?.score ?? 0})`);
-    const { getCached, runAI, verifyTrade } = await import("@/lib/analysis.server");
+    const { getCached, runAI, verifyTrade, debateTrade } = await import("@/lib/analysis.server");
+    let headlines: string[] | null = null;
     const { MIN_CONFIDENCE_FLOOR } = await import("@/lib/autopilot");
     const floor = Math.max(MIN_CONFIDENCE_FLOOR, 65);
     const startOfDay = new Date(); startOfDay.setUTCHours(0, 0, 0, 0);
@@ -173,8 +180,10 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
     for (const r of cands) {
       const m = M.get(r.symbol)!, spec = m.spec, mid = m.mid!;
       const scanner: { ai?: unknown; [k: string]: unknown } = { score: r.score, trends: r.trends, reason: r.reason, atr: r.atr, rsi: r.rsi, tradeTf: r.tradeTf, price: mid, src: m.src };
+      let extraCols: { evidence?: unknown; checklist?: unknown; debate?: unknown; plan?: { e: number; sl: number; tp: number } } = {};
       const record = (outcome: Database["public"]["Tables"]["sim_decisions"]["Insert"]["outcome"], extra: { reviewer?: unknown; supervisor?: unknown }) =>
-        db.from("sim_decisions").insert({ challenge_id: c.id, user_id: c.user_id, symbol: r.symbol, timeframe: r.tradeTf, direction: r.direction!, scanner_score: r.score, scanner: scanner as Json, reviewer: (extra.reviewer ?? null) as Json, supervisor: (extra.supervisor ?? null) as Json, outcome }).select("id").single();
+        db.from("sim_decisions").insert({ challenge_id: c.id, user_id: c.user_id, symbol: r.symbol, timeframe: r.tradeTf, direction: r.direction!, scanner_score: r.score, scanner: scanner as Json, reviewer: (extra.reviewer ?? null) as Json, supervisor: (extra.supervisor ?? null) as Json, outcome,
+          evidence: (extraCols.evidence ?? null) as Json, checklist: (extraCols.checklist ?? null) as Json, debate: (extraCols.debate ?? null) as Json, strategy_version: c.use_evidence ? STRATEGY_VERSION : "mtf-v0", plan_entry: extraCols.plan?.e ?? null, plan_sl: extraCols.plan?.sl ?? null, plan_tp: extraCols.plan?.tp ?? null }).select("id").single();
       // Agent 1 (AI part): Gemini must propose the same direction with levels.
       let ai = await getCached(db, r.symbol, r.tradeTf).catch(() => null);
       if (!ai) {
@@ -187,15 +196,32 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
       }
       const shift = mid - ai.entry;
       const prop = { ...ai, entry: mid, stop_loss: ai.stop_loss + shift, take_profit: ai.take_profit + shift };
+      extraCols.plan = { e: mid, sl: prop.stop_loss, tp: prop.take_profit };
       // Agent 2: independent review (separate Gemini call with the scanner's data, costs and current exposure).
       agents.reviewer = "reviewing";
       const exposure = remaining.map((x) => `${x.t.symbol} ${x.t.side}`).join(", ") || "none";
       const brief = `${ai.summary}\n\nScanner data — trends ${JSON.stringify(r.trends)}, score ${r.score}, RSI ${r.rsi?.toFixed(0)}, ATR ${r.atr}. Price source ${m.src}. Costs: spread ${spec.spread}, slippage ${spec.slippage}, commission $${spec.commissionPerLot}/lot. Max leverage 1:${spec.maxLeverage}. Open demo positions: ${exposure}. Reject if data is stale, the signal is late or weak, or exposure is correlated.`;
-      const v = await verifyTrade(r.symbol, r.tradeTf, { ...prop, summary: brief }, mid);
-      const reviewer = { decision: v.confidence === 0 && !v.agree ? "needs_info" : v.agree ? "approve" : "reject", confidence: v.confidence, reason: v.reason };
-      agents.reviewer = reviewer.decision;
+      let v: { agree: boolean; confidence: number; reason: string };
+      let reviewer: Record<string, unknown>;
+      if (c.use_evidence) {
+        // TradingAgents-style: code tools → evidence report → bull/bear/manager debate → code checklist.
+        headlines ??= await import("@/lib/market.server").then((x) => x.fetchNews(25)).then((n) => n.map((i) => i.title)).catch(() => []);
+        const ev = buildEvidence({ symbol: r.symbol, dir: r.direction!, m15: m.tf.M15 ?? [], h1: m.tf.H1 ?? [], headlines });
+        const d = await debateTrade(r.symbol, r.tradeTf, prop, ev.text, brief, mid);
+        const rr = Math.abs(prop.take_profit - mid) / Math.abs(mid - prop.stop_loss);
+        const cl: Checklist = preTradeChecklist({ trends: r.trends, dir: r.direction!, priceAgeMin: m.ageMin, ev, rr, costShare: r.costShare, debate: d });
+        const verdict = checklistVerdict(cl);
+        extraCols = { ...extraCols, evidence: ev, checklist: cl, debate: d };
+        reviewer = { decision: d.decision, confidence: d.confidence, reason: d.reason, checklist: verdict, model: `Google Gemini ${d.model}`, roles: "bull + bear + research manager in one call" };
+        if (verdict.decision !== "accept") { await record(verdict.decision === "wait" ? "waiting" : "rejected_checklist", { reviewer }); await log(verdict.decision === "wait" ? "waiting" : "rejected", `Checklist · ${r.symbol} ${r.direction!.toUpperCase()} — ${verdict.decision}: ${verdict.reason}`); agents.reviewer = `checklist ${verdict.decision}`; continue; }
+        v = { agree: d.decision === "accept", confidence: d.confidence, reason: `${d.reason} | Bear: ${d.bear.join("; ")}` };
+      } else {
+        v = await verifyTrade(r.symbol, r.tradeTf, { ...prop, summary: brief }, mid);
+        reviewer = { decision: v.confidence === 0 && !v.agree ? "needs_info" : v.agree ? "approve" : "reject", confidence: v.confidence, reason: v.reason, model: "Google Gemini (second call)" };
+      }
+      agents.reviewer = String(reviewer["decision"]);
       const combined = Math.round((ai.confidence + v.confidence) / 2);
-      if (!v.agree || combined < floor) { await record("rejected_reviewer", { reviewer }); await log("rejected", `Reviewer · ${r.symbol} ${r.direction!.toUpperCase()} — ${reviewer.decision} (${v.confidence}%): ${v.reason}`); continue; }
+      if (!v.agree || combined < floor) { await record("rejected_reviewer", { reviewer }); await log("rejected", `Reviewer · ${r.symbol} ${r.direction!.toUpperCase()} — ${String(reviewer["decision"])} (${v.confidence}%): ${v.reason}`.slice(0, 480)); continue; }
       // Agent 3: deterministic risk & execution supervisor (final veto).
       const conv = quoteToUsd(spec, mids, mid);
       const { data: last } = await db.from("sim_trades").select("opened_at").eq("challenge_id", c.id).eq("symbol", r.symbol).eq("side", r.direction!).order("opened_at", { ascending: false }).limit(1).maybeSingle();
@@ -210,7 +236,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
       const dec = await record("opened", { reviewer, supervisor: sup });
       const { data: row } = await db.from("sim_trades").insert({
         challenge_id: c.id, user_id: c.user_id, symbol: r.symbol, side: r.direction!, lot: sup.lot!, entry: sup.entry!, stop_loss: prop.stop_loss, take_profit: prop.take_profit,
-        margin: sup.margin!, fees: sup.fees!, confidence: combined, reason: ai.summary.slice(0, 500), timeframe: r.tradeTf, leverage: sup.leverage!, risk_usd: sup.risk_usd!, last_price: mid, float_pnl: 0, decision_id: dec.data?.id ?? null,
+        margin: sup.margin!, fees: sup.fees!, confidence: combined, reason: ai.summary.slice(0, 500), timeframe: r.tradeTf, leverage: sup.leverage!, risk_usd: sup.risk_usd!, last_price: mid, float_pnl: 0, decision_id: dec.data?.id ?? null, strategy_version: c.use_evidence ? STRATEGY_VERSION : "mtf-v0",
       }).select("*").single();
       if (row) remaining.push({ t: row, float: 0 });
       await log("opened", `${r.symbol} ${r.direction!.toUpperCase()} ${sup.lot} @ ${sup.entry} · SL ${prop.stop_loss.toFixed(5)} · TP ${prop.take_profit.toFixed(5)} · 1:${sup.leverage} · risk $${sup.risk_usd!.toFixed(2)} · ${combined}% · ${m.src}`);
@@ -218,6 +244,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
     }
   }
 
+  await gradeDecisions(db, c.id, M).catch(() => null);
   equity = balance + remaining.reduce((s, r) => s + r.float, 0);
   const ended = new Date().toISOString();
   await db.from("sim_challenges").update({
@@ -228,4 +255,25 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
     last_scan: { started_at: now, ended_at: ended, assets: scan, agents, ai_candidates_per_cycle: AI_CANDIDATES_PER_CYCLE } as unknown as Json,
   }).eq("id", c.id);
   return opened;
+}
+
+/** Post-trade review linked to the original decision; judges the process separately from the money result. */
+async function writeReview(db: DB, t: TradeRow, profit: number, reason: string) {
+  const { data: d } = t.decision_id ? await db.from("sim_decisions").select("checklist,evidence").eq("id", t.decision_id).maybeSingle() : { data: null };
+  const ev = d?.evidence as { votes?: { for: number; against: number } } | null;
+  const rv = reviewTrade({ profit, risk_usd: Number(t.risk_usd ?? 0), close_reason: reason, checklist: (d?.checklist ?? null) as unknown as Checklist | null, votes: ev?.votes ?? null });
+  await db.from("sim_reviews").upsert({ challenge_id: t.challenge_id, user_id: t.user_id, trade_id: t.id, symbol: t.symbol, timeframe: t.timeframe, strategy_version: t.strategy_version, profit: Math.round(profit * 100) / 100, r_multiple: rv.r_multiple, followed_plan: rv.followed_plan, process_score: rv.process_score, outcome_class: rv.outcome_class, lessons: rv.lessons as unknown as Json }, { onConflict: "trade_id" });
+}
+
+/** Grade rejected/waiting decisions with only the bars AFTER the decision (what would have happened). */
+async function gradeDecisions(db: DB, challengeId: string, M: Map<string, Market>) {
+  const cutoff = new Date(Date.now() - 30 * 60_000).toISOString();
+  const { data } = await db.from("sim_decisions").select("id,symbol,direction,plan_entry,plan_sl,plan_tp,created_at,outcome").eq("challenge_id", challengeId).is("graded_at", null).not("plan_sl", "is", null).lt("created_at", cutoff).limit(20);
+  for (const d of data ?? []) {
+    const m = M.get(d.symbol); if (!m?.m5.length) continue;
+    const from = new Date(d.created_at).getTime() / 1000;
+    const g = gradePath(d.direction, Number(d.plan_entry), Number(d.plan_sl), Number(d.plan_tp), m.m5.filter((b) => b.t > from));
+    const old = Date.now() / 1000 - from > 24 * 3600;
+    if (g.outcome !== "open" || old) await db.from("sim_decisions").update({ hindsight: g.outcome === "open" ? "neither hit in 24h" : g.outcome, graded_at: new Date().toISOString() }).eq("id", d.id);
+  }
 }
