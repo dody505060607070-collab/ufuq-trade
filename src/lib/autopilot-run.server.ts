@@ -32,6 +32,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   // One analysis per symbol/timeframe, shared by all users.
   const pairs = [...new Set(users.flatMap((u) => u.symbols.map((s) => `${s}|${u.timeframe}`)))].slice(0, 12);
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
+  const errors = new Map<string, string>();
   const news = new Map<string, boolean>();
   const owner = users[0]!.user_id;
   await Promise.all(pairs.map(async (k) => {
