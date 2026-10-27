@@ -92,7 +92,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   const geminiKey = process.env["GEMINI_API_KEY"];
   if (!geminiKey) throw new Error("Gemini API key is not configured.");
   const text = await callGemini(geminiKey, prompt);
-  if (!text) throw new Error("Gemini analysis failed. Please try again.");
+  if (!text) throw new Error(lastGeminiError ?? "Gemini analysis failed. Please try again.");
   const match = text.match(/\{[\s\S]*\}/);
   let json: unknown = null;
   try { json = match ? JSON.parse(match[0]) : null; } catch { json = null; }
@@ -128,10 +128,23 @@ async function callGemini(key: string, prompt: string, system = INSTRUCTIONS): P
       generationConfig: { responseMimeType: "application/json" },
     }),
   });
-  if (!res.ok) { console.error("Gemini failed", res.status, (await res.text()).slice(0, 300)); return null; }
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 300);
+    console.error("Gemini failed", res.status, body);
+    lastGeminiError = res.status === 402 || /credits are depleted|RESOURCE_EXHAUSTED/.test(body) && res.status !== 429
+      ? "Gemini credits are used up — top up billing in Google AI Studio"
+      : res.status === 429 ? "Gemini rate limit — will retry next cycle"
+      : res.status === 400 || res.status === 403 ? "Gemini API key rejected — check GEMINI_API_KEY"
+      : `Gemini error ${res.status}`;
+    return null;
+  }
+  lastGeminiError = null;
   const j = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   return j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") || null;
 }
+
+/** Reason of the most recent failed Gemini call in this worker (null after a success). */
+export let lastGeminiError: string | null = null;
 
 export async function callLovable(modelId: string, prompt: string): Promise<string> {
   const apiKey = process.env["LOVABLE_API_KEY"];
