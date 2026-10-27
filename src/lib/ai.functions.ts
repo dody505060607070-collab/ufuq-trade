@@ -14,11 +14,8 @@ export const analyzeMarket = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { getCached, runAI } = await import("./analysis.server");
     let r = null;
-    // Shared result: one AI call per symbol/timeframe every 15 min serves every user (only without a manual price).
-    if (data.price == null) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      r = await getCached(supabaseAdmin, data.symbol, data.timeframe);
-    }
+    // Reuse only the caller's own recent analysis (RLS-scoped client); other users' rows are never read here.
+    if (data.price == null) r = await getCached(context.supabase, data.symbol, data.timeframe);
     r ??= await runAI(context.supabase, data.symbol, data.timeframe, data.price);
     const { data: row, error } = await context.supabase
       .from("analyses")
