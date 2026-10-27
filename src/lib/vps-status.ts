@@ -30,9 +30,11 @@ export function parseReport(text: string): { hostname: string | null; report_tim
   const raw = JSON.parse(text.replace(/^\uFEFF/, ""));
   const list: unknown[] = Array.isArray(raw?.checks) ? raw.checks.slice(0, 100) : [];
   const checks: Check[] = list.map((c) => {
-    const o = c as Record<string, unknown>;
+    const o = c as { result?: unknown; name?: unknown; detail?: unknown };
     const r = String(o.result ?? "NOT VERIFIED").toUpperCase();
-    return { name: sanitize(String(o.name ?? "?")).slice(0, 80), result: r === "PASS" || r === "FAIL" ? r : "NOT VERIFIED", detail: o.detail ? sanitize(String(o.detail)) : undefined };
+    const out: Check = { name: sanitize(String(o.name ?? "?")).slice(0, 80), result: r === "PASS" || r === "FAIL" ? r : "NOT VERIFIED" };
+    if (o.detail) out.detail = sanitize(String(o.detail));
+    return out;
   });
   if (!checks.length) throw new Error("Report has no checks");
   const overall = checks.some((c) => c.result === "FAIL") ? "FAIL" : checks.every((c) => c.result === "PASS") ? "PASS" : "NOT VERIFIED";
