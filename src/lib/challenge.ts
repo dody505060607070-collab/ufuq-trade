@@ -22,6 +22,13 @@ export function fillPrice(side: "buy" | "sell", mid: number, c: Costs, closing =
   return buying ? mid + adverse : mid - adverse;
 }
 
+/** Move the AI's stop/target so they keep the same distances from the price we would actually be filled at
+ *  (mid ± half spread + slippage). Without this the spread silently shrinks a planned 1.5 R:R to ~1.35. */
+export function alignToFill(side: "buy" | "sell", mid: number, c: Costs, ai: { entry: number; stop_loss: number; take_profit: number }) {
+  const shift = fillPrice(side, mid, c) - ai.entry;
+  return { entry: mid, stop_loss: ai.stop_loss + shift, take_profit: ai.take_profit + shift };
+}
+
 /** Size a new paper trade so the loss at the stop is <= riskPct of equity and margin fits. null = too small to trade. */
 export function openSim(p: { side: "buy" | "sell"; mid: number; sl: number; tp: number; equity: number; freeMargin: number; riskPct: number; leverage: number; costs: Costs }): SimTrade | { error: string } {
   const entry = fillPrice(p.side, p.mid, p.costs);
@@ -196,7 +203,7 @@ export function supervise(p: {
   const entry = fillPrice(p.side, p.mid, spec);
   if (p.side === "buy" ? !(p.sl < entry && entry < p.tp) : !(p.tp < entry && entry < p.sl)) return { allow: false, reason: "Stop/target on the wrong side after costs" };
   const rr = Math.abs(p.tp - entry) / Math.abs(entry - p.sl);
-  if (rr < 1.5) return { allow: false, reason: `Reward/risk ${rr.toFixed(2)} below 1.5 after costs` };
+  if (rr < 1.5 - 1e-6) return { allow: false, reason: `Reward/risk ${rr.toFixed(2)} below 1.5 after costs` };
   // Near the limits, halve the risk; never increase risk to recover losses.
   const riskPct = dd >= L.maxDrawdownPct / 2 ? L.riskPct / 2 : L.riskPct;
   const openRisk = p.open.reduce((s, o) => s + o.risk_usd, 0);
