@@ -821,15 +821,25 @@ export type Database = {
       sim_challenges: {
         Row: {
           balance: number
+          cycle_started_at: string | null
+          cycles: number
           ended_at: string | null
+          equity: number | null
           fees_paid: number
           id: string
           last_cycle_at: string | null
           last_price: number | null
           last_price_at: string | null
+          last_scan: Json | null
           leverage: number
+          lock_until: string | null
+          max_daily_loss_pct: number
+          max_drawdown_pct: number
+          max_open_trades: number
           max_risk_pct: number
+          max_total_risk_pct: number
           peak_equity: number
+          scanned: number
           start_balance: number
           started_at: string
           status: string
@@ -842,15 +852,25 @@ export type Database = {
         }
         Insert: {
           balance?: number
+          cycle_started_at?: string | null
+          cycles?: number
           ended_at?: string | null
+          equity?: number | null
           fees_paid?: number
           id?: string
           last_cycle_at?: string | null
           last_price?: number | null
           last_price_at?: string | null
+          last_scan?: Json | null
           leverage?: number
+          lock_until?: string | null
+          max_daily_loss_pct?: number
+          max_drawdown_pct?: number
+          max_open_trades?: number
           max_risk_pct?: number
+          max_total_risk_pct?: number
           peak_equity?: number
+          scanned?: number
           start_balance?: number
           started_at?: string
           status?: string
@@ -863,15 +883,25 @@ export type Database = {
         }
         Update: {
           balance?: number
+          cycle_started_at?: string | null
+          cycles?: number
           ended_at?: string | null
+          equity?: number | null
           fees_paid?: number
           id?: string
           last_cycle_at?: string | null
           last_price?: number | null
           last_price_at?: string | null
+          last_scan?: Json | null
           leverage?: number
+          lock_until?: string | null
+          max_daily_loss_pct?: number
+          max_drawdown_pct?: number
+          max_open_trades?: number
           max_risk_pct?: number
+          max_total_risk_pct?: number
           peak_equity?: number
+          scanned?: number
           start_balance?: number
           started_at?: string
           status?: string
@@ -883,6 +913,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      sim_decisions: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          direction: string
+          id: string
+          outcome: string
+          reviewer: Json | null
+          scanner: Json
+          scanner_score: number | null
+          supervisor: Json | null
+          symbol: string
+          timeframe: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          direction: string
+          id?: string
+          outcome: string
+          reviewer?: Json | null
+          scanner: Json
+          scanner_score?: number | null
+          supervisor?: Json | null
+          symbol: string
+          timeframe: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          outcome?: string
+          reviewer?: Json | null
+          scanner?: Json
+          scanner_score?: number | null
+          supervisor?: Json | null
+          symbol?: string
+          timeframe?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_decisions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "sim_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sim_events: {
         Row: {
@@ -925,20 +1008,27 @@ export type Database = {
           close_reason: string | null
           closed_at: string | null
           confidence: number | null
+          decision_id: string | null
           entry: number
           exit_price: number | null
           fees: number
+          float_pnl: number | null
           id: string
+          last_price: number | null
+          leverage: number | null
           lot: number
           margin: number
           opened_at: string
           profit: number | null
           reason: string | null
+          risk_usd: number | null
           side: string
           status: string
           stop_loss: number
+          swap: number
           symbol: string
           take_profit: number
+          timeframe: string | null
           user_id: string
         }
         Insert: {
@@ -946,20 +1036,27 @@ export type Database = {
           close_reason?: string | null
           closed_at?: string | null
           confidence?: number | null
+          decision_id?: string | null
           entry: number
           exit_price?: number | null
           fees?: number
+          float_pnl?: number | null
           id?: string
+          last_price?: number | null
+          leverage?: number | null
           lot: number
           margin: number
           opened_at?: string
           profit?: number | null
           reason?: string | null
+          risk_usd?: number | null
           side: string
           status?: string
           stop_loss: number
+          swap?: number
           symbol: string
           take_profit: number
+          timeframe?: string | null
           user_id: string
         }
         Update: {
@@ -967,20 +1064,27 @@ export type Database = {
           close_reason?: string | null
           closed_at?: string | null
           confidence?: number | null
+          decision_id?: string | null
           entry?: number
           exit_price?: number | null
           fees?: number
+          float_pnl?: number | null
           id?: string
+          last_price?: number | null
+          leverage?: number | null
           lot?: number
           margin?: number
           opened_at?: string
           profit?: number | null
           reason?: string | null
+          risk_usd?: number | null
           side?: string
           status?: string
           stop_loss?: number
+          swap?: number
           symbol?: string
           take_profit?: number
+          timeframe?: string | null
           user_id?: string
         }
         Relationships: [
