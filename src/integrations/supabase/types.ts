@@ -423,6 +423,9 @@ export type Database = {
           id: string
           mode: string | null
           model: string | null
+          outcome: string | null
+          outcome_checked_at: string | null
+          outcome_move: number | null
           prompt_version: string | null
           risk_reason: string | null
           risk_verdict: string
@@ -444,6 +447,9 @@ export type Database = {
           id?: string
           mode?: string | null
           model?: string | null
+          outcome?: string | null
+          outcome_checked_at?: string | null
+          outcome_move?: number | null
           prompt_version?: string | null
           risk_reason?: string | null
           risk_verdict: string
@@ -465,6 +471,9 @@ export type Database = {
           id?: string
           mode?: string | null
           model?: string | null
+          outcome?: string | null
+          outcome_checked_at?: string | null
+          outcome_move?: number | null
           prompt_version?: string | null
           risk_reason?: string | null
           risk_verdict?: string
