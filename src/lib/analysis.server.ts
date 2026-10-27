@@ -118,12 +118,12 @@ export async function newsNearby(symbol: string, windowMin = 30) {
   return cal.some((e) => e.impact === "High" && cur.includes(e.country) && Math.abs(new Date(e.date).getTime() - now) < windowMin * 60_000);
 }
 
-async function callGemini(key: string, prompt: string): Promise<string | null> {
+async function callGemini(key: string, prompt: string, system = INSTRUCTIONS): Promise<string | null> {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
+      systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: "application/json" },
     }),
@@ -161,4 +161,19 @@ export async function callLovable(modelId: string, prompt: string): Promise<stri
     if (status === 403) throw new Error("AI access is blocked for this workspace.");
     throw new Error("AI analysis failed. Please try again.");
   }
+}
+
+const VERIFY_SYS = "You are a second, independent senior trader whose job is to challenge a colleague's trade before money is risked. Argue the opposite case honestly, check the trend on H1/H4, distance to the next support/resistance, news risk, and whether the stop and target are realistic. Only agree if the trade is still clearly worth taking. Return ONLY JSON: {agree (boolean), confidence (0-100 integer, your own probability the target is hit before the stop), reason (max 2 sentences)}.";
+
+/** Second-opinion check before an Auto-Pilot trade: a separate Gemini call that must agree. Fails closed. */
+export async function verifyTrade(symbol: string, timeframe: string, p: Levels, price: number | null): Promise<{ agree: boolean; confidence: number; reason: string }> {
+  const key = process.env["GEMINI_API_KEY"];
+  if (!key) return { agree: false, confidence: 0, reason: "Second check unavailable (no AI key)" };
+  const prompt = `Proposed trade on ${symbol} ${timeframe}: ${p.direction.toUpperCase()} at ${p.entry}, stop ${p.stop_loss}, target ${p.take_profit}, first trader's confidence ${p.confidence}%. Live price: ${price ?? "unknown"}. Date (UTC): ${new Date().toISOString()}.\nFirst trader's reasoning:\n${p.summary}\n\nShould we open it?`;
+  const text = await callGemini(key, prompt, VERIFY_SYS).catch(() => null);
+  try {
+    const j = JSON.parse(text?.match(/\{[\s\S]*\}/)?.[0] ?? "null") as { agree?: unknown; confidence?: unknown; reason?: unknown } | null;
+    if (!j) throw new Error();
+    return { agree: j.agree === true, confidence: Math.max(0, Math.min(100, Math.round(Number(j.confidence) || 0))), reason: String(j.reason ?? "").slice(0, 300) };
+  } catch { return { agree: false, confidence: 0, reason: "Second check failed to answer" }; }
 }

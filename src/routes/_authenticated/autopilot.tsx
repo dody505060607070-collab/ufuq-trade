@@ -128,7 +128,7 @@ function AutoPilot() {
           <Field label={t("Timeframe")}>
             <div className="flex gap-1">{["M15", "H1", "H4"].map((tf) => <button key={tf} onClick={() => setS({ ...s, timeframe: tf })} className={cn("flex-1 rounded-full border px-3 py-1.5 text-xs", s.timeframe === tf ? "border-primary bg-primary text-primary-foreground" : "border-border")}>{tf}</button>)}</div>
           </Field>
-          <Field label={t("Minimum AI confidence (%)")}><Input type="number" min={50} max={95} value={s.min_confidence} onChange={(e) => num("min_confidence", e.target.value)} /></Field>
+          <Field label={t("Minimum AI confidence (%)")}><Input type="number" min={65} max={95} value={s.min_confidence} onChange={(e) => num("min_confidence", e.target.value)} /></Field>
           <Field label={t("Lot size per trade")}><Input aria-label={t("Lot size per trade")} type="number" step={0.01} min={0.01} max={10} disabled={saving || q.isPending || q.isError} value={s.lot_size} onChange={(e) => num("lot_size", e.target.value)} onBlur={(e) => { const lot = Number(e.currentTarget.value); if (validAutopilotLot(lot) && lot !== Number(q.data?.lot_size)) void save({ lot_size: lot }); }} /></Field>
           <Field label={t("Max open trades per account")}><Input type="number" min={1} max={10} value={s.max_open} onChange={(e) => num("max_open", e.target.value)} /></Field>
           <Field label={t("Max auto trades per day (0 = unlimited)")}><Input type="number" min={0} max={100} value={s.max_daily} onChange={(e) => num("max_daily", e.target.value)} /></Field>
