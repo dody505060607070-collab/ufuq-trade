@@ -13,7 +13,7 @@ const okList: Checklist = [
   { q: "Do costs leave the trade worthwhile?", ok: true, note: "" },
   { q: "Is reward/risk acceptable (≥1.5)?", ok: true, note: "2.0" },
 ];
-const base = { spec, side: "buy" as const, mid: 1.1, sl: 1.098, tp: 1.104, conv: 1, equity: SIM_START, balance: SIM_START, peak: SIM_START, dayPnl: 0, open: [], recentSameSignalMin: null, limits: LIMITS };
+const base = { spec, side: "buy" as const, mid: 1.1, sl: 1.0989, tp: 1.1025, conv: 1, equity: SIM_START, balance: SIM_START, peak: SIM_START, dayPnl: 0, open: [], recentSameSignalMin: null, limits: LIMITS };
 
 describe("full simulated trade cycle", () => {
   it("approves, fills with costs, closes at target, reviews, and keeps risk unchanged", () => {
@@ -24,7 +24,7 @@ describe("full simulated trade cycle", () => {
     const t: SimTrade = { side: "buy", lot: s.lot!, entry: s.entry!, stop_loss: base.sl, take_profit: base.tp, margin: s.margin!, fees: s.fees! };
     expect(t.entry).toBeCloseTo(fillPrice("buy", 1.1, spec), 10);
     // bars recorded AFTER the decision (evaluation data)
-    const later: Bar[] = [{ t: 1, o: 1.1001, h: 1.1015, l: 1.0995, c: 1.101 }, { t: 2, o: 1.101, h: 1.1045, l: 1.1008, c: 1.104 }];
+    const later: Bar[] = [{ t: 1, o: 1.1001, h: 1.1015, l: 1.0992, c: 1.101 }, { t: 2, o: 1.101, h: 1.103, l: 1.1008, c: 1.1026 }];
     const exit = exitOnBars(t, later)!;
     expect(exit.reason).toBe("take_profit");
     const profit = pnl(t, exit.price, spec);
@@ -37,7 +37,7 @@ describe("full simulated trade cycle", () => {
   it("a stopped-out good decision is variance, and the lesson says not to change strategy", () => {
     const s = supervise(base);
     const t: SimTrade = { side: "buy", lot: s.lot!, entry: s.entry!, stop_loss: base.sl, take_profit: base.tp, margin: s.margin!, fees: s.fees! };
-    const exit = exitOnBars(t, [{ t: 1, o: 1.0999, h: 1.1, l: 1.0975, c: 1.098 }])!;
+    const exit = exitOnBars(t, [{ t: 1, o: 1.0999, h: 1.1, l: 1.0985, c: 1.0987 }])!;
     expect(exit.reason).toBe("stop_loss");
     const profit = pnl(t, exit.price, spec);
     expect(profit).toBeLessThan(0);
