@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { to: "/autopilot", label: "Auto-Pilot", icon: Bot },
-  { to: "/challenge", label: "$50 to $1M Challenge", icon: Trophy },
+  { to: "/challenge", label: "$100 to $1M Demo Challenge", icon: Trophy },
   { to: "/brain", label: "AI Brain", icon: Brain },
   { to: "/whales", label: "Whale Radar", icon: Radar },
   { to: "/decisions", label: "Decisions & Backtest", icon: FlaskConical },
