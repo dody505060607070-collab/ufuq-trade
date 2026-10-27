@@ -35,6 +35,18 @@ export async function fetchQuote(symbol: string, yahoo: string): Promise<Quote> 
   }
 }
 
+/** Raw chart for the simulator: candles plus the provider's last price and its timestamp (seconds). */
+export async function fetchChart(yahoo: string, interval: string, range: string): Promise<{ bars: Candle[]; price: number | null; time: number | null }> {
+  const r = await yahooChart(yahoo, interval, range);
+  const q = r.indicators.quote[0]!;
+  const bars: Candle[] = [];
+  (r.timestamp ?? []).forEach((t, i) => {
+    const o = q.open[i], h = q.high[i], l = q.low[i], c = q.close[i];
+    if (o != null && h != null && l != null && c != null) bars.push({ t, o, h, l, c });
+  });
+  return { bars, price: r.meta.regularMarketPrice ?? null, time: r.meta.regularMarketTime ?? null };
+}
+
 export async function fetchCandles(yahoo: string, tf: string, limit = 80): Promise<Candle[]> {
   const p = TF_PARAMS[tf] ?? TF_PARAMS["H1"]!;
   const r = await yahooChart(yahoo, p.interval, p.range);
