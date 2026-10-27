@@ -56,6 +56,7 @@ import { Route as AuthenticatedAdminOverviewRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminSignalsRouteImport } from './routes/_authenticated/admin.signals'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
+import { Route as AuthenticatedAdminVpsRouteImport } from './routes/_authenticated/admin.vps'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as AuthenticatedSettingsAssistantsRouteImport } from './routes/_authenticated/settings.assistants'
 import { Route as AuthenticatedSettingsPreferencesRouteImport } from './routes/_authenticated/settings.preferences'
@@ -311,6 +312,11 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminVpsRoute = AuthenticatedAdminVpsRouteImport.update({
+  id: '/vps',
+  path: '/vps',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedSettingsIndexRoute =
   AuthenticatedSettingsIndexRouteImport.update({
     id: '/',
@@ -398,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/signals': typeof AuthenticatedAdminSignalsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRouteWithChildren
+  '/admin/vps': typeof AuthenticatedAdminVpsRoute
   '/settings/assistants': typeof AuthenticatedSettingsAssistantsRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
@@ -451,6 +458,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/signals': typeof AuthenticatedAdminSignalsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRouteWithChildren
+  '/admin/vps': typeof AuthenticatedAdminVpsRoute
   '/settings/assistants': typeof AuthenticatedSettingsAssistantsRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileRoute
@@ -508,6 +516,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/signals': typeof AuthenticatedAdminSignalsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRouteWithChildren
+  '/_authenticated/admin/vps': typeof AuthenticatedAdminVpsRoute
   '/_authenticated/settings/assistants': typeof AuthenticatedSettingsAssistantsRoute
   '/_authenticated/settings/preferences': typeof AuthenticatedSettingsPreferencesRoute
   '/_authenticated/settings/profile': typeof AuthenticatedSettingsProfileRoute
@@ -565,6 +574,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/signals'
     | '/admin/users'
+    | '/admin/vps'
     | '/settings/assistants'
     | '/settings/preferences'
     | '/settings/profile'
@@ -618,6 +628,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/signals'
     | '/admin/users'
+    | '/admin/vps'
     | '/settings/assistants'
     | '/settings/preferences'
     | '/settings/profile'
@@ -674,6 +685,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/signals'
     | '/_authenticated/admin/users'
+    | '/_authenticated/admin/vps'
     | '/_authenticated/settings/assistants'
     | '/_authenticated/settings/preferences'
     | '/_authenticated/settings/profile'
@@ -1041,6 +1053,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/vps': {
+      id: '/_authenticated/admin/vps'
+      path: '/vps'
+      fullPath: '/admin/vps'
+      preLoaderRoute: typeof AuthenticatedAdminVpsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/settings/': {
       id: '/_authenticated/settings/'
       path: '/'
@@ -1119,6 +1138,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSignalsRoute: typeof AuthenticatedAdminSignalsRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRouteWithChildren
+  AuthenticatedAdminVpsRoute: typeof AuthenticatedAdminVpsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -1134,6 +1154,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminSignalsRoute: AuthenticatedAdminSignalsRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRouteWithChildren,
+  AuthenticatedAdminVpsRoute: AuthenticatedAdminVpsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
