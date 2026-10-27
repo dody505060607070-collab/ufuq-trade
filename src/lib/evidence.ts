@@ -1,12 +1,32 @@
 // TradingAgents-style evidence, pre-trade checklist, in-trade thesis check and post-trade review for the demo challenge (pure).
 // Every tool here already existed in the platform; this module only decides when each is relevant and records why.
-import { adx } from "./indicators";
+import { adx, bollinger, stochastic } from "./indicators";
 import { marketStructure, liquiditySweep, killZone } from "./ict";
-import { candlePattern, pullbackBreakout, climaxReversal, volRegime, displacement } from "./priceaction";
+import { candlePattern, pullbackBreakout, climaxReversal, volRegime, displacement, multiCandlePattern } from "./priceaction";
 import { newsSentiment } from "./sentiment";
 import type { Bar } from "./challenge";
 
-export const STRATEGY_VERSION = "mtf-debate-v1";
+export const STRATEGY_VERSION = "mtf-debate-v2";
+
+/** Stochastic votes only at extremes after a %K/%D cross; Bollinger flags squeezes and closes outside the bands. */
+export function oscillatorVote(bars: Bar[]): { stoch: string; stochVote: "buy" | "sell" | "neutral"; bb: string; bbVote: "buy" | "sell" | "neutral" } {
+  const s = stochastic(bars), b = bollinger(bars.map((x) => x.c));
+  const last = bars[bars.length - 1]?.c ?? 0;
+  let stochVote: "buy" | "sell" | "neutral" = "neutral";
+  if (s && s.k < 20 && s.k > s.d) stochVote = "buy";
+  else if (s && s.k > 80 && s.k < s.d) stochVote = "sell";
+  let bbVote: "buy" | "sell" | "neutral" = "neutral", bbTxt = "n/a";
+  if (b) {
+    const widths = [] as number[];
+    for (let i = Math.max(20, bars.length - 100); i <= bars.length; i++) { const w = bollinger(bars.slice(0, i).map((x) => x.c)); if (w) widths.push(w.widthPct); }
+    const sorted = [...widths].sort((x, y) => x - y);
+    const squeeze = sorted.length >= 20 && b.widthPct <= sorted[Math.floor(sorted.length * 0.2)]!;
+    // Close outside a band = stretched move: votes for mean reversion back inside
+    if (last > b.upper) bbVote = "sell"; else if (last < b.lower) bbVote = "buy";
+    bbTxt = `${squeeze ? "squeeze (breakout pending)" : last > b.upper ? "close above upper band" : last < b.lower ? "close below lower band" : "inside bands"} · width ${b.widthPct.toFixed(2)}%`;
+  }
+  return { stoch: s ? `%K ${s.k.toFixed(0)} / %D ${s.d.toFixed(0)}` : "n/a", stochVote, bb: bbTxt, bbVote };
+}
 
 export type Tool = { name: string; used: boolean; why: string; result?: string; vote?: "buy" | "sell" | "neutral" };
 export type Evidence = { tools: Tool[]; votes: { for: number; against: number }; text: string };
@@ -33,6 +53,11 @@ export function buildEvidence(p: { symbol: string; dir: "buy" | "sell"; m15: Bar
     add({ name: "Displacement (M15)", used: true, why: "Strong institutional move", result: d ?? "none", vote: d === "bullish" ? "buy" : d === "bearish" ? "sell" : "neutral" });
     const ls = liquiditySweep(p.m15);
     add({ name: "Liquidity sweep (M15)", used: true, why: "Stop-hunt before reversal", result: ls ?? "none", vote: ls === "sell-side" ? "buy" : ls === "buy-side" ? "sell" : "neutral" });
+    const mc = multiCandlePattern(p.m15);
+    add({ name: "Multi-candle pattern (M15)", used: true, why: "2–3 candle confirmation (stars, harami, three outside, tweezers, TheStrat)", result: mc?.name ?? "none", vote: mc?.dir ?? "neutral" });
+    const o = oscillatorVote(p.m15);
+    add({ name: "Stochastic (M15)", used: true, why: "Overbought/oversold turn", result: o.stoch, vote: o.stochVote });
+    add({ name: "Bollinger Bands (M15)", used: true, why: "Squeeze or stretched move", result: o.bb, vote: o.bbVote });
   } else add({ name: "M15 pattern tools", used: false, why: "Fewer than 30 M15 bars" });
   const vr = p.m15.length >= 60 ? volRegime(p.m15) : "unknown";
   add({ name: "Volatility regime (M15)", used: vr !== "unknown", why: vr === "unknown" ? "Not enough bars" : "Low volatility needs more confirmation", result: vr, vote: "neutral" });
