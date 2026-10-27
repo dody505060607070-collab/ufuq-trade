@@ -33,6 +33,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAutopilotRouteImport } from './routes/_authenticated/autopilot'
 import { Route as AuthenticatedBrainRouteImport } from './routes/_authenticated/brain'
 import { Route as AuthenticatedBrokersRouteImport } from './routes/_authenticated/brokers'
+import { Route as AuthenticatedChallengeRouteImport } from './routes/_authenticated/challenge'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDecisionsRouteImport } from './routes/_authenticated/decisions'
 import { Route as AuthenticatedHedgeRouteImport } from './routes/_authenticated/hedge'
@@ -181,6 +182,11 @@ const AuthenticatedBrainRoute = AuthenticatedBrainRouteImport.update({
 const AuthenticatedBrokersRoute = AuthenticatedBrokersRouteImport.update({
   id: '/brokers',
   path: '/brokers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedChallengeRoute = AuthenticatedChallengeRouteImport.update({
+  id: '/challenge',
+  path: '/challenge',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -370,6 +376,7 @@ export interface FileRoutesByFullPath {
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
   '/brokers': typeof AuthenticatedBrokersRoute
+  '/challenge': typeof AuthenticatedChallengeRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/decisions': typeof AuthenticatedDecisionsRoute
   '/hedge': typeof AuthenticatedHedgeRoute
@@ -423,6 +430,7 @@ export interface FileRoutesByTo {
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
   '/brokers': typeof AuthenticatedBrokersRoute
+  '/challenge': typeof AuthenticatedChallengeRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/decisions': typeof AuthenticatedDecisionsRoute
   '/hedge': typeof AuthenticatedHedgeRoute
@@ -478,6 +486,7 @@ export interface FileRoutesById {
   '/_authenticated/autopilot': typeof AuthenticatedAutopilotRoute
   '/_authenticated/brain': typeof AuthenticatedBrainRoute
   '/_authenticated/brokers': typeof AuthenticatedBrokersRoute
+  '/_authenticated/challenge': typeof AuthenticatedChallengeRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/decisions': typeof AuthenticatedDecisionsRoute
   '/_authenticated/hedge': typeof AuthenticatedHedgeRoute
@@ -534,6 +543,7 @@ export interface FileRouteTypes {
     | '/autopilot'
     | '/brain'
     | '/brokers'
+    | '/challenge'
     | '/dashboard'
     | '/decisions'
     | '/hedge'
@@ -587,6 +597,7 @@ export interface FileRouteTypes {
     | '/autopilot'
     | '/brain'
     | '/brokers'
+    | '/challenge'
     | '/dashboard'
     | '/decisions'
     | '/hedge'
@@ -641,6 +652,7 @@ export interface FileRouteTypes {
     | '/_authenticated/autopilot'
     | '/_authenticated/brain'
     | '/_authenticated/brokers'
+    | '/_authenticated/challenge'
     | '/_authenticated/dashboard'
     | '/_authenticated/decisions'
     | '/_authenticated/hedge'
@@ -866,6 +878,13 @@ declare module '@tanstack/react-router' {
       path: '/brokers'
       fullPath: '/brokers'
       preLoaderRoute: typeof AuthenticatedBrokersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/challenge': {
+      id: '/_authenticated/challenge'
+      path: '/challenge'
+      fullPath: '/challenge'
+      preLoaderRoute: typeof AuthenticatedChallengeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -1145,6 +1164,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAutopilotRoute: typeof AuthenticatedAutopilotRoute
   AuthenticatedBrainRoute: typeof AuthenticatedBrainRoute
   AuthenticatedBrokersRoute: typeof AuthenticatedBrokersRoute
+  AuthenticatedChallengeRoute: typeof AuthenticatedChallengeRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDecisionsRoute: typeof AuthenticatedDecisionsRoute
   AuthenticatedHedgeRoute: typeof AuthenticatedHedgeRoute
@@ -1161,6 +1181,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAutopilotRoute: AuthenticatedAutopilotRoute,
   AuthenticatedBrainRoute: AuthenticatedBrainRoute,
   AuthenticatedBrokersRoute: AuthenticatedBrokersRoute,
+  AuthenticatedChallengeRoute: AuthenticatedChallengeRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDecisionsRoute: AuthenticatedDecisionsRoute,
   AuthenticatedHedgeRoute: AuthenticatedHedgeRoute,
