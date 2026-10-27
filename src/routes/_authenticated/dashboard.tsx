@@ -240,7 +240,7 @@ function Dashboard() {
        <div className="space-y-4 rounded-2xl border border-border bg-card/40 p-4">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-xl font-bold">{t("Account & Trade")}</h2>
-          <Link to="/challenge" className="flex h-9 items-center rounded-full border border-primary px-3 text-xs font-semibold text-primary">{t("$50 to $1M Challenge")}</Link>
+          <Link to="/challenge" className="flex h-9 items-center rounded-full border border-primary px-3 text-xs font-semibold text-primary">{t("$100 to $1M Demo Challenge")}</Link>
           <div className="flex gap-2">
             <button onClick={() => setHide((v) => !v)} className="flex h-9 items-center gap-2 rounded-full border border-border px-3 text-xs">{hide ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}{hide ? t("Show values") : t("Hide values")}</button>
             <Tip label={online ? t("EA connected") : t("EA not connected")} side="bottom"><button onClick={() => !online && setEaModal(true)} aria-label={t("EA status")} className={cn("flex h-9 w-9 items-center justify-center rounded-full border", online ? "border-success text-success" : "border-border")}><Target className="h-4 w-4" /></button></Tip>

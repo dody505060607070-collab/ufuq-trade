@@ -818,6 +818,181 @@ export type Database = {
         }
         Relationships: []
       }
+      sim_challenges: {
+        Row: {
+          balance: number
+          ended_at: string | null
+          fees_paid: number
+          id: string
+          last_cycle_at: string | null
+          last_price: number | null
+          last_price_at: string | null
+          leverage: number
+          max_risk_pct: number
+          peak_equity: number
+          start_balance: number
+          started_at: string
+          status: string
+          stop_reason: string | null
+          symbol: string
+          target_balance: number
+          timeframe: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          ended_at?: string | null
+          fees_paid?: number
+          id?: string
+          last_cycle_at?: string | null
+          last_price?: number | null
+          last_price_at?: string | null
+          leverage?: number
+          max_risk_pct?: number
+          peak_equity?: number
+          start_balance?: number
+          started_at?: string
+          status?: string
+          stop_reason?: string | null
+          symbol?: string
+          target_balance?: number
+          timeframe?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          ended_at?: string | null
+          fees_paid?: number
+          id?: string
+          last_cycle_at?: string | null
+          last_price?: number | null
+          last_price_at?: string | null
+          leverage?: number
+          max_risk_pct?: number
+          peak_equity?: number
+          start_balance?: number
+          started_at?: string
+          status?: string
+          stop_reason?: string | null
+          symbol?: string
+          target_balance?: number
+          timeframe?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sim_events: {
+        Row: {
+          action: string
+          challenge_id: string
+          created_at: string
+          detail: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          challenge_id: string
+          created_at?: string
+          detail: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          challenge_id?: string
+          created_at?: string
+          detail?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_events_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "sim_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sim_trades: {
+        Row: {
+          challenge_id: string
+          close_reason: string | null
+          closed_at: string | null
+          confidence: number | null
+          entry: number
+          exit_price: number | null
+          fees: number
+          id: string
+          lot: number
+          margin: number
+          opened_at: string
+          profit: number | null
+          reason: string | null
+          side: string
+          status: string
+          stop_loss: number
+          symbol: string
+          take_profit: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          close_reason?: string | null
+          closed_at?: string | null
+          confidence?: number | null
+          entry: number
+          exit_price?: number | null
+          fees?: number
+          id?: string
+          lot: number
+          margin: number
+          opened_at?: string
+          profit?: number | null
+          reason?: string | null
+          side: string
+          status?: string
+          stop_loss: number
+          symbol: string
+          take_profit: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          close_reason?: string | null
+          closed_at?: string | null
+          confidence?: number | null
+          entry?: number
+          exit_price?: number | null
+          fees?: number
+          id?: string
+          lot?: number
+          margin?: number
+          opened_at?: string
+          profit?: number | null
+          reason?: string | null
+          side?: string
+          status?: string
+          stop_loss?: number
+          symbol?: string
+          take_profit?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_trades_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "sim_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_commands: {
         Row: {
           account_id: string

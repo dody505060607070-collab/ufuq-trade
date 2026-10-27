@@ -10,7 +10,9 @@ export const Route = createFileRoute("/api/public/autopilot/run")({
         if (denied) return denied;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { runAutopilot } = await import("@/lib/autopilot-run.server");
-        return Response.json(await runAutopilot(supabaseAdmin));
+        const { runSimChallenges } = await import("@/lib/sim-run.server");
+        const sim = await runSimChallenges(supabaseAdmin).catch((e) => ({ error: String(e) }));
+        return Response.json({ ...(await runAutopilot(supabaseAdmin)), sim });
       },
     },
   },
