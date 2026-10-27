@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
   LayoutGrid, Landmark, Monitor, SlidersHorizontal, KeyRound, ArrowRightLeft, BarChart3, User, ShieldCheck, LogOut, FileText, ArrowLeft, Bot, Brain, Radar, Layers,
-  FlaskConical,
+  FlaskConical, Trophy,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { to: "/autopilot", label: "Auto-Pilot", icon: Bot },
+  { to: "/challenge", label: "$50 to $1M Challenge", icon: Trophy },
   { to: "/brain", label: "AI Brain", icon: Brain },
   { to: "/whales", label: "Whale Radar", icon: Radar },
   { to: "/decisions", label: "Decisions & Backtest", icon: FlaskConical },
