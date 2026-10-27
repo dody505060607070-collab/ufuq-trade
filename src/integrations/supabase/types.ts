@@ -821,6 +821,7 @@ export type Database = {
       sim_challenges: {
         Row: {
           balance: number
+          consecutive_failures: number
           cycle_started_at: string | null
           cycles: number
           ended_at: string | null
@@ -828,9 +829,12 @@ export type Database = {
           fees_paid: number
           id: string
           last_cycle_at: string | null
+          last_error: string | null
+          last_error_at: string | null
           last_price: number | null
           last_price_at: string | null
           last_scan: Json | null
+          last_success_at: string | null
           leverage: number
           lock_until: string | null
           max_daily_loss_pct: number
@@ -852,6 +856,7 @@ export type Database = {
         }
         Insert: {
           balance?: number
+          consecutive_failures?: number
           cycle_started_at?: string | null
           cycles?: number
           ended_at?: string | null
@@ -859,9 +864,12 @@ export type Database = {
           fees_paid?: number
           id?: string
           last_cycle_at?: string | null
+          last_error?: string | null
+          last_error_at?: string | null
           last_price?: number | null
           last_price_at?: string | null
           last_scan?: Json | null
+          last_success_at?: string | null
           leverage?: number
           lock_until?: string | null
           max_daily_loss_pct?: number
@@ -883,6 +891,7 @@ export type Database = {
         }
         Update: {
           balance?: number
+          consecutive_failures?: number
           cycle_started_at?: string | null
           cycles?: number
           ended_at?: string | null
@@ -890,9 +899,12 @@ export type Database = {
           fees_paid?: number
           id?: string
           last_cycle_at?: string | null
+          last_error?: string | null
+          last_error_at?: string | null
           last_price?: number | null
           last_price_at?: string | null
           last_scan?: Json | null
+          last_success_at?: string | null
           leverage?: number
           lock_until?: string | null
           max_daily_loss_pct?: number

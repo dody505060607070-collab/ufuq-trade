@@ -26,7 +26,9 @@ function byDay(bars: Bar[]): Bar[] {
 async function loadMarket(db: DB, spec: AssetSpec): Promise<Market> {
   const { fetchChart } = await import("@/lib/market.server");
   try {
-    const [m5, h1] = await Promise.all([fetchChart(spec.yahoo, "5m", "5d"), fetchChart(spec.yahoo, "60m", "6mo")]);
+    // One bounded retry per source call; a second failure excludes the asset for this cycle only.
+    const get = (i: string, r: string) => fetchChart(spec.yahoo, i, r).catch(async () => { await new Promise((ok) => setTimeout(ok, 800)); return fetchChart(spec.yahoo, i, r); });
+    const [m5, h1] = await Promise.all([get("5m", "5d"), get("60m", "6mo")]);
     const tf: Market["tf"] = { M5: m5.bars.slice(-120), M15: group(m5.bars, 3).slice(-120), M30: group(m5.bars, 6).slice(-120), H1: h1.bars.slice(-200), H4: group(h1.bars, 4).slice(-120), D1: byDay(h1.bars).slice(-120) };
     let mid: number | null = null, src = "none", ageMin: number | null = null;
     const { data: bq } = await db.from("broker_quotes").select("bid,ask,updated_at").eq("symbol", spec.symbol).order("updated_at", { ascending: false }).limit(1).maybeSingle();
@@ -53,11 +55,13 @@ export async function runSimChallenges(db: DB) {
   const M = new Map(markets.map((m) => [m.spec.symbol, m]));
   const mids: Record<string, number | undefined> = Object.fromEntries(markets.filter((m) => m.mid != null).map((m) => [m.spec.symbol, m.mid!]));
   let opened = 0;
+  console.log(`[sim] cycle start ${new Date().toISOString()} challenges=${list.length} fresh_assets=${markets.filter((m) => m.fresh).length}`);
   for (const c of list) opened += await runOne(db, c, M, mids).catch(async (e) => {
     await db.from("sim_events").insert({ challenge_id: c.id, user_id: c.user_id, action: "error", detail: `Cycle failed: ${(e as Error).message}`.slice(0, 300) });
-    await db.from("sim_challenges").update({ lock_until: null }).eq("id", c.id);
+    await db.from("sim_challenges").update({ lock_until: null, last_error: (e as Error).message.slice(0, 300), last_error_at: new Date().toISOString(), consecutive_failures: c.consecutive_failures + 1 }).eq("id", c.id);
     return 0;
   });
+  console.log(`[sim] cycle end ${new Date().toISOString()} opened=${opened}`);
   return { sims: list.length, opened, assets: markets.filter((m) => m.fresh).length };
 }
 
@@ -219,6 +223,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
   await db.from("sim_challenges").update({
     ...upd, balance: Math.round(balance * 100) / 100, equity: Math.round(equity * 100) / 100, fees_paid: fees, peak_equity: Math.max(peak, equity),
     last_price: M.get(c.symbol)?.mid ?? c.last_price, last_price_at: now, last_cycle_at: ended, updated_at: ended, lock_until: null,
+    ...(results.length ? { last_success_at: ended, consecutive_failures: 0, last_error: null } : { last_error: "No fresh price from any market (source down or all markets closed)", last_error_at: ended, consecutive_failures: c.consecutive_failures + 1 }),
     cycles: c.cycles + 1, scanned: c.scanned + results.length,
     last_scan: { started_at: now, ended_at: ended, assets: scan, agents, ai_candidates_per_cycle: AI_CANDIDATES_PER_CYCLE } as unknown as Json,
   }).eq("id", c.id);

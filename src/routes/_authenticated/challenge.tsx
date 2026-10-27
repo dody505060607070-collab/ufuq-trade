@@ -79,6 +79,8 @@ function Challenge() {
         {msg && <p className="w-full text-sm text-muted-foreground">{msg}</p>}
       </section>
 
+      {c && (c.consecutive_failures > 0 || c.last_error) && <p className="mt-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">{t("Last engine error")}: {c.last_error} {c.last_error_at ? `(${new Date(c.last_error_at).toLocaleString()})` : ""} · {t("failed cycles in a row")}: {c.consecutive_failures}. {t("The next scheduled cycle retries automatically.")}</p>}
+      {c?.last_success_at && <p className="mt-2 text-xs text-muted-foreground">{t("Last successful cycle")}: {new Date(c.last_success_at).toLocaleString()}</p>}
       {active && late && <p className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">{t("The background engine has not run for more than 12 minutes. The bot is NOT trading right now.")}</p>}
 
       <section className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">

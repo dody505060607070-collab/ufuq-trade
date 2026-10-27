@@ -78,6 +78,13 @@
       "when": 1793072724648,
       "tag": "0010_multi_asset_three_agent_sim",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793073318073,
+      "tag": "0011_sim_engine_health",
+      "breakpoints": true
     }
   ]
 }
