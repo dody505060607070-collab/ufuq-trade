@@ -98,3 +98,26 @@ export function snapshotText(s: Snapshot, dec: number): string {
     `20-bar swing high ${f(s.swingHigh)} / swing low ${f(s.swingLow)}`,
   ].join("\n");
 }
+
+/** Bollinger Bands (SMA ± k·stdev). widthPct = band width / middle, used to spot squeezes. Idea from anandanand84/technicalindicators. */
+export function bollinger(closes: number[], period = 20, k = 2): { mid: number; upper: number; lower: number; widthPct: number } | null {
+  if (closes.length < period) return null;
+  const w = closes.slice(-period);
+  const mid = w.reduce((s, x) => s + x, 0) / period;
+  const sd = Math.sqrt(w.reduce((s, x) => s + (x - mid) ** 2, 0) / period);
+  return { mid, upper: mid + k * sd, lower: mid - k * sd, widthPct: mid ? ((2 * k * sd) / mid) * 100 : 0 };
+}
+
+/** Slow stochastic %K/%D (0..100). Idea from anandanand84/technicalindicators. */
+export function stochastic(bars: Bar[], period = 14, smooth = 3): { k: number; d: number } | null {
+  if (bars.length < period + smooth * 2) return null;
+  const raw: number[] = [];
+  for (let i = period - 1; i < bars.length; i++) {
+    const w = bars.slice(i - period + 1, i + 1);
+    const hi = Math.max(...w.map((b) => b.h)), lo = Math.min(...w.map((b) => b.l));
+    raw.push(hi === lo ? 50 : ((bars[i]!.c - lo) / (hi - lo)) * 100);
+  }
+  const sma = (a: number[], n: number) => a.slice(n - 1).map((_, i) => a.slice(i, i + n).reduce((s, x) => s + x, 0) / n);
+  const k = sma(raw, smooth), d = sma(k, smooth);
+  return { k: k[k.length - 1]!, d: d[d.length - 1]! };
+}

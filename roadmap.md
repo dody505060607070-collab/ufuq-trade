@@ -21,6 +21,7 @@
 - [x] Settings page, rules, 15-min scheduled runner, activity log
 
 # Current request
+- [x] Oct 27 links: add multi-candle patterns + Stochastic + Bollinger as demo-challenge evidence votes (strategy v2), tests added.
 - [x] Audit the 00:35 real command using read-only production records, trace simulator isolation and permissions, verify $100/2% background operation, run 22 isolated tests, and deliver an evidence/limitations report. Applies to all three uploaded messages on Oct 27. No trading changes or manual cycles.
 - [ ] Enforce simulator capability isolation, separate shared analysis, and correct live grants/ownership policies — blocked: user approval required before changes affecting real trading/access; audit only was requested.
 - [x] Use 0.02 for new account/settings forms and save lot edits when leaving the field.

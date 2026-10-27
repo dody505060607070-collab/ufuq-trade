@@ -130,3 +130,30 @@ export function volRegime(bars: Bar[]): "low" | "normal" | "high" | "unknown" {
   const rank = vals.filter((v) => v <= cur).length / vals.length;
   return rank < 0.25 ? "low" : rank > 0.8 ? "high" : "normal";
 }
+
+/** Multi-candle patterns (2–3 bars) and TheStrat 2-1-2. Ideas from richardawr/mt5-candlestick-scanner-backtester.
+ *  Their own 1-year EURUSD backtest shows most patterns near 50% win rate, so these only add a vote, never trigger a trade. */
+export function multiCandlePattern(bars: Bar[]): { name: string; dir: "buy" | "sell" } | null {
+  if (bars.length < 3) return null;
+  const a = bars[bars.length - 3]!, b = bars[bars.length - 2]!, c = bars[bars.length - 1]!;
+  const up = (x: Bar) => x.c > x.o, dn = (x: Bar) => x.c < x.o, body = (x: Bar) => Math.abs(x.c - x.o), rng = (x: Bar) => x.h - x.l || 1e-9;
+  const mid = (x: Bar) => (x.o + x.c) / 2;
+  // Three outside: engulfing on b, confirmed by c closing beyond b
+  if (dn(a) && up(b) && b.c >= a.o && b.o <= a.c && c.c > b.c) return { name: "three outside up", dir: "buy" };
+  if (up(a) && dn(b) && b.c <= a.o && b.o >= a.c && c.c < b.c) return { name: "three outside down", dir: "sell" };
+  // Morning / evening star: big candle, small body, strong close past the first candle's midpoint
+  if (dn(a) && body(a) >= 0.6 * rng(a) && body(b) <= 0.3 * rng(b) && up(c) && c.c > mid(a)) return { name: "morning star", dir: "buy" };
+  if (up(a) && body(a) >= 0.6 * rng(a) && body(b) <= 0.3 * rng(b) && dn(c) && c.c < mid(a)) return { name: "evening star", dir: "sell" };
+  // Harami: c body inside a large opposite b body
+  if (dn(b) && up(c) && body(b) >= 0.5 * rng(b) && Math.max(c.o, c.c) < b.o && Math.min(c.o, c.c) > b.c) return { name: "bullish harami", dir: "buy" };
+  if (up(b) && dn(c) && body(b) >= 0.5 * rng(b) && Math.max(c.o, c.c) < b.c && Math.min(c.o, c.c) > b.o) return { name: "bearish harami", dir: "sell" };
+  // Tweezers: matching extremes with a colour flip
+  const tol = rng(b) * 0.05;
+  if (dn(b) && up(c) && Math.abs(b.l - c.l) <= tol) return { name: "tweezer bottoms", dir: "buy" };
+  if (up(b) && dn(c) && Math.abs(b.h - c.h) <= tol) return { name: "tweezer tops", dir: "sell" };
+  // TheStrat 2-1-2: directional bar, inside bar, then break of the inside bar
+  const inside = b.h <= a.h && b.l >= a.l;
+  if (inside && c.h > b.h && c.l >= b.l && c.c > b.h) return { name: "TheStrat 2-1-2 up", dir: "buy" };
+  if (inside && c.l < b.l && c.h <= b.h && c.c < b.l) return { name: "TheStrat 2-1-2 down", dir: "sell" };
+  return null;
+}
