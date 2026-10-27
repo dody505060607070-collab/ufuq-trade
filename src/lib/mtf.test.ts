@@ -21,3 +21,10 @@ describe("learned rule check", () => {
     expect(shouldRetireRule({ wins: 0, total: 4 }, { wins: 4, total: 6 })).toBe(false);
   });
 });
+
+import { mtfConflict as mc2 } from "./mtf";
+describe("strong momentum vs lagging H4", () => {
+  it("allows buy when M15+H1 up, H4 down, ADX 57", () => { expect(mc2("buy", { M15: "up", H1: "up", H4: "down" }, null, 57)).toBeNull(); });
+  it("still blocks when ADX is 30", () => { expect(mc2("buy", { M15: "up", H1: "up", H4: "down" }, null, 30)).not.toBeNull(); });
+  it("still blocks when H1 is against", () => { expect(mc2("buy", { M15: "up", H1: "down", H4: "up" }, null, 57)).not.toBeNull(); });
+});
