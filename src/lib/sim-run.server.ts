@@ -2,7 +2,7 @@ import { SINGLE_AI_CALL } from "@/lib/autopilot";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import {
-  ASSETS, EXCLUDED_ASSETS, trendOf, SCAN_MIN_SCORE, assetSpec, exitOnBars, fillPrice, group, liquidated, pnl, quoteToUsd, rollovers, scanAsset, supervise,
+  ASSETS, EXCLUDED_ASSETS, trendOf, SCAN_MIN_SCORE, alignToFill, assetSpec, exitOnBars, fillPrice, group, liquidated, pnl, quoteToUsd, rollovers, scanAsset, supervise,
   type AssetSpec, type Bar, type OpenPos, type ScanResult, type ScanTf, type SimTrade,
 } from "@/lib/challenge";
 
@@ -195,8 +195,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
       if (ai.direction !== r.direction || ai.confidence < floor || ai.entry == null || ai.stop_loss == null || ai.take_profit == null) {
         await record("rejected_scanner", {}); await log("rejected", `Scanner · ${r.symbol} ${r.direction!.toUpperCase()} score ${r.score} · AI says ${ai.direction.toUpperCase()} ${ai.confidence}% — not proposed`); continue;
       }
-      const shift = mid - ai.entry;
-      const prop = { ...ai, entry: mid, stop_loss: ai.stop_loss + shift, take_profit: ai.take_profit + shift };
+      const prop = { ...ai, ...alignToFill(r.direction!, mid, spec, { entry: ai.entry, stop_loss: ai.stop_loss, take_profit: ai.take_profit }) };
       extraCols.plan = { e: mid, sl: prop.stop_loss, tp: prop.take_profit };
       // Agent 2: independent review (separate Gemini call with the scanner's data, costs and current exposure).
       agents.reviewer = "reviewing";
