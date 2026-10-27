@@ -44,7 +44,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     if (!news.has(sym)) news.set(sym, await newsNearby(sym));
   }));
 
-  const { riskCheck, dollarsPerPrice } = await import("@/lib/risk-engine");
+  const { riskCheck, dollarsPerPrice, reanchor } = await import("@/lib/risk-engine");
   const { brokerCandles } = await import("@/lib/analysis.server");
   const atrs = new Map<string, number>(); const sources = new Map<string, string>();
   for (const k of results.keys()) {

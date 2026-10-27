@@ -29,3 +29,11 @@ describe("backtest & rules", () => {
     expect(ruleStatus(9, "retired")).toBe("retired");
   });
 });
+
+import { reanchor as _re } from "./risk-engine";
+describe("reanchor", () => {
+  it("68% sell at 4029.7 with live price 4040 keeps 7 stop / 12.5 target and passes", () => {
+    const p = _re({ direction: "sell", confidence: 68, entry: 4029.7, stop_loss: 4036.7, take_profit: 4017.2 }, 4040);
+    expect(p.entry).toBe(4040); expect(p.stop_loss).toBe(4047); expect(p.take_profit).toBe(4027.5);
+  });
+});
