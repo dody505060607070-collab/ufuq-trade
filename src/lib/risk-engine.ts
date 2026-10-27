@@ -46,3 +46,11 @@ export function dollarsPerPrice(symbol: string, tickValue?: number | null, point
   if (s.includes("OIL") || s.startsWith("XTI")) return 1000;
   return 100000;
 }
+
+// Market orders fill at the live price: move entry/SL/TP to it, keeping the AI's distances (same risk and RR).
+export function reanchor<T extends Proposal>(p: T, price: number | null): T {
+  if (price == null || p.entry == null || p.stop_loss == null || p.take_profit == null) return p;
+  const d = price - p.entry;
+  const r = (x: number) => Math.round(x * 100) / 100;
+  return { ...p, entry: r(price), stop_loss: r(p.stop_loss + d), take_profit: r(p.take_profit + d) };
+}

@@ -44,7 +44,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     if (!news.has(sym)) news.set(sym, await newsNearby(sym));
   }));
 
-  const { riskCheck, dollarsPerPrice } = await import("@/lib/risk-engine");
+  const { riskCheck, dollarsPerPrice, reanchor } = await import("@/lib/risk-engine");
   const { brokerCandles } = await import("@/lib/analysis.server");
   const atrs = new Map<string, number>(); const sources = new Map<string, string>();
   for (const k of results.keys()) {
@@ -90,14 +90,17 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         const why = skipReason(r, u, st);
         const q = quotes.find((x) => x.account_id === acc.id && x.symbol === sym);
         const a = acc as { id: string; balance?: number | null };
-        const verdict = why ? { allow: false, reason: why } : riskCheck(r, {
-          price: q?.bid ?? r.entry, spreadPrice: q?.bid != null && q?.ask != null ? q.ask - q.bid : null, atr: atrs.get(sym) ?? null,
+        // Market orders fill at the broker price: shift entry/SL/TP to it, keeping the same distances (same risk & RR).
+        const live0 = q ? (r.direction === "buy" ? q.ask ?? q.bid : q.bid) : null;
+        const r2 = reanchor(r, live0 ?? null);
+        const verdict = why ? { allow: false, reason: why } : riskCheck(r2, {
+          price: live0 ?? r2.entry, spreadPrice: q?.bid != null && q?.ask != null ? q.ask - q.bid : null, atr: atrs.get(sym) ?? null,
           balance: a.balance ?? null, lot: Number(u.lot_size), dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
           dayPnl: (closedToday ?? []).reduce((s2, t) => s2 + Number(t.profit ?? 0), 0), maxDailyLossPct: 5, maxRiskPct: 5,
         });
-        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, risk_verdict: verdict.allow ? "approved" : "rejected", risk_reason: verdict.reason });
+        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: verdict.allow ? "approved" : "rejected", risk_reason: verdict.reason });
         if (!verdict.allow) { reason = verdict.reason; continue; }
-        rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot: Number(u.lot_size), sl: r.stop_loss, tp: r.take_profit, count: 1, delay_seconds: 0, autopilot: true } });
+        rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot: Number(u.lot_size), sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true } });
       }
       if (rows.length) {
         await db.from("trade_commands").insert(rows);
