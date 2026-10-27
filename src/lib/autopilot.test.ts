@@ -13,7 +13,16 @@ describe("autopilot rules", () => {
   it("skips near high-impact news", () => expect(skipReason(sig, rules, { ...st, newsNearby: true })).not.toBeNull());
   it("respects max open trades", () => expect(skipReason(sig, rules, { ...st, openTotal: 2 })).not.toBeNull());
   it("respects daily limit", () => expect(skipReason(sig, rules, { ...st, todayCount: 4 })).not.toBeNull());
-  it("no duplicate on same symbol", () => expect(skipReason(sig, rules, { ...st, openOnSymbol: 1 })).not.toBeNull());
+  it("no duplicate on same symbol below 75%", () => expect(skipReason({ ...sig, confidence: 70 }, { ...rules, min_confidence: 60 }, { ...st, openOnSymbol: 1 })).not.toBeNull());
+  it("68% passes but 64% is blocked even if the setting says 60%", () => {
+    const r60 = { ...rules, min_confidence: 60 };
+    expect(skipReason({ ...sig, confidence: 68 }, r60, st)).toBeNull();
+    expect(skipReason({ ...sig, confidence: 64 }, r60, st)).toBe("Confidence 64% below 65%");
+  });
+  it("80% may stack a second trade on the same symbol, never a third", () => {
+    expect(skipReason(sig, rules, { ...st, openOnSymbol: 1, openTotal: 1, recentOnSymbol: true })).toBeNull();
+    expect(skipReason(sig, { ...rules, max_open: 5 }, { ...st, openOnSymbol: 2, openTotal: 2 })).not.toBeNull();
+  });
 });
 
 describe("unlimited daily trades", () => {
