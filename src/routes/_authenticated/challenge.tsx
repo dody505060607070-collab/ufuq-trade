@@ -110,7 +110,7 @@ function Challenge() {
   );
 }
 
-function Stat({ label, value, tone, sub }: { label: string; value: string; tone?: "up" | "down"; sub?: string }) {
+function Stat({ label, value, tone, sub }: { label: string; value: string; tone?: "up" | "down" | undefined; sub?: string | undefined }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="text-xs text-muted-foreground">{label}</div>
