@@ -23,3 +23,11 @@ export function skipReason(sig: AutoSignal, rules: AutoRules, st: AutoState): st
   if (rules.max_daily > 0 && st.todayCount >= rules.max_daily) return `Daily limit of ${rules.max_daily} trades reached`;
   return null;
 }
+
+/** Confidence at which a trade uses a bigger size, and how much bigger. */
+export const STRONG_CONFIDENCE = 85;
+export const STRONG_LOT_MULT = 2;
+export function tradeLot(baseLot: number, confidence: number): number {
+  const lot = confidence >= STRONG_CONFIDENCE ? baseLot * STRONG_LOT_MULT : baseLot;
+  return Math.round(lot * 100) / 100;
+}

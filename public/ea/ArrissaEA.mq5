@@ -10,7 +10,7 @@
 //| Each MT5 login is registered automatically on the website.      |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.30"
+#property version   "1.32"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -40,6 +40,7 @@ bool     g_connected = false;
 int      g_failStreak = 0;
 bool     g_marketDue = true;   // send broker data on the next successful sync
 input string InpDataSymbol  = "XAUUSD";                                        // Symbol whose broker data is sent for analysis
+input double InpProfitClose = 20.0;                                             // Close a trade fully once its profit reaches this many dollars (0 = off)
 input bool   InpProtect     = true;                                            // Auto-protect trades: half close + breakeven at 1R, trail after 1.5R
 
 //+------------------------------------------------------------------+
@@ -289,6 +290,8 @@ void ProtectPositions()
       double vol  = PositionGetDouble(POSITION_VOLUME);
       bool   buy  = PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY;
       int    k    = ProtIndex(tk, sl > 0 ? MathAbs(open - sl) : 0);
+      if(InpProfitClose > 0 && PositionGetDouble(POSITION_PROFIT) >= InpProfitClose)
+        { trade.PositionClose(tk); Print("ArrissaEA: profit target $", InpProfitClose, " reached on ", tk, " - closed"); continue; }
       if(k < 0) continue;
       double risk = g_protRisk[k];
       double px   = buy ? SymbolInfoDouble(sym, SYMBOL_BID) : SymbolInfoDouble(sym, SYMBOL_ASK);
