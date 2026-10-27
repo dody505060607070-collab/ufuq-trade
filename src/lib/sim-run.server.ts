@@ -7,24 +7,30 @@ export async function runSimChallenges(db: SupabaseClient<Database>) {
   const { data: chs } = await db.from("sim_challenges").select("*").in("status", ["running", "paused", "stopped"]);
   const list = (chs ?? []).filter((c) => c.status !== "stopped" || !c.ended_at);
   if (!list.length) return { sims: 0 };
-  const { fetchQuote, fetchCandles } = await import("@/lib/market.server");
-  const { getCached, runAI, verifyTrade } = await import("@/lib/analysis.server");
+  const { fetchQuote } = await import("@/lib/market.server");
+  const { getCached, runAI, verifyTrade, brokerCandles } = await import("@/lib/analysis.server");
   const { riskCheck } = await import("@/lib/risk-engine");
   const { MIN_CONFIDENCE_FLOOR } = await import("@/lib/autopilot");
   const now = new Date().toISOString();
   let opened = 0;
-  const bySym = new Map<string, { mid: number | null; fresh: boolean; high: number; low: number }>();
+  const bySym = new Map<string, { mid: number | null; fresh: boolean; src: string; high: number; low: number }>();
 
   for (const c of list) {
     const log = (action: string, detail: string) => db.from("sim_events").insert({ challenge_id: c.id, user_id: c.user_id, action, detail });
     const costs = costsFor(c.symbol);
     if (!bySym.has(c.symbol)) {
-      const { data: ins } = await db.from("instruments").select("yahoo_symbol").eq("symbol", c.symbol).maybeSingle();
-      const y = ins?.yahoo_symbol ?? "GC=F";
-      const q = await fetchQuote(c.symbol, y);
-      const fresh = !!q.price && !!q.time && Date.now() / 1000 - q.time < 10 * 60;
-      const bars = fresh ? await fetchCandles(y, "M5", 3).catch(() => []) : [];
-      bySym.set(c.symbol, { mid: q.price, fresh, high: Math.max(q.price ?? 0, ...bars.map((b) => b.h)), low: Math.min(q.price ?? Infinity, ...bars.map((b) => b.l)) });
+      // Prefer the live broker quote the EA reports (read-only market data); else Yahoo, which is ~10 min delayed.
+      const { data: bq } = await db.from("broker_quotes").select("bid,ask,updated_at").eq("symbol", c.symbol).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+      let mid: number | null = null, fresh = false, src = "none";
+      if (bq?.bid && bq?.ask && Date.now() - new Date(bq.updated_at).getTime() < 3 * 60_000) { mid = (Number(bq.bid) + Number(bq.ask)) / 2; fresh = true; src = "broker live quote"; }
+      else {
+        const { data: ins } = await db.from("instruments").select("yahoo_symbol").eq("symbol", c.symbol).maybeSingle();
+        const q = await fetchQuote(c.symbol, ins?.yahoo_symbol ?? "GC=F");
+        if (q.price && q.time && Date.now() / 1000 - q.time < 20 * 60) { mid = q.price; fresh = true; src = `Yahoo (delayed ${Math.round((Date.now() / 1000 - q.time) / 60)} min)`; }
+      }
+      const bars = fresh ? await brokerCandles(db, c.symbol, "M15", 2).catch(() => null) : null;
+      const prev = c.last_price != null ? Number(c.last_price) : mid ?? 0;
+      bySym.set(c.symbol, { mid, fresh, src, high: Math.max(mid ?? 0, prev, ...(bars ?? []).slice(-1).map((b) => b.h)), low: Math.min(mid ?? Infinity, prev, ...(bars ?? []).slice(-1).map((b) => b.l)) });
     }
     const m = bySym.get(c.symbol)!;
     if (!m.fresh || m.mid == null) { await log("waiting", "No live price (market closed or source down) — nothing simulated this cycle"); await db.from("sim_challenges").update({ last_cycle_at: now }).eq("id", c.id); continue; }
@@ -65,18 +71,18 @@ export async function runSimChallenges(db: SupabaseClient<Database>) {
       catch (e) { await log("error", `Analysis unavailable: ${(e as Error).message}`.slice(0, 200)); continue; }
     }
     const floor = Math.max(MIN_CONFIDENCE_FLOOR, 65);
-    if (r.direction === "neutral" || r.confidence < floor || r.entry == null || r.stop_loss == null || r.take_profit == null) { await log("waiting", `${r.direction.toUpperCase()} ${r.confidence}% — no qualifying setup`); continue; }
+    if (r.direction === "neutral" || r.confidence < floor || r.entry == null || r.stop_loss == null || r.take_profit == null) { await log("waiting", `Price ${mid.toFixed(2)} (${m.src}) · AI ${r.direction.toUpperCase()} ${r.confidence}% — no qualifying setup`); continue; }
     const shift = mid - r.entry;
     const prop = { ...r, entry: mid, stop_loss: r.stop_loss + shift, take_profit: r.take_profit + shift };
     const v0 = riskCheck(prop, { price: mid, spreadPrice: costs.spread, atr: null, balance, lot: 0.01, dollarsPerPricePerLot: costs.contract, dayPnl: 0, maxDailyLossPct: 100, maxRiskPct: Number(c.max_risk_pct) });
     if (!v0.allow) { await log("rejected", `${r.direction.toUpperCase()} ${r.confidence}% — ${v0.reason}`); continue; }
     const v = await verifyTrade(c.symbol, c.timeframe, prop, mid);
     const combined = Math.round((r.confidence + v.confidence) / 2);
-    if (!v.agree || combined < floor) { await log("rejected", `Second AI check said no (${v.confidence}%): ${v.reason}`.slice(0, 300)); continue; }
+    if (!v.agree || combined < floor) { await log("rejected", `AI ${r.direction.toUpperCase()} ${r.confidence}% · second AI check said no (${v.confidence}%): ${v.reason}`.slice(0, 300)); continue; }
     const t = openSim({ side: r.direction as "buy" | "sell", mid, sl: prop.stop_loss, tp: prop.take_profit, equity, freeMargin: equity, riskPct: Number(c.max_risk_pct), leverage: Number(c.leverage), costs });
     if ("error" in t) { await log("rejected", t.error); continue; }
     await db.from("sim_trades").insert({ challenge_id: c.id, user_id: c.user_id, symbol: c.symbol, ...t, confidence: combined, reason: r.summary.slice(0, 500) });
-    await log("opened", `${t.side.toUpperCase()} ${t.lot} @ ${t.entry.toFixed(2)} · SL ${t.stop_loss.toFixed(2)} · TP ${t.take_profit.toFixed(2)} · ${combined}%`);
+    await log("opened", `${t.side.toUpperCase()} ${t.lot} @ ${t.entry.toFixed(2)} · SL ${t.stop_loss.toFixed(2)} · TP ${t.take_profit.toFixed(2)} · ${combined}% · price ${m.src}`);
     opened++;
   }
   return { sims: list.length, opened };
