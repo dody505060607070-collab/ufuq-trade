@@ -155,7 +155,7 @@ async function geminiOnce(key: string, prompt: string, system: string): Promise<
 async function callRadox(prompt: string, system: string): Promise<string | null> {
   const key = process.env["RADOX_API_KEY"];
   if (!key) return null;
-  const model = process.env["RADOX_MODEL"] || "gemini-2.5-flash";
+  const model = process.env["RADOX_MODEL"] || "claude-sonnet-5";
   try {
     const res = await fetch("https://radoxai.com/v1/chat/completions", {
       method: "POST",
