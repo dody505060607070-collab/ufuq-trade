@@ -222,7 +222,8 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
   const ended = new Date().toISOString();
   await db.from("sim_challenges").update({
     ...upd, balance: Math.round(balance * 100) / 100, equity: Math.round(equity * 100) / 100, fees_paid: fees, peak_equity: Math.max(peak, equity),
-    last_price: M.get(c.symbol)?.mid ?? c.last_price, last_price_at: now, last_cycle_at: ended, updated_at: ended, lock_until: null, last_success_at: ended, consecutive_failures: 0,
+    last_price: M.get(c.symbol)?.mid ?? c.last_price, last_price_at: now, last_cycle_at: ended, updated_at: ended, lock_until: null,
+    ...(results.length ? { last_success_at: ended, consecutive_failures: 0, last_error: null } : { last_error: "No fresh price from any market (source down or all markets closed)", last_error_at: ended, consecutive_failures: c.consecutive_failures + 1 }),
     cycles: c.cycles + 1, scanned: c.scanned + results.length,
     last_scan: { started_at: now, ended_at: ended, assets: scan, agents, ai_candidates_per_cycle: AI_CANDIDATES_PER_CYCLE } as unknown as Json,
   }).eq("id", c.id);
