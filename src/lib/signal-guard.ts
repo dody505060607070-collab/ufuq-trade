@@ -42,3 +42,6 @@ export function levelProblem(p: Proposal, atr: number | null): string | null {
   }
   return null;
 }
+
+/** Max Gemini calls per UTC day (all users, all features). ~40 calls/day keeps a $5 Gemini top-up lasting about a month. */
+export const DAILY_GEMINI_CALLS = 40;

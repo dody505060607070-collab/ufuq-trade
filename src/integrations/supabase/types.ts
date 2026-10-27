@@ -41,6 +41,21 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_usage: {
+        Row: {
+          calls: number
+          day: string
+        }
+        Insert: {
+          calls?: number
+          day: string
+        }
+        Update: {
+          calls?: number
+          day?: string
+        }
+        Relationships: []
+      }
       analyses: {
         Row: {
           confidence: number | null
@@ -1704,6 +1719,7 @@ export type Database = {
         Args: { _seconds?: number; _token: string }
         Returns: boolean
       }
+      take_ai_call: { Args: { _cap: number }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"

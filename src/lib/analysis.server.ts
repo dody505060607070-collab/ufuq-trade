@@ -15,7 +15,7 @@ import { mtfConflict, mtfText, type MtfTrends } from "./mtf";
 type DB = SupabaseClient<Database>;
 export type Levels = { direction: "buy" | "sell" | "neutral"; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null; summary: string };
 
-export const CACHE_MINUTES = 10;
+export const CACHE_MINUTES = 30; // longer reuse = fewer Gemini calls
 
 const resultSchema = z.object({
   direction: z.enum(["buy", "sell", "neutral"]),
@@ -119,6 +119,7 @@ export async function newsNearby(symbol: string, windowMin = 30) {
 }
 
 async function callGemini(key: string, prompt: string, system = INSTRUCTIONS): Promise<string | null> {
+  if (!(await import("@/lib/ai-budget.server").then((m) => m.takeAiCall()))) { lastGeminiError = "Daily AI budget reached — resumes tomorrow (keeps the $5 Gemini credit lasting a month)"; return null; }
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
