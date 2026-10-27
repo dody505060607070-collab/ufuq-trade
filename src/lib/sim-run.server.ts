@@ -1,3 +1,4 @@
+import { SINGLE_AI_CALL } from "@/lib/autopilot";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import {
