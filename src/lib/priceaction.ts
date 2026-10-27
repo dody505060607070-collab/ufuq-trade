@@ -1,6 +1,7 @@
 // Price-action context computed locally (no AI cost). Ideas from kain26/price-action-skill,
 // joshyattridge/smart-money-concepts (previous high/low, liquidity pools) and profittown-sniper-smc (HTF bias).
 import type { Bar } from "./indicators";
+import { ema, atr } from "./indicators";
 import { marketStructure } from "./ict";
 
 /** Classic reversal/continuation pattern on the last closed candle(s). */
