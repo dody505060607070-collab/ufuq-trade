@@ -1,4 +1,4 @@
-import { skipReason } from "@/lib/autopilot";
+import { skipReason, tradeLot } from "@/lib/autopilot";
 import { pauseReason } from "@/lib/profitlock";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -96,9 +96,11 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         // Market orders fill at the broker price: shift entry/SL/TP to it, keeping the same distances (same risk & RR).
         const live0 = q ? (r.direction === "buy" ? q.ask ?? q.bid : q.bid) : null;
         const r2 = reanchor(r, live0 ?? null);
+        // Strong setups (>= STRONG_CONFIDENCE) use STRONG_LOT_MULT x lot; the risk engine still caps the dollar risk.
+        const lot = tradeLot(Number(u.lot_size), r.confidence);
         const verdict = why ? { allow: false, reason: why } : riskCheck(r2, {
           price: live0 ?? r2.entry, spreadPrice: q?.bid != null && q?.ask != null ? q.ask - q.bid : null, atr: atrs.get(sym) ?? null,
-          balance: a.balance ?? null, lot: Number(u.lot_size), dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
+          balance: a.balance ?? null, lot, dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
           dayPnl: (closedToday ?? []).reduce((s2, t) => s2 + Number(t.profit ?? 0), 0), maxDailyLossPct: 5, maxRiskPct: 5,
         });
         if (!verdict.allow) await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: verdict.allow ? "approved" : "rejected", risk_reason: verdict.reason });
@@ -113,7 +115,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           continue;
         }
         await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
-        rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot: Number(u.lot_size), sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true } });
+        rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot, sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true } });
       }
       if (rows.length) {
         await db.from("trade_commands").insert(rows);
