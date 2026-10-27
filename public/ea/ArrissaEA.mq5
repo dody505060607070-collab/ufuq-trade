@@ -10,7 +10,7 @@
 //| Each MT5 login is registered automatically on the website.      |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.30"
+#property version   "1.32"
 #property strict
 
 #include <Trade/Trade.mqh>
