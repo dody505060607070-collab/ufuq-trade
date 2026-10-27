@@ -43,7 +43,7 @@ function Challenge() {
   const realized = closed.reduce((s, x) => s + Number(x.profit ?? 0), 0);
   const unrealized = open.reduce((s, x) => s + Number(x.profit ?? 0), 0);
   const avg = (a: typeof closed) => a.length ? a.reduce((s, x) => s + Number(x.profit ?? 0), 0) / a.length : 0;
-  const online = acc ? isOnline(acc.last_seen_at) : false;
+  const online = acc ? isOnline(acc) : false;
   const looksDemo = /demo/i.test(`${acc?.server ?? ""} ${acc?.broker_name ?? ""}`);
 
   const act = async (fn: () => Promise<unknown>, note: string) => {
