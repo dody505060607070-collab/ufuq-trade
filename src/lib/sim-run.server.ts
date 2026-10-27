@@ -151,7 +151,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
     scan.push({ symbol: m.spec.symbol, status: "scanned", price: m.mid, src: m.src, score: r.score, direction: r.direction, tradeTf: r.tradeTf, trends: r.trends, reason: r.reason });
   }
   for (const [s, why] of Object.entries(EXCLUDED_ASSETS)) scan.push({ symbol: s, status: "excluded", price: null, src: "—", reason: why });
-  const agents = { scanner: "idle", reviewer: "idle", supervisor: "idle" } as Record<string, string>;
+  const agents: { scanner: string; reviewer: string; supervisor: string } = { scanner: "idle", reviewer: "idle", supervisor: "idle" };
   let opened = 0;
 
   if (c.status === "running" && !upd.status) {
@@ -168,7 +168,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
 
     for (const r of cands) {
       const m = M.get(r.symbol)!, spec = m.spec, mid = m.mid!;
-      const scanner: Record<string, unknown> = { score: r.score, trends: r.trends, reason: r.reason, atr: r.atr, rsi: r.rsi, tradeTf: r.tradeTf, price: mid, src: m.src };
+      const scanner: { ai?: unknown; [k: string]: unknown } = { score: r.score, trends: r.trends, reason: r.reason, atr: r.atr, rsi: r.rsi, tradeTf: r.tradeTf, price: mid, src: m.src };
       const record = (outcome: Database["public"]["Tables"]["sim_decisions"]["Insert"]["outcome"], extra: { reviewer?: unknown; supervisor?: unknown }) =>
         db.from("sim_decisions").insert({ challenge_id: c.id, user_id: c.user_id, symbol: r.symbol, timeframe: r.tradeTf, direction: r.direction!, scanner_score: r.score, scanner: scanner as Json, reviewer: (extra.reviewer ?? null) as Json, supervisor: (extra.supervisor ?? null) as Json, outcome }).select("id").single();
       // Agent 1 (AI part): Gemini must propose the same direction with levels.
