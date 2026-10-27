@@ -1,6 +1,7 @@
 // Price-action context computed locally (no AI cost). Ideas from kain26/price-action-skill,
 // joshyattridge/smart-money-concepts (previous high/low, liquidity pools) and profittown-sniper-smc (HTF bias).
 import type { Bar } from "./indicators";
+import { ema, atr } from "./indicators";
 import { marketStructure } from "./ict";
 
 /** Classic reversal/continuation pattern on the last closed candle(s). */
@@ -64,6 +65,8 @@ export function priceActionText(bars: Bar[], daily: Bar[], dec: number): string 
     `Climax reversal (sharp run then rejection candle): ${climaxReversal(bars) ?? "none"} — when present this is a high-value counter-move entry (buy after a capitulation drop, sell after an exhausted spike); stop beyond the climax extreme, target the run's midpoint or start`,
     `Liquidity pools: BSL (equal highs) ${pools.bsl != null ? f(pools.bsl) : "none"}; SSL (equal lows) ${pools.ssl != null ? f(pools.ssl) : "none"} — price often sweeps these before reversing`,
     d ? `Daily (higher timeframe) bias: ${d.bias}; previous day was ${d.prevDay}; previous day high ${f(d.pdh)}, low ${f(d.pdl)} — trade WITH the daily bias unless a sweep + CHoCH confirms reversal` : "Daily context: unavailable",
+    `Pullback-window breakout (EMA9/21 trend, 1-3 bar pullback, then break of the pullback extreme): ${pullbackBreakout(bars) ?? "none"} — a confirmed with-trend entry; prefer it over entering mid-move, stop beyond the pullback extreme`,
+    `Volatility regime (ATR vs its recent range): ${volRegime(bars)} — in "low" expect chop (demand stronger confirmation); in "high" widen stops within limits and reduce size`,
     d ? `Previous-day sweep: ${pdSweep(bars, d.pdh, d.pdl) ?? "none"} — high-probability when it agrees with the previous day's direction (bullish day + PDL sweep = buy, bearish day + PDH sweep = sell)` : "Previous-day sweep: unavailable",
   ].join("\n");
 }
@@ -91,4 +94,39 @@ export function climaxReversal(bars: Bar[], look = 8, mult = 3): "buy" | "sell" 
   if (endC - startC >= mult * avgRange && c.h >= runHigh - 0.25 * avgRange && c.c < c.o &&
       (upper >= 1.5 * body || c.c <= run[run.length - 1]!.o) && c.h - c.c >= 0.5 * range) return "sell";
   return null;
+}
+
+/** Pullback-window entry (idea from backtrader-pullback-window-xauusd). */
+export function pullbackBreakout(bars: Bar[]): "buy" | "sell" | null {
+  if (bars.length < 30) return null;
+  const closes = bars.map((b) => b.c);
+  const ef = ema(closes, 9), es = ema(closes, 21);
+  const n = bars.length - 1, c = bars[n]!;
+  for (const dir of ["buy", "sell"] as const) {
+    const up = dir === "buy";
+    const trend = (i: number) => (up ? ef[i]! > es[i]! : ef[i]! < es[i]!);
+    if (!trend(n) || !trend(n - 4)) continue;
+    let k = 0;
+    while (k < 3 && n - 1 - k >= 1) {
+      const b = bars[n - 1 - k]!;
+      if (up ? b.c < b.o : b.c > b.o) k++; else break;
+    }
+    if (k < 1) continue;
+    const pb = bars.slice(n - k, n);
+    if (up && c.c > Math.max(...pb.map((b) => b.h)) && c.c > c.o) return "buy";
+    if (!up && c.c < Math.min(...pb.map((b) => b.l)) && c.c < c.o) return "sell";
+  }
+  return null;
+}
+
+/** Volatility regime: current ATR(14) position within the last 100 ATR readings. */
+export function volRegime(bars: Bar[]): "low" | "normal" | "high" | "unknown" {
+  if (bars.length < 60) return "unknown";
+  const vals: number[] = [];
+  for (let i = Math.max(20, bars.length - 100); i <= bars.length; i++) {
+    const v = atr(bars.slice(0, i)); if (v != null) vals.push(v);
+  }
+  const cur = vals[vals.length - 1]; if (cur == null || vals.length < 10) return "unknown";
+  const rank = vals.filter((v) => v <= cur).length / vals.length;
+  return rank < 0.25 ? "low" : rank > 0.8 ? "high" : "normal";
 }
