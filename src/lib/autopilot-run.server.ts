@@ -62,27 +62,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   for (const u of users) {
     const log = (symbol: string, action: string, detail: string) => db.from("autopilot_events").insert({ user_id: u.user_id, symbol, action, detail });
     const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity").eq("user_id", u.user_id).eq("auto_trading", true);
-    let live = (accounts ?? []).filter((a) => a.last_seen_at && Date.now() - new Date(a.last_seen_at).getTime() < 5 * 60_000);
-    // $50 Challenge: accounts with an active challenge follow its own limits; ended/paused ones don't trade.
-    const { data: chs } = live.length ? await db.from("challenges").select("*").in("account_id", live.map((a) => a.id)).in("status", ["running", "paused"]) : { data: [] };
-    const challengeOf = new Map((chs ?? []).map((c) => [c.account_id, c]));
-    if (chs?.length) {
-      const { challengeGate } = await import("@/lib/challenge");
-      const keep: typeof live = [];
-      for (const acc of live) {
-        const c = challengeOf.get(acc.id);
-        if (!c) { keep.push(acc); continue; }
-        const g = challengeGate(c, acc.equity ?? acc.balance ?? null);
-        await db.from("challenges").update({ peak_balance: g.peak, last_cycle_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...(!g.trade && g.end ? { status: g.end, stop_reason: g.reason, ended_at: new Date().toISOString() } : {}) }).eq("id", c.id);
-        if (!g.trade && g.closeAll) {
-          await db.from("trade_commands").insert({ user_id: u.user_id, account_id: acc.id, command: "close_all", payload: { challenge: true } });
-          await db.from("trading_accounts").update({ auto_trading: false }).eq("id", acc.id);
-        }
-        if (!g.trade) { await log("-", "challenge", g.reason); continue; }
-        keep.push(acc);
-      }
-      live = keep;
-    }
+    const live = (accounts ?? []).filter((a) => a.last_seen_at && Date.now() - new Date(a.last_seen_at).getTime() < 5 * 60_000);
     if (!live.length) { await log("-", "skipped", "No connected account with auto trading on"); continue; }
     const ids = live.map((a) => a.id);
     const [{ data: open }, { data: cmds }] = await Promise.all([
@@ -122,8 +102,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           price: live0 ?? r2.entry, spreadPrice: q?.bid != null && q?.ask != null ? q.ask - q.bid : null, atr: atrs.get(sym) ?? null,
           balance: a.balance ?? null, lot, dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
           dayPnl: (closedToday ?? []).reduce((s2, t) => s2 + Number(t.profit ?? 0), 0),
-          maxDailyLossPct: challengeOf.has(acc.id) ? Number(challengeOf.get(acc.id)!.max_daily_loss_pct) : 5,
-          maxRiskPct: challengeOf.has(acc.id) ? Number(challengeOf.get(acc.id)!.max_risk_pct) : 5,
+          maxDailyLossPct: 5, maxRiskPct: 5,
         });
         if (!verdict.allow) await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: verdict.allow ? "approved" : "rejected", risk_reason: verdict.reason });
         if (!verdict.allow) { reason = verdict.reason; continue; }
