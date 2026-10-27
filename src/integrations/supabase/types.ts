@@ -1571,6 +1571,36 @@ export type Database = {
         }
         Relationships: []
       }
+      vps_reports: {
+        Row: {
+          checks: Json
+          created_at: string
+          hostname: string | null
+          id: string
+          overall: string
+          report_time: string | null
+          submitted_by: string
+        }
+        Insert: {
+          checks?: Json
+          created_at?: string
+          hostname?: string | null
+          id?: string
+          overall: string
+          report_time?: string | null
+          submitted_by?: string
+        }
+        Update: {
+          checks?: Json
+          created_at?: string
+          hostname?: string | null
+          id?: string
+          overall?: string
+          report_time?: string | null
+          submitted_by?: string
+        }
+        Relationships: []
+      }
       weekly_reviews: {
         Row: {
           created_at: string
