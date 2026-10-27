@@ -14,7 +14,7 @@ export type Evidence = { tools: Tool[]; votes: { for: number; against: number };
 /** Run each relevant analysis tool on data available NOW (no future bars) and record use/skip reasons. */
 export function buildEvidence(p: { symbol: string; dir: "buy" | "sell"; m15: Bar[]; h1: Bar[]; headlines: string[] | null; now?: Date }): Evidence {
   const tools: Tool[] = [];
-  const vote = (v: "buy" | "sell" | null | undefined): Tool["vote"] => (v ? v : "neutral");
+  const vote = (v: "buy" | "sell" | null | undefined): "buy" | "sell" | "neutral" => (v ? v : "neutral");
   const add = (t: Tool) => tools.push(t);
   if (p.h1.length >= 30) {
     const s = marketStructure(p.h1);
