@@ -50,6 +50,13 @@
       "when": 1792801357117,
       "tag": "0006_broker_data_decisions_rule_status",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793061166600,
+      "tag": "0007_migration",
+      "breakpoints": true
     }
   ]
 }

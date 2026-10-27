@@ -8,7 +8,7 @@ import { snapshot, snapshotText } from "./indicators";
 import { ictText } from "./ict";
 import { priceActionText, climaxReversal } from "./priceaction";
 import { memoryText } from "./profitlock";
-import { brainContext } from "./brain.server";
+import { brainContext, hindsightContext } from "./brain.server";
 import { newsSentiment, sentimentText } from "./sentiment";
 import { mtfConflict, mtfText, type MtfTrends } from "./mtf";
 
@@ -73,6 +73,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   const [m15, h1, h4] = await Promise.all([tfTrend("M15"), tfTrend("H1"), tfTrend("H4")]);
   const mtf: MtfTrends = { M15: m15, H1: h1, H4: h4 };
   const brain = await brainContext(db, symbol).catch(() => ({ whale: "unavailable", rules: "none yet" }));
+  const hindsight = await hindsightContext(db, symbol).catch(() => "unavailable");
   const last = candles[candles.length - 1];
   const price = manualPrice ?? last?.c ?? null;
   const dec = price && price < 5 ? 5 : price && price < 500 ? 3 : 2;
@@ -85,7 +86,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     .join("\n");
   const heads = news.map((n) => `- ${n.title} (${n.source})`).join("\n") + `\n${sentimentText(newsSentiment(news.map((n) => n.title)))}`;
   const snap = snapshot(candles);
-  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nMulti-timeframe trends:\n${mtfText(mtf)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades:\n${brain.rules}\n\nProvide your directional analysis as json.`;
+  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nMulti-timeframe trends:\n${mtfText(mtf)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades:\n${brain.rules}\n\nHindsight — what price did after our recent analyses, including ones we skipped (correlate and learn):\n${hindsight}\n\nProvide your directional analysis as json.`;
 
   // Paid Gemini only — no Lovable AI fallback.
   const geminiKey = process.env["GEMINI_API_KEY"];

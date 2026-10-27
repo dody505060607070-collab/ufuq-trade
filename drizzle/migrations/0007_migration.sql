@@ -1,0 +1,2 @@
+alter table public.decision_log add column if not exists outcome text, add column if not exists outcome_checked_at timestamptz, add column if not exists outcome_move numeric;
+create index if not exists decision_log_outcome_idx on public.decision_log (outcome_checked_at, created_at);
