@@ -43,7 +43,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary });
       }
       results.set(k, r);
-    } catch (e) { console.error("autopilot analysis", k, e); results.set(k, null); }
+    } catch (e) { console.error("autopilot analysis", k, e); results.set(k, null); errors.set(k, e instanceof Error ? e.message : String(e)); }
     if (!news.has(sym)) news.set(sym, await newsNearby(sym));
   }));
 
@@ -79,7 +79,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     const auto = (cmds ?? []).filter((c) => (c.payload as { autopilot?: boolean })?.autopilot);
     for (const sym of u.symbols) {
       const r = results.get(`${sym}|${u.timeframe}`);
-      if (!r) { await log(sym, "error", "Analysis unavailable"); continue; }
+      if (!r) { await log(sym, "error", `Analysis unavailable: ${errors.get(`${sym}|${u.timeframe}`) ?? "unknown error"}`); continue; }
       const rows = [];
       let reason = "";
       for (const acc of live) {
