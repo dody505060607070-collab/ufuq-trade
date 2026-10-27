@@ -63,7 +63,7 @@ function Challenge() {
     try { const r = await fn(); if (r.error) throw new Error(r.error.message); setMsg(t(note)); } catch (e) { setMsg((e as Error).message); }
     finally { setBusy(false); qc.invalidateQueries(); }
   };
-  const start = () => act(async () => supabase.from("sim_challenges").insert({ user_id: (await supabase.auth.getUser()).data.user!.id }), "Demo challenge started with $100 virtual. The bot scans all markets every 5 minutes in the background.");
+  const start = () => act(async () => supabase.from("sim_challenges").insert({ user_id: (await supabase.auth.getUser()).data.user!.id }), "Demo challenge started with $100 virtual. The bot scans all markets every 10 minutes in the background.");
   const setStatus = (status: "running" | "paused", note: string) => act(async () => supabase.from("sim_challenges").update({ status, updated_at: new Date().toISOString() }).eq("id", c!.id), note);
   const stop = () => act(async () => { try { const r = await stopFn({ data: { id: c!.id } }); setMsg(`${t("Emergency stop done. Demo trades closed")}: ${r.closed}`); return { error: null }; } catch (e) { return { error: { message: (e as Error).message } }; } }, "Emergency stop done.");
 

@@ -1,3 +1,4 @@
+import { SINGLE_AI_CALL } from "@/lib/autopilot";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import {
@@ -17,7 +18,7 @@ type DB = SupabaseClient<Database>;
 type Market = { spec: AssetSpec; mid: number | null; fresh: boolean; src: string; ageMin: number | null; tf: Partial<Record<ScanTf | "M1", Bar[]>>; m5: Bar[]; error?: string };
 type TradeRow = Database["public"]["Tables"]["sim_trades"]["Row"];
 
-const AI_CANDIDATES_PER_CYCLE = 2;
+const AI_CANDIDATES_PER_CYCLE = 1; // one AI analysis per cycle to save credits
 const LOCK_MIN = 4;
 
 function byDay(bars: Bar[]): Bar[] {
@@ -203,7 +204,10 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
       const brief = `${ai.summary}\n\nScanner data — trends ${JSON.stringify(r.trends)}, score ${r.score}, RSI ${r.rsi?.toFixed(0)}, ATR ${r.atr}. Price source ${m.src}. Costs: spread ${spec.spread}, slippage ${spec.slippage}, commission $${spec.commissionPerLot}/lot. Max leverage 1:${spec.maxLeverage}. Open demo positions: ${exposure}. Reject if data is stale, the signal is late or weak, or exposure is correlated.`;
       let v: { agree: boolean; confidence: number; reason: string };
       let reviewer: Record<string, unknown>;
-      if (c.use_evidence) {
+      if (SINGLE_AI_CALL) {
+        v = { agree: true, confidence: ai.confidence, reason: "single analysis (credit saver)" };
+        reviewer = { decision: "approve", confidence: ai.confidence, reason: "Second AI call disabled to save credits; code supervisor still decides", model: "none" };
+      } else if (c.use_evidence) {
         // TradingAgents-style: code tools → evidence report → bull/bear/manager debate → code checklist.
         headlines ??= await import("@/lib/market.server").then((x) => x.fetchNews(25)).then((n) => n.map((i) => i.title)).catch(() => []);
         const ev = buildEvidence({ symbol: r.symbol, dir: r.direction!, m15: m.tf.M15 ?? [], h1: m.tf.H1 ?? [], headlines });
