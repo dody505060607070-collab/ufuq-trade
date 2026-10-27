@@ -88,9 +88,9 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   const snap = snapshot(candles);
   const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nMulti-timeframe trends:\n${mtfText(mtf, snap?.adx14 ?? null)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades:\n${brain.rules}\n\nHindsight — what price did after our recent analyses, including ones we skipped (correlate and learn):\n${hindsight}\n\nProvide your directional analysis as json.`;
 
-  // Paid Gemini only — no Lovable AI fallback.
-  const geminiKey = process.env["GEMINI_API_KEY"];
-  if (!geminiKey) throw new Error("Gemini API key is not configured.");
+  // Gemini first, Radox AI as backup — no Lovable AI fallback.
+  const geminiKey = process.env["GEMINI_API_KEY"] ?? "";
+  if (!geminiKey && !process.env["RADOX_API_KEY"]) throw new Error("Gemini API key is not configured.");
   const text = await callGemini(geminiKey, prompt);
   if (!text) throw new Error(lastGeminiError ?? "Gemini analysis failed. Please try again.");
   const match = text.match(/\{[\s\S]*\}/);
@@ -120,6 +120,14 @@ export async function newsNearby(symbol: string, windowMin = 30) {
 
 async function callGemini(key: string, prompt: string, system = INSTRUCTIONS): Promise<string | null> {
   if (!(await import("@/lib/ai-budget.server").then((m) => m.takeAiCall()))) { lastGeminiError = "Daily AI budget reached — resumes tomorrow (keeps the $5 Gemini credit lasting a month)"; return null; }
+  const primary = key ? await geminiOnce(key, prompt, system) : null;
+  if (primary) return primary;
+  // Backup: Radox AI (OpenAI-compatible) only when Gemini fails and RADOX_API_KEY is set.
+  const backup = await callRadox(prompt, system);
+  return backup;
+}
+
+async function geminiOnce(key: string, prompt: string, system: string): Promise<string | null> {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
@@ -142,6 +150,32 @@ async function callGemini(key: string, prompt: string, system = INSTRUCTIONS): P
   lastGeminiError = null;
   const j = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   return j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") || null;
+}
+
+async function callRadox(prompt: string, system: string): Promise<string | null> {
+  const key = process.env["RADOX_API_KEY"];
+  if (!key) return null;
+  const model = process.env["RADOX_MODEL"] || "gemini-2.5-flash";
+  try {
+    const res = await fetch("https://radoxai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, messages: [{ role: "system", content: system }, { role: "user", content: prompt }] }),
+    });
+    if (!res.ok) {
+      console.error("Radox failed", res.status, (await res.text()).slice(0, 300));
+      lastGeminiError = `${lastGeminiError ?? "Gemini failed"}; Radox backup error ${res.status}`;
+      return null;
+    }
+    const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const text = j.choices?.[0]?.message?.content || null;
+    if (text) lastGeminiError = null;
+    return text;
+  } catch (e) {
+    lastGeminiError = `${lastGeminiError ?? "Gemini failed"}; Radox backup unreachable`;
+    console.error("Radox error", e);
+    return null;
+  }
 }
 
 /** Reason of the most recent failed Gemini call in this worker (null after a success). */
