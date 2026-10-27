@@ -9,6 +9,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   if (!onlyUser) {
     const b = await import("@/lib/brain.server");
     await b.processLessons(db).catch((e) => console.error("lessons", e));
+    await b.gradeDecisions(db).catch((e) => console.error("hindsight", e));
     if (new Date().getUTCDay() === 1) await b.weeklyReviews(db).catch((e) => console.error("weekly", e));
     await b.refreshCot(db).catch((e) => console.error("cot", e));
   }

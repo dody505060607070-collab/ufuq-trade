@@ -145,3 +145,33 @@ export async function brainContext(db: DB, symbol: string) {
   const whale = w ? (() => { const b = cotBias(Number(w.long_pos), Number(w.short_pos), Number(w.change_long), Number(w.change_short)); return `CFTC COT ${w.report_date}: speculators ${b.bias} (net ${b.netPct.toFixed(0)}% of positions, weekly net change ${b.weekly})`; })() : "unavailable";
   return { whale, rules: rulesText(rules ?? []) };
 }
+
+/** Grade every analysis with levels (taken or skipped) 1–48h later using the broker's own candles. No AI cost. */
+export async function gradeDecisions(db: DB) {
+  const { gradePath } = await import("./hindsight");
+  const now = Date.now();
+  const { data: rows } = await db.from("decision_log").select("id,account_id,symbol,ai_direction,entry,stop_loss,take_profit,created_at,outcome")
+    .not("entry", "is", null).not("stop_loss", "is", null).not("take_profit", "is", null)
+    .in("ai_direction", ["buy", "sell"]).or("outcome.is.null,outcome.eq.open")
+    .lte("created_at", new Date(now - 3600_000).toISOString()).gte("created_at", new Date(now - 7 * 86400_000).toISOString())
+    .order("created_at", { ascending: true }).limit(200);
+  for (const r of rows ?? []) {
+    if (!r.account_id) continue;
+    const from = Math.floor(new Date(r.created_at).getTime() / 1000);
+    const { data: bars } = await db.from("broker_candles").select("t,h,l").eq("account_id", r.account_id).eq("symbol", r.symbol)
+      .gte("t", from).lte("t", from + 48 * 3600).order("t", { ascending: true }).limit(500);
+    if (!bars?.length) continue;
+    const g = gradePath(r.ai_direction!, Number(r.entry), Number(r.stop_loss), Number(r.take_profit), bars.map((b) => ({ t: b.t, h: Number(b.h), l: Number(b.l) })));
+    const expired = now - new Date(r.created_at).getTime() > 48 * 3600_000;
+    if (g.outcome === "open" && !expired) continue;
+    await db.from("decision_log").update({ outcome: g.outcome === "open" ? "expired" : g.outcome, outcome_move: g.move, outcome_checked_at: new Date().toISOString() }).eq("id", r.id);
+  }
+}
+
+/** Last 14 days of graded analyses for this symbol, as prompt text. */
+export async function hindsightContext(db: DB, symbol: string) {
+  const { hindsightText } = await import("./hindsight");
+  const { data } = await db.from("decision_log").select("risk_verdict,risk_reason,ai_confidence,outcome").eq("symbol", symbol)
+    .in("outcome", ["tp_first", "sl_first"]).gte("created_at", new Date(Date.now() - 14 * 86400_000).toISOString()).limit(1000);
+  return hindsightText(data ?? []);
+}
