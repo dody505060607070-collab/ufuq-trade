@@ -30,3 +30,7 @@
 - [ ] Verify approved/denied OAuth flow with real assistant — blocked: requesting user session and external OAuth client required; republish needed.
 - [x] Run basic security review, harden redirect handling, and verify anonymous MCP requests are refused.
 - [ ] Complete remaining security review — blocked: deep scan is running; findings need its report before further changes.
+
+# Server request (Oct 27 21:27)
+- [x] Read full server.log, check VPS reachability, challenge + MT5 status, deliver Windows repair kit.
+- [ ] Run kit on the VPS — blocked: no remote-desktop tool from here; user runs it.
