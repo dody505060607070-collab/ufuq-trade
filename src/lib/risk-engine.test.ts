@@ -37,3 +37,17 @@ describe("reanchor", () => {
     expect(p.entry).toBe(4040); expect(p.stop_loss).toBe(4047); expect(p.take_profit).toBe(4027.5);
   });
 });
+
+describe("broker reference & dollar risk", () => {
+  const p = { direction: "buy", confidence: 70, entry: 4000, stop_loss: 3990, take_profit: 4020 };
+  const c = { price: 4000, spreadPrice: 0.3, atr: 8, balance: 1000, lot: 0.02, dollarsPerPricePerLot: 100, dayPnl: 0, maxDailyLossPct: 5, maxRiskPct: 5 };
+  it("blocks entries when the broker quote is older than 120s", () => {
+    expect(riskCheck(p, { ...c, quoteAgeSec: 121 }).allow).toBe(false);
+    expect(riskCheck(p, { ...c, quoteAgeSec: 30 }).allow).toBe(true);
+  });
+  it("counts the spread in the dollar loss at the stop", () => {
+    // (10 + 0.3) * 0.02 * 100 = 20.6 > 2% of 1000 = 20
+    expect(riskCheck(p, { ...c, maxRiskPct: 2 }).allow).toBe(false);
+    expect(riskCheck(p, { ...c, spreadPrice: 0, maxRiskPct: 2 }).allow).toBe(true);
+  });
+});
