@@ -30,7 +30,7 @@ export function skipReason(sig: AutoSignal & { summary?: string | null }, rules:
   if (st.avoidNews && st.newsNearby) return "High-impact news within 30 minutes";
   if (st.openOnSymbol >= MAX_PER_SYMBOL) return `Already ${MAX_PER_SYMBOL} trades open on this symbol`;
   if (st.openOnSymbol > 0 && !strong) return `A trade is already open on this symbol (a second needs ${STACK_CONFIDENCE}%+)`;
-  if (st.recentOnSymbol && !strong) return `Already traded this symbol in the last hour (repeat needs ${STACK_CONFIDENCE}%+)`;
+  if (st.recentOnSymbol && !strong) return `Same setup already traded in the last ${REPEAT_WINDOW_MINUTES} min (repeat needs ${STACK_CONFIDENCE}%+)`;
   if (st.openTotal >= rules.max_open) return `Max ${rules.max_open} open trades reached`;
   if (rules.max_daily > 0 && st.todayCount >= rules.max_daily) return `Daily limit of ${rules.max_daily} trades reached`;
   return null;
@@ -46,3 +46,12 @@ export function tradeLot(baseLot: number, confidence: number): number {
 
 /** Credit saver: only one AI analysis per trade decision (no second AI opinion / debate). Code risk checks still veto. */
 export const SINGLE_AI_CALL = true;
+
+/** A repeat on the same symbol is blocked only if it is the SAME setup: same side, within this window, stop within half a stop-distance. */
+export const REPEAT_WINDOW_MINUTES = 30;
+export type RecentOrder = { side: string; sl: number | null; ageMin: number };
+export function isSameSetup(recent: RecentOrder[], sig: { direction: string; entry: number | null; stop_loss: number | null }): boolean {
+  if (sig.entry == null || sig.stop_loss == null) return recent.some((o) => o.ageMin < REPEAT_WINDOW_MINUTES);
+  const half = Math.abs(sig.entry - sig.stop_loss) / 2;
+  return recent.some((o) => o.ageMin < REPEAT_WINDOW_MINUTES && o.side === sig.direction && (o.sl == null || Math.abs(o.sl - sig.stop_loss!) <= half));
+}
