@@ -1,4 +1,4 @@
-import { skipReason, tradeLot, SINGLE_AI_CALL } from "@/lib/autopilot";
+import { skipReason, tradeLot, SINGLE_AI_CALL, LOSS_LOCK_MINUTES } from "@/lib/autopilot";
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -70,7 +70,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       db.from("trades").select("account_id,symbol").in("account_id", ids).eq("status", "open"),
       db.from("trade_commands").select("account_id,payload,created_at").in("account_id", ids).eq("command", "open_trade").gte("created_at", dayStart.toISOString()),
     ]);
-    const { data: closedToday } = await db.from("trades").select("profit,closed_at").in("account_id", ids).eq("status", "closed").gte("closed_at", dayStart.toISOString()).order("closed_at", { ascending: false });
+    const { data: closedToday } = await db.from("trades").select("account_id,symbol,side,profit,closed_at").in("account_id", ids).eq("status", "closed").gte("closed_at", dayStart.toISOString()).order("closed_at", { ascending: false });
     const ext = u as unknown as { cooldown_minutes?: number; daily_target_usd?: number };
     const lastClose = closedToday?.[0]?.closed_at;
     const pause = pauseReason(lastClose ? (Date.now() - new Date(lastClose).getTime()) / 60_000 : null, adaptiveCooldown(Number(ext.cooldown_minutes ?? 0), (closedToday ?? []).map((t) => Number(t.profit ?? 0))), (closedToday ?? []).reduce((a, t) => a + Number(t.profit ?? 0), 0), Number(ext.daily_target_usd ?? 0));
@@ -90,6 +90,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           todayCount: auto.filter((c) => c.account_id === acc.id).length,
           recentOnSymbol: auto.some((c) => c.account_id === acc.id && c.created_at >= hourAgo && (c.payload as { symbol?: string }).symbol === sym),
           newsNearby: !!news.get(sym), avoidNews: u.avoid_news,
+          lostSameSide: (() => { const t = (closedToday ?? []).find((x) => x.account_id === acc.id && String(x.symbol).toUpperCase().startsWith(sym.toUpperCase())); return !!t && Number(t.profit ?? 0) < 0 && t.side === r.direction && Date.now() - new Date(t.closed_at as string).getTime() < LOSS_LOCK_MINUTES * 60_000; })(),
         };
         const why = skipReason(r, u, st);
         const q = quotes.find((x) => x.account_id === acc.id && x.symbol === sym);

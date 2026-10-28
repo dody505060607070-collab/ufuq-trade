@@ -35,3 +35,13 @@ describe("unlimited daily trades", () => {
     expect(skipReason(sig, { min_confidence: 60, max_open: 2, max_daily: 10 }, st)).toBe("Daily limit of 10 trades reached");
   });
 });
+
+import { skipReason as sr2 } from "@/lib/autopilot";
+import { it as it2, expect as ex2 } from "vitest";
+it2("blocks same direction after a loss below 75%, allows at 75%", () => {
+  const rules = { min_confidence: 65, max_open: 3, max_daily: 0 };
+  const st = { openTotal: 0, openOnSymbol: 0, todayCount: 0, recentOnSymbol: false, newsNearby: false, avoidNews: false, lostSameSide: true };
+  const sig = { direction: "buy", confidence: 68, entry: 10, stop_loss: 9, take_profit: 12 };
+  ex2(sr2(sig, rules, st)).toMatch(/locked/);
+  ex2(sr2({ ...sig, confidence: 75 }, rules, st)).toBeNull();
+});
