@@ -33,11 +33,14 @@ export const SPLIT_MIN_CONFIDENCE = 70;
 export function splitAllowed(direction: "buy" | "sell", t: MtfTrends, reversal: "buy" | "sell" | null, adx: number | null, pullback: "buy" | "sell" | null): boolean {
   const withDir = direction === "buy" ? "up" : "down";
   const against = direction === "buy" ? "down" : "up";
-  if (t.M15 !== withDir) return false;
   const split = (t.H1 === withDir && t.H4 === against) || (t.H4 === withDir && t.H1 === against);
   const ranging = t.H1 === "range" && t.H4 === "range";
   if (!split && !ranging) return false;
-  if (ranging) return pullback === direction || reversal === direction;
+  const confirmed = pullback === direction || reversal === direction;
+  if (t.M15 === against) return false;
+  // M15 still ranging: allowed only with a confirmed M15 entry (pullback-breakout or climax reversal).
+  if (t.M15 !== withDir) return confirmed;
+  if (ranging) return confirmed;
   // Split H1/H4 with M15 already trending with the trade is itself the confirmation; the 70% floor, stop and RR checks still apply.
   void adx;
   return true;
@@ -67,7 +70,9 @@ export function mtfText(t: MtfTrends, adx: number | null = null): string {
     return `${base}\nMOMENTUM MODE ACTIVE: M15 and H1 both ${t.H1}, ADX ${adx!.toFixed(1)} >= ${MOMENTUM_ADX}. This is NOT a timeframe conflict — the H4 is lagging. A ${m.toUpperCase()} is allowed and preferred; do not return neutral because of the H4. Overbought/oversold RSI and premium/discount extremes are normal in a strong trend and are not on their own a reason for neutral. Return neutral only for a clear reversal candle against the move, a high-impact event within 30 minutes, or missing data. Confidence 65-75. Stop beyond the last M15 swing, target at least the minimum RR.`;
   const split = t.H1 && t.H4 && t.H1 !== t.H4 && t.H1 !== "range" && t.H4 !== "range";
   if (split || (t.H1 === "range" && t.H4 === "range"))
-    return `${base}\nSPLIT MODE: H1 and H4 do not agree. Do NOT return neutral just for that. Read the M15 candles like a forecaster: project the most likely path of the next 3-6 candles from momentum, structure, liquidity pools and the last candle pattern. If M15 trends with ${split ? "one of H1/H4" : "a breakout"} and there is a confirmed entry (pullback-breakout, climax reversal, sweep + displacement, or ADX >= ${SPLIT_ADX}), trade toward the projected move with confidence ${SPLIT_MIN_CONFIDENCE}+ and a tight stop beyond the last M15 swing. Return neutral only when you cannot see a clear next move.`;
+    return split
+      ? `${base}\nSPLIT MODE: H1 and H4 do not agree. Do NOT return neutral for that, and do NOT wait for an extra breakout, sweep or ADX level: M15 trending with one of H1/H4 IS the confirmation. Read the M15 candles like a forecaster, project the next 3-6 candles, and trade in the M15 direction toward the projected move with confidence ${SPLIT_MIN_CONFIDENCE}+ and a tight stop beyond the last M15 swing. If M15 is ranging, trade only a pullback-breakout or reversal candle. Return neutral only when M15 is against both H1 and H4, a high-impact event is within 30 minutes, or data is missing.`
+      : `${base}\nRANGE MODE: H1 and H4 are both ranging. Do NOT return neutral just for that. Trade a confirmed M15 pullback-breakout or reversal candle at a range edge with confidence ${SPLIT_MIN_CONFIDENCE}+ and a tight stop. Return neutral only when price sits in the middle of the range with no confirmed setup.`;
   return `${base} (trade with H1/H4 when they agree; an M15 move against them is a pullback entry)`;
 }
 
