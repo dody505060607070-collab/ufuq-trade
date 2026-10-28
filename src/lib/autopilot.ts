@@ -1,6 +1,6 @@
 /** Pure Auto-Pilot rules: decides whether an analysis may open a trade. Returns a skip reason or null. */
 export type AutoRules = { min_confidence: number; max_open: number; max_daily: number };
-export type AutoState = { openTotal: number; openOnSymbol: number; todayCount: number; recentOnSymbol: boolean; newsNearby: boolean; avoidNews: boolean };
+export type AutoState = { openTotal: number; openOnSymbol: number; todayCount: number; recentOnSymbol: boolean; newsNearby: boolean; avoidNews: boolean; lostSameSide?: boolean };
 export type AutoSignal = { direction: string; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null };
 
 /** Hard floor: no Auto-Pilot trade below this confidence, whatever the saved setting. */
@@ -8,6 +8,8 @@ export const MIN_CONFIDENCE_FLOOR = 65;
 /** At or above this confidence a second trade may stack on the same symbol (still capped by max_open). */
 export const STACK_CONFIDENCE = 75;
 export const MAX_PER_SYMBOL = 2;
+/** After a losing trade, the same direction on that symbol is locked this long unless confidence >= STACK_CONFIDENCE. */
+export const LOSS_LOCK_MINUTES = 120;
 
 export function skipReason(sig: AutoSignal, rules: AutoRules, st: AutoState): string | null {
   if (sig.direction !== "buy" && sig.direction !== "sell") return "No clear direction";
@@ -15,6 +17,7 @@ export function skipReason(sig: AutoSignal, rules: AutoRules, st: AutoState): st
   const min = Math.max(MIN_CONFIDENCE_FLOOR, rules.min_confidence);
   if (sig.confidence < min) return `Confidence ${sig.confidence}% below ${min}%`;
   const strong = sig.confidence >= STACK_CONFIDENCE;
+  if (st.lostSameSide && !strong) return `Last ${sig.direction} on this symbol lost; same direction locked ${LOSS_LOCK_MINUTES} min (needs ${STACK_CONFIDENCE}%+)`;
   if (st.avoidNews && st.newsNearby) return "High-impact news within 30 minutes";
   if (st.openOnSymbol >= MAX_PER_SYMBOL) return `Already ${MAX_PER_SYMBOL} trades open on this symbol`;
   if (st.openOnSymbol > 0 && !strong) return `A trade is already open on this symbol (a second needs ${STACK_CONFIDENCE}%+)`;
