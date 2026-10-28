@@ -11,8 +11,17 @@ export const MAX_PER_SYMBOL = 2;
 /** After a losing trade, the same direction on that symbol is locked this long unless confidence >= STACK_CONFIDENCE. */
 export const LOSS_LOCK_MINUTES = 120;
 
-export function skipReason(sig: AutoSignal, rules: AutoRules, st: AutoState): string | null {
-  if (sig.direction !== "buy" && sig.direction !== "sell") return "No clear direction";
+/** Human reason for a neutral analysis: the code block reason when one applied, else the AI's first sentence. */
+export function neutralReason(summary: string | null | undefined): string {
+  const s = (summary ?? "").trim();
+  const blocked = s.match(/^No trade \(([^)]*)\)\. AI view: (\w+ \d+%)/);
+  if (blocked) return `AI saw ${blocked[2]} but blocked: ${blocked[1]}`;
+  const first = s.split(/(?<=\.)\s/)[0]?.slice(0, 160);
+  return first ? `Waiting: ${first}` : "Waiting for a setup";
+}
+
+export function skipReason(sig: AutoSignal & { summary?: string | null }, rules: AutoRules, st: AutoState): string | null {
+  if (sig.direction !== "buy" && sig.direction !== "sell") return neutralReason(sig.summary);
   if (sig.stop_loss == null || sig.take_profit == null || sig.entry == null) return "Missing SL/TP levels";
   const min = Math.max(MIN_CONFIDENCE_FLOOR, rules.min_confidence);
   if (sig.confidence < min) return `Confidence ${sig.confidence}% below ${min}%`;
