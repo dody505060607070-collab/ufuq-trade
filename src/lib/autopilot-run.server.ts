@@ -1,4 +1,4 @@
-import { skipReason, tradeLot, SINGLE_AI_CALL, LOSS_LOCK_MINUTES } from "@/lib/autopilot";
+import { skipReason, tradeLot, SINGLE_AI_CALL, LOSS_LOCK_MINUTES, isSameSetup } from "@/lib/autopilot";
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -88,7 +88,8 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           openTotal: (open ?? []).filter((t) => t.account_id === acc.id).length,
           openOnSymbol: (open ?? []).filter((t) => t.account_id === acc.id && t.symbol.toUpperCase().startsWith(sym.toUpperCase())).length,
           todayCount: auto.filter((c) => c.account_id === acc.id).length,
-          recentOnSymbol: auto.some((c) => c.account_id === acc.id && c.created_at >= hourAgo && (c.payload as { symbol?: string }).symbol === sym),
+          // Only the same setup (same side, nearby stop, < REPEAT_WINDOW_MINUTES) counts as a repeat; a new setup on the symbol may trade.
+          recentOnSymbol: isSameSetup(auto.filter((c) => c.account_id === acc.id && c.created_at >= hourAgo && (c.payload as { symbol?: string }).symbol === sym).map((c) => { const p = c.payload as { side?: string; sl?: number | null }; return { side: String(p.side ?? ""), sl: p.sl ?? null, ageMin: (Date.now() - new Date(c.created_at).getTime()) / 60_000 }; }), r),
           newsNearby: !!news.get(sym), avoidNews: u.avoid_news,
           lostSameSide: (() => { const t = (closedToday ?? []).find((x) => x.account_id === acc.id && String(x.symbol).toUpperCase().startsWith(sym.toUpperCase())); return !!t && Number(t.profit ?? 0) < 0 && t.side === r.direction && Date.now() - new Date(t.closed_at as string).getTime() < LOSS_LOCK_MINUTES * 60_000; })(),
         };

@@ -52,3 +52,18 @@ it3("neutral skip shows the real blocking reason, not 'No clear direction'", () 
   expect3(neutralReason("No trade (sell against H1 trend). AI view: SELL 71%. Bears lead.")).toBe("AI saw SELL 71% but blocked: sell against H1 trend");
   expect3(neutralReason("Price is mid-range with no level nearby. More text.")).toBe("Waiting: Price is mid-range with no level nearby.");
 });
+
+import { isSameSetup } from "./autopilot";
+describe("repeat on same symbol", () => {
+  const sig = { direction: "sell", entry: 4000, stop_loss: 4010 };
+  it("blocks the same setup within 30 min", () => {
+    expect(isSameSetup([{ side: "sell", sl: 4012, ageMin: 10 }], sig)).toBe(true);
+  });
+  it("allows the same setup after 30 min", () => {
+    expect(isSameSetup([{ side: "sell", sl: 4012, ageMin: 31 }], sig)).toBe(false);
+  });
+  it("allows a new setup (opposite side or far stop)", () => {
+    expect(isSameSetup([{ side: "buy", sl: 3990, ageMin: 5 }], sig)).toBe(false);
+    expect(isSameSetup([{ side: "sell", sl: 4030, ageMin: 5 }], sig)).toBe(false);
+  });
+});
