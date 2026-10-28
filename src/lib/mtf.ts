@@ -33,7 +33,9 @@ export function splitAllowed(direction: "buy" | "sell", t: MtfTrends, reversal: 
   const ranging = t.H1 === "range" && t.H4 === "range";
   if (!split && !ranging) return false;
   if (ranging) return pullback === direction || reversal === direction;
-  return pullback === direction || reversal === direction || (adx != null && adx >= SPLIT_ADX);
+  // Split H1/H4 with M15 already trending with the trade is itself the confirmation; the 70% floor, stop and RR checks still apply.
+  void adx;
+  return true;
 }
 
 /** True when the trade only passes because of split mode (so the higher confidence floor applies). */
