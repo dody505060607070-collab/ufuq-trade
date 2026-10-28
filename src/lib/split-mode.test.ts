@@ -8,8 +8,9 @@ describe("split mode — H1 and H4 disagree", () => {
   it("allows a buy when M15+H1 up, H4 down and ADX is 25", () => {
     expect(mtfConflict("buy", { M15: "up", H1: "up", H4: "down" }, null, 25, null)).toBeNull();
   });
-  it("still blocks with no confirmation (ADX 18, no pullback, no reversal)", () => {
-    expect(mtfConflict("buy", { M15: "up", H1: "up", H4: "down" }, null, 18, null)).not.toBeNull();
+  it("allows split trade when M15 trends with one side even at ADX 18", () => {
+    expect(mtfConflict("buy", { M15: "up", H1: "up", H4: "down" }, null, 18, null)).toBeNull();
+    expect(isSplitTrade("buy", { M15: "up", H1: "up", H4: "down" }, null, 18, null)).toBe(true);
   });
   it("still blocks when M15 is against the trade", () => {
     expect(mtfConflict("buy", { M15: "down", H1: "up", H4: "down" }, null, 30, "buy")).not.toBeNull();

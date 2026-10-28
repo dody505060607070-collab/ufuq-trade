@@ -7,6 +7,11 @@ export function mtfConflict(direction: "buy" | "sell" | "neutral", t: MtfTrends,
   if (direction === "neutral") return null;
   // Split mode: H1/H4 disagree (or both range) but the M15 setup itself is confirmed — allowed (confidence floor checked by the caller).
   if (splitAllowed(direction, t, reversal, adx, pullback)) return null;
+  return strictConflict(direction, t, reversal, adx);
+}
+
+/** Conflict check without split mode. */
+function strictConflict(direction: "buy" | "sell", t: MtfTrends, reversal: "buy" | "sell" | null, adx: number | null): string | null {
   const against = direction === "buy" ? "down" : "up";
   const withDir = direction === "buy" ? "up" : "down";
   const bad = (["H1", "H4"] as const).filter((k) => t[k] === against);
@@ -33,13 +38,15 @@ export function splitAllowed(direction: "buy" | "sell", t: MtfTrends, reversal: 
   const ranging = t.H1 === "range" && t.H4 === "range";
   if (!split && !ranging) return false;
   if (ranging) return pullback === direction || reversal === direction;
-  return pullback === direction || reversal === direction || (adx != null && adx >= SPLIT_ADX);
+  // Split H1/H4 with M15 already trending with the trade is itself the confirmation; the 70% floor, stop and RR checks still apply.
+  void adx;
+  return true;
 }
 
 /** True when the trade only passes because of split mode (so the higher confidence floor applies). */
 export function isSplitTrade(direction: "buy" | "sell" | "neutral", t: MtfTrends, reversal: "buy" | "sell" | null, adx: number | null, pullback: "buy" | "sell" | null): boolean {
   if (direction === "neutral") return false;
-  return mtfConflict(direction, t, reversal, adx) !== null && splitAllowed(direction, t, reversal, adx, pullback);
+  return strictConflict(direction, t, reversal, adx) !== null && splitAllowed(direction, t, reversal, adx, pullback);
 }
 
 /** ADX level at which an M15+H1 move may trade against a lagging H4. */
