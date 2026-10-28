@@ -28,3 +28,12 @@ describe("split mode — H1 and H4 disagree", () => {
     expect(isSplitTrade("sell", { M15: "up", H1: "down", H4: "down" }, null, 18, null)).toBe(false);
   });
 });
+
+describe("split mode with M15 still ranging", () => {
+  it("allows a confirmed sell when H4 down, H1 up and M15 ranging with a pullback-breakout", () => {
+    expect(mtfConflict("sell", { M15: "range", H1: "up", H4: "down" }, null, 20, "sell")).toBeNull();
+  });
+  it("blocks the same sell without confirmation", () => {
+    expect(mtfConflict("sell", { M15: "range", H1: "up", H4: "down" }, null, 20, null)).not.toBeNull();
+  });
+});

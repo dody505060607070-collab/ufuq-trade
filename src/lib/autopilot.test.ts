@@ -45,3 +45,10 @@ it2("blocks same direction after a loss below 75%, allows at 75%", () => {
   ex2(sr2(sig, rules, st)).toMatch(/locked/);
   ex2(sr2({ ...sig, confidence: 75 }, rules, st)).toBeNull();
 });
+
+import { neutralReason } from "./autopilot";
+import { it as it3, expect as expect3 } from "vitest";
+it3("neutral skip shows the real blocking reason, not 'No clear direction'", () => {
+  expect3(neutralReason("No trade (sell against H1 trend). AI view: SELL 71%. Bears lead.")).toBe("AI saw SELL 71% but blocked: sell against H1 trend");
+  expect3(neutralReason("Price is mid-range with no level nearby. More text.")).toBe("Waiting: Price is mid-range with no level nearby.");
+});
