@@ -105,7 +105,8 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           price: live0 ?? r2.entry, spreadPrice: q?.bid != null && q?.ask != null ? q.ask - q.bid : null, atr: atrs.get(sym) ?? null,
           balance: a.balance ?? null, lot, dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
           dayPnl: (closedToday ?? []).reduce((s2, t) => s2 + Number(t.profit ?? 0), 0),
-          maxDailyLossPct: 5, maxRiskPct: 5,
+          maxDailyLossPct: Number(u.max_daily_loss_pct ?? 5), maxRiskPct: Number(u.max_risk_pct ?? 5),
+          quoteAgeSec: q?.updated_at ? (Date.now() - new Date(q.updated_at).getTime()) / 1000 : null,
         });
         if (!verdict.allow) await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: verdict.allow ? "approved" : "rejected", risk_reason: verdict.reason });
         if (!verdict.allow) { reason = verdict.reason; continue; }

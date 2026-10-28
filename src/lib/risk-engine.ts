@@ -10,13 +10,18 @@ export type RiskContext = {
   dayPnl: number;                // realised P/L today
   maxDailyLossPct: number;       // e.g. 5 → stop trading after -5% of balance
   maxRiskPct: number;            // e.g. 5 → one trade may risk at most 5% of balance
+  quoteAgeSec?: number | null;   // age of the broker quote; broker price is the execution reference
 };
+
+/** Broker quotes older than this block new entries (open positions keep their own protection). */
+export const MAX_QUOTE_AGE_SEC = 120;
 
 export type RiskVerdict = { allow: boolean; reason: string };
 
 export function riskCheck(p: Proposal, c: RiskContext): RiskVerdict {
   if (p.direction !== "buy" && p.direction !== "sell") return { allow: false, reason: "No trade: AI is neutral" };
   const { entry, stop_loss: sl, take_profit: tp } = p;
+  if (c.quoteAgeSec != null && c.quoteAgeSec > MAX_QUOTE_AGE_SEC) return { allow: false, reason: `Broker price is stale (${Math.round(c.quoteAgeSec)}s old)` };
   if (entry == null || sl == null || tp == null) return { allow: false, reason: "Missing entry, stop or target" };
   const buy = p.direction === "buy";
   if (buy ? !(sl < entry && entry < tp) : !(tp < entry && entry < sl)) return { allow: false, reason: "Stop/target on the wrong side of entry" };
@@ -31,7 +36,8 @@ export function riskCheck(p: Proposal, c: RiskContext): RiskVerdict {
   if (c.spreadPrice != null && c.spreadPrice > stopDist * 0.25) return { allow: false, reason: "Spread is too high for this stop" };
   if (c.balance != null && c.balance > 0) {
     if (c.dayPnl <= -(c.balance * c.maxDailyLossPct) / 100) return { allow: false, reason: `Daily loss limit of ${c.maxDailyLossPct}% reached` };
-    const risk = stopDist * c.lot * c.dollarsPerPricePerLot;
+    // Loss at the stop includes the spread paid on entry.
+    const risk = (stopDist + (c.spreadPrice ?? 0)) * c.lot * c.dollarsPerPricePerLot;
     if (risk > (c.balance * c.maxRiskPct) / 100) return { allow: false, reason: `Trade risks $${risk.toFixed(2)}, more than ${c.maxRiskPct}% of balance` };
   }
   return { allow: true, reason: `Approved · R/R ${rr.toFixed(2)}` };
