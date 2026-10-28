@@ -1,4 +1,4 @@
-import { skipReason, tradeLot, SINGLE_AI_CALL, LOSS_LOCK_MINUTES } from "@/lib/autopilot";
+import { skipReason, tradeLot, SINGLE_AI_CALL, LOSS_LOCK_MINUTES, isSameSetup } from "@/lib/autopilot";
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
