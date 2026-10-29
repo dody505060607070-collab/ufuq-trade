@@ -72,7 +72,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   };
   const [m15, h1, h4] = await Promise.all([tfTrend("M15"), tfTrend("H1"), tfTrend("H4")]);
   const mtf: MtfTrends = { M15: m15, H1: h1, H4: h4 };
-  const brain = await brainContext(db, symbol).catch(() => ({ whale: "unavailable", rules: "none yet" }));
+  const brain = await brainContext(db, symbol).catch(() => ({ whale: "unavailable", rules: "none yet", lessons: "none yet" }));
   const hindsight = await hindsightContext(db, symbol).catch(() => "unavailable");
   const last = candles[candles.length - 1];
   const price = manualPrice ?? last?.c ?? null;
@@ -86,7 +86,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     .join("\n");
   const heads = news.map((n) => `- ${n.title} (${n.source})`).join("\n") + `\n${sentimentText(newsSentiment(news.map((n) => n.title)))}`;
   const snap = snapshot(candles);
-  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nMulti-timeframe trends:\n${mtfText(mtf, snap?.adx14 ?? null)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades:\n${brain.rules}\n\nHindsight — what price did after our recent analyses, including ones we skipped (correlate and learn):\n${hindsight}\n\nProvide your directional analysis as json.`;
+  const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nMulti-timeframe trends:\n${mtfText(mtf, snap?.adx14 ?? null)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades (confirmed 3+ times):\n${brain.rules}\n\nLessons from our last real trades (newest first — do not repeat a setup that just lost; losses cost more than wins earn):\n${brain.lessons}\n\nHindsight — what price did after our recent analyses, including ones we skipped (correlate and learn):\n${hindsight}\n\nProvide your directional analysis as json.`;
 
   // Gemini first, Radox AI as backup — no Lovable AI fallback.
   const geminiKey = process.env["GEMINI_API_KEY"] ?? "";
@@ -222,6 +222,8 @@ export async function verifyTrade(symbol: string, timeframe: string, p: Levels, 
   if (!key) return { agree: false, confidence: 0, reason: "Second check unavailable (no AI key)" };
   const prompt = `Proposed trade on ${symbol} ${timeframe}: ${p.direction.toUpperCase()} at ${p.entry}, stop ${p.stop_loss}, target ${p.take_profit}, first trader's confidence ${p.confidence}%. Live price: ${price ?? "unknown"}. Date (UTC): ${new Date().toISOString()}.\nFirst trader's reasoning:\n${p.summary}\n\nShould we open it?`;
   const text = await callGemini(key, prompt, VERIFY_SYS).catch(() => null);
+  // Out of daily AI budget: the second opinion is skipped (code risk checks still veto) instead of blocking every trade.
+  if (!text && lastGeminiError?.startsWith("Daily AI budget")) return { agree: true, confidence: p.confidence, reason: "skipped: daily AI budget reached" };
   try {
     const j = JSON.parse(text?.match(/\{[\s\S]*\}/)?.[0] ?? "null") as { agree?: unknown; confidence?: unknown; reason?: unknown } | null;
     if (!j) throw new Error();

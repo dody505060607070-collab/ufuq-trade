@@ -107,15 +107,33 @@ export async function fetchCalendar(): Promise<CalendarEvent[]> {
   return (await fetchCalendarStatus()).events;
 }
 
-// Last good calendar per worker; ForexFactory rate-limits frequent callers, so reuse it for up to 12h.
+// Last good calendar; ForexFactory rate-limits frequent callers, so reuse it for up to 12h.
+// Kept in memory AND in app_settings (key "calendar_cache"): server workers restart often, and a lost
+// in-memory copy meant "calendar failed to load" around big events (e.g. FOMC) and no news block.
 let calCache: { at: number; events: CalendarEvent[] } | null = null;
+const CAL_KEY = "calendar_cache";
+
+async function calDb() {
+  return (await import("@/integrations/supabase/client.server")).supabaseAdmin;
+}
+async function readSavedCalendar(): Promise<{ at: number; events: CalendarEvent[] } | null> {
+  try {
+    const { data } = await (await calDb()).from("app_settings").select("value").eq("key", CAL_KEY).maybeSingle();
+    const v = data?.value as { at?: number; events?: CalendarEvent[] } | null;
+    return v?.at && Array.isArray(v.events) ? { at: v.at, events: v.events } : null;
+  } catch { return null; }
+}
+async function saveCalendar(c: { at: number; events: CalendarEvent[] }) {
+  try { await (await calDb()).from("app_settings").upsert({ key: CAL_KEY, value: c as never, updated_at: new Date().toISOString() }); } catch { /* best effort */ }
+}
 
 /** Distinguishes "no events" (ok: true, events: []) from "calendar failed to load" (ok: false). */
 export async function fetchCalendarStatus(): Promise<{ ok: boolean; events: CalendarEvent[] }> {
+  if (!calCache) calCache = await readSavedCalendar();
   if (calCache && Date.now() - calCache.at < 30 * 60_000) return { ok: true, events: calCache.events };
   for (let attempt = 0; attempt < 2; attempt++) {
     const r = await loadCalendar();
-    if (r.ok) { calCache = { at: Date.now(), events: r.events }; return r; }
+    if (r.ok) { calCache = { at: Date.now(), events: r.events }; await saveCalendar(calCache); return r; }
   }
   if (calCache && Date.now() - calCache.at < 12 * 3600_000) return { ok: true, events: calCache.events };
   return { ok: false, events: [] };

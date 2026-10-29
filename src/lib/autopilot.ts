@@ -1,6 +1,6 @@
 /** Pure Auto-Pilot rules: decides whether an analysis may open a trade. Returns a skip reason or null. */
 export type AutoRules = { min_confidence: number; max_open: number; max_daily: number };
-export type AutoState = { openTotal: number; openOnSymbol: number; todayCount: number; recentOnSymbol: boolean; newsNearby: boolean; avoidNews: boolean; lostSameSide?: boolean };
+export type AutoState = { openTotal: number; openOnSymbol: number; todayCount: number; recentOnSymbol: boolean; newsNearby: boolean; avoidNews: boolean; lostSameSide?: boolean; quietHours?: boolean };
 export type AutoSignal = { direction: string; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null };
 
 /** Hard floor: no Auto-Pilot trade below this confidence, whatever the saved setting. */
@@ -25,6 +25,7 @@ export function skipReason(sig: AutoSignal & { summary?: string | null }, rules:
   if (sig.stop_loss == null || sig.take_profit == null || sig.entry == null) return "Missing SL/TP levels";
   const min = Math.max(MIN_CONFIDENCE_FLOOR, rules.min_confidence);
   if (sig.confidence < min) return `Confidence ${sig.confidence}% below ${min}%`;
+  if (st.quietHours) return QUIET_REASON;
   const strong = sig.confidence >= STACK_CONFIDENCE;
   if (st.lostSameSide && !strong) return `Last ${sig.direction} on this symbol lost; same direction locked ${LOSS_LOCK_MINUTES} min (needs ${STACK_CONFIDENCE}%+)`;
   if (st.avoidNews && st.newsNearby) return "High-impact news within 30 minutes";
@@ -44,8 +45,20 @@ export function tradeLot(baseLot: number, confidence: number): number {
   return Math.round(lot * 100) / 100;
 }
 
-/** Credit saver: only one AI analysis per trade decision (no second AI opinion / debate). Code risk checks still veto. */
+/** Credit saver for the demo challenge: one AI analysis per decision (no debate). Code risk checks still veto. */
 export const SINGLE_AI_CALL = true;
+/** Real-account trades get an independent second Gemini check before the order is queued (only approved trades, so few calls). */
+export const REAL_SECOND_CHECK = true;
+
+/** Thin-liquidity window (UTC hours, start inclusive → end exclusive): daily broker break + early Asian session.
+ *  On the live account every Auto-Pilot trade opened here lost (5/5, -$91) while the rest won 9/10. */
+export const QUIET_START_UTC = 21;
+export const QUIET_END_UTC = 2;
+export function inQuietHours(d: Date): boolean {
+  const h = d.getUTCHours();
+  return QUIET_START_UTC > QUIET_END_UTC ? h >= QUIET_START_UTC || h < QUIET_END_UTC : h >= QUIET_START_UTC && h < QUIET_END_UTC;
+}
+export const QUIET_REASON = `Thin market hours (${QUIET_START_UTC}:00–0${QUIET_END_UTC}:00 UTC): no new trades — every past trade opened here lost`;
 
 /** A repeat on the same symbol is blocked only if it is the SAME setup: same side, within this window, stop within half a stop-distance. */
 export const REPEAT_WINDOW_MINUTES = 30;

@@ -1,4 +1,4 @@
-import { skipReason, tradeLot, SINGLE_AI_CALL, LOSS_LOCK_MINUTES, isSameSetup } from "@/lib/autopilot";
+import { skipReason, tradeLot, REAL_SECOND_CHECK, LOSS_LOCK_MINUTES, isSameSetup, inQuietHours, QUIET_REASON } from "@/lib/autopilot";
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -29,6 +29,11 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   const liveUsers = new Set((liveAccs ?? []).map((a) => a.user_id));
   const users = (all ?? []).filter((u) => liveUsers.has(u.user_id));
   if (!users.length) return { ok: true, users: 0, queued: 0 };
+  // Thin-liquidity hours: no new trades, so skip the paid AI analysis too.
+  if (inQuietHours(new Date())) {
+    await db.from("autopilot_events").insert(users.map((u) => ({ user_id: u.user_id, symbol: "-", action: "skipped", detail: QUIET_REASON })));
+    return { ok: true, users: users.length, queued: 0, quiet: true };
+  }
   // One analysis per symbol/timeframe, shared by all users.
   const pairs = [...new Set(users.flatMap((u) => u.symbols.map((s) => `${s}|${u.timeframe}`)))].slice(0, 12);
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
@@ -91,6 +96,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           // Only the same setup (same side, nearby stop, < REPEAT_WINDOW_MINUTES) counts as a repeat; a new setup on the symbol may trade.
           recentOnSymbol: isSameSetup(auto.filter((c) => c.account_id === acc.id && c.created_at >= hourAgo && (c.payload as { symbol?: string }).symbol === sym).map((c) => { const p = c.payload as { side?: string; sl?: number | null }; return { side: String(p.side ?? ""), sl: p.sl ?? null, ageMin: (Date.now() - new Date(c.created_at).getTime()) / 60_000 }; }), r),
           newsNearby: !!news.get(sym), avoidNews: u.avoid_news,
+          quietHours: inQuietHours(new Date()),
           lostSameSide: (() => { const t = (closedToday ?? []).find((x) => x.account_id === acc.id && String(x.symbol).toUpperCase().startsWith(sym.toUpperCase())); return !!t && Number(t.profit ?? 0) < 0 && t.side === r.direction && Date.now() - new Date(t.closed_at as string).getTime() < LOSS_LOCK_MINUTES * 60_000; })(),
         };
         const why = skipReason(r, u, st);
@@ -112,14 +118,14 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         if (!verdict.allow) { reason = verdict.reason; continue; }
         // Second opinion: an independent AI check must agree, and the average confidence must stay above the floor.
         let v = checks.get(sym);
-        if (!v) { v = SINGLE_AI_CALL ? { agree: true, confidence: r.confidence, reason: "single analysis (credit saver)" } : await verifyTrade(sym, u.timeframe, r, live0 ?? null); checks.set(sym, v); }
+        if (!v) { v = REAL_SECOND_CHECK ? await verifyTrade(sym, u.timeframe, r, live0 ?? null) : { agree: true, confidence: r.confidence, reason: "single analysis" }; checks.set(sym, v); }
         const combined = Math.round((r.confidence + v.confidence) / 2);
         if (!v.agree || combined < Math.max(MIN_CONFIDENCE_FLOOR, Number(u.min_confidence))) {
           reason = `Second AI check said no (${v.confidence}%, combined ${combined}%): ${v.reason}`;
           await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "rejected", risk_reason: reason.slice(0, 300) });
           continue;
         }
-        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
+        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: v.reason.startsWith("skipped") ? `Approved by AI ${r.confidence}% + code risk checks (${v.reason})` : `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
         rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot, sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true } });
       }
       if (rows.length) {
