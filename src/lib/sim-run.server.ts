@@ -170,7 +170,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
     const openSyms = new Set(remaining.map((r) => r.t.symbol));
     const cands = results.filter((r) => r.direction && r.score >= SCAN_MIN_SCORE && !openSyms.has(r.symbol)).sort((a, b) => b.score - a.score).slice(0, AI_CANDIDATES_PER_CYCLE);
     if (!cands.length) await log("waiting", `Scanned ${results.length} assets · no setup with score ≥ ${SCAN_MIN_SCORE} (best: ${results.sort((a, b) => b.score - a.score)[0]?.symbol ?? "—"} ${results[0]?.score ?? 0})`);
-    const { getCached, runAI, verifyTrade, debateTrade } = await import("@/lib/analysis.server");
+    const { getCached, runAI, verifyTrade, debateTrade, newsNearby } = await import("@/lib/analysis.server");
     let headlines: string[] | null = null;
     const { MIN_CONFIDENCE_FLOOR } = await import("@/lib/autopilot");
     const floor = Math.max(MIN_CONFIDENCE_FLOOR, 65);
@@ -185,6 +185,9 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
       const record = (outcome: Database["public"]["Tables"]["sim_decisions"]["Insert"]["outcome"], extra: { reviewer?: unknown; supervisor?: unknown }) =>
         db.from("sim_decisions").insert({ challenge_id: c.id, user_id: c.user_id, symbol: r.symbol, timeframe: r.tradeTf, direction: r.direction!, scanner_score: r.score, scanner: scanner as Json, reviewer: (extra.reviewer ?? null) as Json, supervisor: (extra.supervisor ?? null) as Json, outcome,
           evidence: (extraCols.evidence ?? null) as Json, checklist: (extraCols.checklist ?? null) as Json, debate: (extraCols.debate ?? null) as Json, strategy_version: c.use_evidence ? STRATEGY_VERSION : "mtf-v0", plan_entry: extraCols.plan?.e ?? null, plan_sl: extraCols.plan?.sl ?? null, plan_tp: extraCols.plan?.tp ?? null }).select("id").single();
+      // News gate (before any AI call): high-impact news for the symbol, or oil's own EIA/OPEC reports.
+      const blockEv = await newsNearby(r.symbol).catch(() => null);
+      if (blockEv) { await record("waiting", {}); await log("waiting", `News · ${r.symbol} — waiting for "${blockEv.title}" (${blockEv.impact}) at ${blockEv.date.slice(11, 16)} UTC`); continue; }
       // Agent 1 (AI part): Gemini must propose the same direction with levels.
       let ai = await getCached(db, r.symbol, r.tradeTf).catch(() => null);
       if (!ai) {
