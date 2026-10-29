@@ -47,8 +47,8 @@ export function tradeLot(baseLot: number, confidence: number): number {
 
 /** Credit saver for the demo challenge: one AI analysis per decision (no debate). Code risk checks still veto. */
 export const SINGLE_AI_CALL = true;
-/** Real-account trades get an independent second Gemini check before the order is queued (only approved trades, so few calls). */
-export const REAL_SECOND_CHECK = true;
+/** Off by user request (save Gemini credit for the whole month): real trades use one AI analysis; code risk checks still veto. */
+export const REAL_SECOND_CHECK = false;
 
 /** Thin-liquidity window (UTC hours, start inclusive → end exclusive): daily broker break + early Asian session.
  *  On the live account every Auto-Pilot trade opened here lost (5/5, -$91) while the rest won 9/10. */

@@ -125,7 +125,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "rejected", risk_reason: reason.slice(0, 300) });
           continue;
         }
-        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: v.reason.startsWith("skipped") ? `Approved by AI ${r.confidence}% + code risk checks (${v.reason})` : `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
+        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: v.reason.startsWith("skipped") || v.reason === "single analysis" ? `Approved by AI ${r.confidence}% + code risk checks (${v.reason})` : `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
         rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot, sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true } });
       }
       if (rows.length) {
