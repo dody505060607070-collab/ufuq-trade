@@ -3,7 +3,7 @@ import { GEMINI_MODEL } from "./signal-guard";
 import { ruleStatus } from "./backtest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { cotBias, outcomeOf, ruleKey, rulesText } from "./brain";
+import { cotBias, consolidate, lessonsText, outcomeOf, rulesText, similarRule } from "./brain";
 
 type DB = SupabaseClient<Database>;
 
@@ -27,6 +27,7 @@ async function gemini(system: string, prompt: string): Promise<{ rule?: unknown;
 
 /** Writes one lesson per newly closed trade (max 5 per cycle) and merges its rule into the rule bank. */
 export async function processLessons(db: DB) {
+  await mergeRuleBank(db).catch((e) => console.error("rule merge", e));
   const since = new Date(Date.now() - 7 * 86400_000).toISOString();
   // Wait 2h after close so we can see where price went next.
   const ready = new Date(Date.now() - 2 * 3600_000).toISOString();
@@ -74,12 +75,27 @@ export async function processLessons(db: DB) {
     n++;
     if (rule) {
       const { data: existing } = await db.from("learned_rules").select("id,rule,hits,status").eq("user_id", t.user_id);
-      const match = (existing ?? []).find((e) => ruleKey(e.rule) === ruleKey(rule));
+      const match = (existing ?? []).find((e) => e.status !== "retired" && similarRule(e.rule, rule));
       if (match) await db.from("learned_rules").update({ hits: match.hits + 1, status: ruleStatus(match.hits + 1, match.status), updated_at: new Date().toISOString() }).eq("id", match.id);
       else await db.from("learned_rules").insert({ user_id: t.user_id, symbol: sym, rule });
     }
   }
   return n;
+}
+
+/** Merges same-topic rules (the AI rewords each lesson) so repeated lessons reach 'approved' and enter the prompt. No AI cost. */
+async function mergeRuleBank(db: DB) {
+  const { data } = await db.from("learned_rules").select("id,user_id,rule,hits,status,created_at").eq("is_active", true).neq("status", "retired");
+  const byUser = new Map<string, NonNullable<typeof data>>();
+  for (const r of data ?? []) byUser.set(r.user_id, [...(byUser.get(r.user_id) ?? []), r]);
+  for (const rows of byUser.values()) {
+    const { keep, drop } = consolidate(rows);
+    for (const k of keep) {
+      const cur = rows.find((r) => r.id === k.id)!;
+      await db.from("learned_rules").update({ hits: k.hits, status: ruleStatus(k.hits, cur.status), updated_at: new Date().toISOString() }).eq("id", k.id);
+    }
+    if (drop.length) await db.from("learned_rules").update({ is_active: false, updated_at: new Date().toISOString() }).in("id", drop);
+  }
 }
 
 /** Retires the newest approved rule when the last 2 weeks did clearly worse than the 2 before. */
@@ -143,8 +159,9 @@ export async function brainContext(db: DB, symbol: string) {
     db.from("whale_signals").select("*").eq("symbol", symbol).order("report_date", { ascending: false }).limit(1).maybeSingle(),
     db.from("learned_rules").select("rule,hits,symbol").eq("is_active", true).eq("status", "approved").or(`symbol.eq.${symbol},symbol.is.null`).order("hits", { ascending: false }).limit(12),
   ]);
+  const { data: les } = await db.from("trade_lessons").select("side,profit,lesson,created_at").eq("symbol", symbol).order("created_at", { ascending: false }).limit(8);
   const whale = w ? (() => { const b = cotBias(Number(w.long_pos), Number(w.short_pos), Number(w.change_long), Number(w.change_short)); return `CFTC COT ${w.report_date}: speculators ${b.bias} (net ${b.netPct.toFixed(0)}% of positions, weekly net change ${b.weekly})`; })() : "unavailable";
-  return { whale, rules: rulesText(rules ?? []) };
+  return { whale, rules: rulesText(rules ?? []), lessons: lessonsText((les ?? []).map((l) => ({ ...l, profit: Number(l.profit) }))) };
 }
 
 /** Grade every analysis with levels (taken or skipped) 1–48h later using the broker's own candles. No AI cost. */
