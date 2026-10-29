@@ -54,7 +54,7 @@ function AutoPilot() {
     annotations: { readOnlyHint: true }, enabled: !!user && !q.isPending && !q.isError,
     execute: () => runWebMCPTool("read_visible_autopilot", () => `Auto-Pilot ${s.enabled ? "ON" : "OFF"}; lot ${s.lot_size}; confidence ${s.min_confidence}%; max open ${s.max_open}; daily limit ${s.max_daily}.`),
   });
-  useEffect(() => { if (q.data) { const d = q.data as unknown as Settings; setS({ ...DEFAULTS, ...d, lot_size: Number(d.lot_size), profit_target_usd: Number(d.profit_target_usd ?? 20), lock_start_usd: Number(d.lock_start_usd ?? 10), daily_target_usd: Number(d.daily_target_usd ?? 0) }); }; }, [q.data]);
+  useEffect(() => { if (q.data) { const d = q.data as unknown as Settings; setS({ ...DEFAULTS, ...d, lot_size: Number(d.lot_size), profit_target_usd: Number(d.profit_target_usd ?? 20), lock_start_usd: Number(d.lock_start_usd ?? 10), daily_target_usd: Number(d.daily_target_usd ?? 0), max_daily_loss_pct: Number(d.max_daily_loss_pct ?? 5) }); }; }, [q.data]);
 
   const save = async (patch: Partial<Settings> = {}) => {
     if (!user || saving || q.isPending || q.isError) return;
