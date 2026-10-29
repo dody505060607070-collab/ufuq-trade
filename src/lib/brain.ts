@@ -16,7 +16,7 @@ export function ruleKey(rule: string): string {
 /** Topic of a rule. The AI words the same lesson differently every time, so rules merge by topic, not exact text. Order matters. */
 const THEMES: [string, RegExp][] = [
   ["session", /asian|session|low[- ]liquidity|quiet hours|rollover|overnight/],
-  ["news", /\bnews\b|cpi|nfp|fomc|\bfed\b|calendar|event/],
+  ["news", /\bnews\b|\bcpi\b|\bnfp\b|fomc|\bfed\b|calendar|\bevents?\b/],
   ["protect-profit", /breakeven|break-even|trail/],
   ["stop-buffer", /buffer|beyond (the )?(structural|swing)|stop.{0,30}(sweep|liquidity)/],
   ["take-profit", /take profits?|secure (the )?profits?|bank (the )?profits?|into (key )?liquidity/],
