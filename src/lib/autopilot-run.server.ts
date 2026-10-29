@@ -50,7 +50,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       }
       results.set(k, r);
     } catch (e) { console.error("autopilot analysis", k, e); results.set(k, null); errors.set(k, e instanceof Error ? e.message : String(e)); }
-    if (!news.has(sym)) news.set(sym, await newsNearby(sym));
+    if (!news.has(sym)) news.set(sym, !!(await newsNearby(sym)));
   }));
 
   const { riskCheck, dollarsPerPrice, reanchor } = await import("@/lib/risk-engine");

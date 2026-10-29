@@ -170,7 +170,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
     const openSyms = new Set(remaining.map((r) => r.t.symbol));
     const cands = results.filter((r) => r.direction && r.score >= SCAN_MIN_SCORE && !openSyms.has(r.symbol)).sort((a, b) => b.score - a.score).slice(0, AI_CANDIDATES_PER_CYCLE);
     if (!cands.length) await log("waiting", `Scanned ${results.length} assets · no setup with score ≥ ${SCAN_MIN_SCORE} (best: ${results.sort((a, b) => b.score - a.score)[0]?.symbol ?? "—"} ${results[0]?.score ?? 0})`);
-    const { getCached, runAI, verifyTrade, debateTrade } = await import("@/lib/analysis.server");
+    const { getCached, runAI, verifyTrade, debateTrade, newsNearby } = await import("@/lib/analysis.server");
     let headlines: string[] | null = null;
     const { MIN_CONFIDENCE_FLOOR } = await import("@/lib/autopilot");
     const floor = Math.max(MIN_CONFIDENCE_FLOOR, 65);
