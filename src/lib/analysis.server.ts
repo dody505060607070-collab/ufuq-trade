@@ -112,13 +112,11 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   return out;
 }
 
-/** True when a high-impact event for one of the symbol's currencies is within ±windowMin minutes. */
+/** The blocking calendar event within ±windowMin minutes (high-impact for the symbol's currencies, plus oil's own reports), or null. */
 export async function newsNearby(symbol: string, windowMin = 30) {
   const cal = await fetchCalendar().catch(() => []);
-  const s = symbol.toUpperCase();
-  const cur = s.includes("XAU") || s.includes("OIL") || s.includes("US30") || s.includes("USTEC") ? ["USD"] : [s.slice(0, 3), s.slice(3, 6)];
-  const now = Date.now();
-  return cal.some((e) => e.impact === "High" && cur.includes(e.country) && Math.abs(new Date(e.date).getTime() - now) < windowMin * 60_000);
+  const { blockingEvent } = await import("./news-guard");
+  return blockingEvent(symbol, cal, Date.now(), windowMin);
 }
 
 async function callGemini(key: string, prompt: string, system = INSTRUCTIONS): Promise<string | null> {
