@@ -358,6 +358,8 @@ export const AR_APP: Record<string, string> = {
   "Max open trades per account": "أقصى عدد صفقات مفتوحة لكل حساب",
   "Max auto trades per day": "أقصى عدد صفقات آلية في اليوم",
   "Max auto trades per day (0 = unlimited)": "أقصى عدد صفقات آلية في اليوم (0 = بلا حد)",
+  "Stop trading for the day after losing (% of balance)": "إيقاف التداول لباقي اليوم بعد خسارة (% من الرصيد)",
+  "Daily loss limit must be between 1% and 20%.": "حد الخسارة اليومية لازم يكون بين 1% و20%.",
   "Don't trade 30 min around high-impact news": "لا تتداول قبل وبعد الأخبار القوية بـ 30 دقيقة",
   "Save settings": "حفظ الإعدادات",
   "Activity": "النشاط",

@@ -25,8 +25,8 @@ export const Route = createFileRoute("/_authenticated/autopilot")({
   component: AutoPilot,
 });
 
-type Settings = { enabled: boolean; symbols: string[]; timeframe: string; min_confidence: number; lot_size: number; max_open: number; max_daily: number; avoid_news: boolean; profit_target_usd: number; lock_start_usd: number; giveback_pct: number; cooldown_minutes: number; daily_target_usd: number };
-const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: DEFAULT_TRADE_LOT, max_open: 2, max_daily: 4, avoid_news: true, profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40, cooldown_minutes: 15, daily_target_usd: 0 };
+type Settings = { enabled: boolean; symbols: string[]; timeframe: string; min_confidence: number; lot_size: number; max_open: number; max_daily: number; max_daily_loss_pct: number; avoid_news: boolean; profit_target_usd: number; lock_start_usd: number; giveback_pct: number; cooldown_minutes: number; daily_target_usd: number };
+const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], timeframe: "H1", min_confidence: 75, lot_size: DEFAULT_TRADE_LOT, max_open: 2, max_daily: 4, max_daily_loss_pct: 5, avoid_news: true, profit_target_usd: 20, lock_start_usd: 10, giveback_pct: 40, cooldown_minutes: 15, daily_target_usd: 0 };
 
 function AutoPilot() {
   const t = useT();
@@ -54,12 +54,13 @@ function AutoPilot() {
     annotations: { readOnlyHint: true }, enabled: !!user && !q.isPending && !q.isError,
     execute: () => runWebMCPTool("read_visible_autopilot", () => `Auto-Pilot ${s.enabled ? "ON" : "OFF"}; lot ${s.lot_size}; confidence ${s.min_confidence}%; max open ${s.max_open}; daily limit ${s.max_daily}.`),
   });
-  useEffect(() => { if (q.data) { const d = q.data as unknown as Settings; setS({ ...DEFAULTS, ...d, lot_size: Number(d.lot_size), profit_target_usd: Number(d.profit_target_usd ?? 20), lock_start_usd: Number(d.lock_start_usd ?? 10), daily_target_usd: Number(d.daily_target_usd ?? 0) }); }; }, [q.data]);
+  useEffect(() => { if (q.data) { const d = q.data as unknown as Settings; setS({ ...DEFAULTS, ...d, lot_size: Number(d.lot_size), profit_target_usd: Number(d.profit_target_usd ?? 20), lock_start_usd: Number(d.lock_start_usd ?? 10), daily_target_usd: Number(d.daily_target_usd ?? 0), max_daily_loss_pct: Number(d.max_daily_loss_pct ?? 5) }); }; }, [q.data]);
 
   const save = async (patch: Partial<Settings> = {}) => {
     if (!user || saving || q.isPending || q.isError) return;
     const next = { ...s, ...patch };
     if (!validAutopilotLot(next.lot_size)) return toast.error(t("Lot size must be between 0.01 and 10."));
+    if (!(next.max_daily_loss_pct >= 1 && next.max_daily_loss_pct <= 20)) return toast.error(t("Daily loss limit must be between 1% and 20%."));
     if (!next.symbols.length) return toast.error(t("Pick at least one instrument."));
     setSaving(true);
     const { error } = await supabase.from("autopilot_settings").upsert({ user_id: user.id, ...next, updated_at: new Date().toISOString() } as never);
@@ -132,6 +133,7 @@ function AutoPilot() {
           <Field label={t("Lot size per trade")}><Input aria-label={t("Lot size per trade")} type="number" step={0.01} min={0.01} max={10} disabled={saving || q.isPending || q.isError} value={s.lot_size} onChange={(e) => num("lot_size", e.target.value)} onBlur={(e) => { const lot = Number(e.currentTarget.value); if (validAutopilotLot(lot) && lot !== Number(q.data?.lot_size)) void save({ lot_size: lot }); }} /></Field>
           <Field label={t("Max open trades per account")}><Input type="number" min={1} max={10} value={s.max_open} onChange={(e) => num("max_open", e.target.value)} /></Field>
           <Field label={t("Max auto trades per day (0 = unlimited)")}><Input type="number" min={0} max={100} value={s.max_daily} onChange={(e) => num("max_daily", e.target.value)} /></Field>
+          <Field label={t("Stop trading for the day after losing (% of balance)")}><Input aria-label={t("Stop trading for the day after losing (% of balance)")} type="number" min={1} max={20} step={1} value={s.max_daily_loss_pct} onChange={(e) => num("max_daily_loss_pct", e.target.value)} /></Field>
           <label className="flex items-center justify-between rounded-2xl border border-border bg-background/40 px-4 py-3">
             <span className="text-sm">{t("Don't trade 30 min around high-impact news")}</span>
             <Switch checked={s.avoid_news} onCheckedChange={(v) => setS({ ...s, avoid_news: v })} />
