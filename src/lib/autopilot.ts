@@ -1,6 +1,6 @@
 /** Pure Auto-Pilot rules: decides whether an analysis may open a trade. Returns a skip reason or null. */
 export type AutoRules = { min_confidence: number; max_open: number; max_daily: number };
-export type AutoState = { openTotal: number; openOnSymbol: number; todayCount: number; recentOnSymbol: boolean; newsNearby: boolean; avoidNews: boolean; lostSameSide?: boolean };
+export type AutoState = { openTotal: number; openOnSymbol: number; todayCount: number; recentOnSymbol: boolean; newsNearby: boolean; avoidNews: boolean; lostSameSide?: boolean; quietHours?: boolean };
 export type AutoSignal = { direction: string; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null };
 
 /** Hard floor: no Auto-Pilot trade below this confidence, whatever the saved setting. */
@@ -25,6 +25,7 @@ export function skipReason(sig: AutoSignal & { summary?: string | null }, rules:
   if (sig.stop_loss == null || sig.take_profit == null || sig.entry == null) return "Missing SL/TP levels";
   const min = Math.max(MIN_CONFIDENCE_FLOOR, rules.min_confidence);
   if (sig.confidence < min) return `Confidence ${sig.confidence}% below ${min}%`;
+  if (st.quietHours) return QUIET_REASON;
   const strong = sig.confidence >= STACK_CONFIDENCE;
   if (st.lostSameSide && !strong) return `Last ${sig.direction} on this symbol lost; same direction locked ${LOSS_LOCK_MINUTES} min (needs ${STACK_CONFIDENCE}%+)`;
   if (st.avoidNews && st.newsNearby) return "High-impact news within 30 minutes";
