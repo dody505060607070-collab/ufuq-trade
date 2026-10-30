@@ -8,9 +8,9 @@ import { cotBias, consolidate, lessonsText, outcomeOf, rulesText, similarRule } 
 type DB = SupabaseClient<Database>;
 
 const LESSON_SYS =
-  "You are a strict trading coach reviewing one closed trade, including whether it was closed too early or too late. Return ONLY JSON: {reason (why it won or lost and why the exit happened when it did, max 2 sentences), lesson (max 1 sentence), rule (one short actionable rule for future trades, max 15 words, or empty string if nothing new), tags (array of up to 3 of: trend, counter-trend, news, session, stop-too-tight, target-too-far, ict, price-action, overtrading, good-entry, early-exit, late-exit)}.";
+  "You are a strict trading coach reviewing one closed trade, including whether it was closed too early or too late. Return ONLY JSON: {reason (why it won or lost and why the exit happened when it did, max 2 sentences), lesson (max 1 sentence), rule (one short actionable rule for future trades, max 15 words, or empty string if nothing new), tags (array of up to 3 of: trend, counter-trend, news, session, stop-too-tight, target-too-far, ict, price-action, overtrading, good-entry, early-exit, late-exit), reason_ar, lesson_ar, rule_ar (the same reason, lesson and rule in clear Modern Standard Arabic; keep numbers and symbols as Latin digits)}.";
 
-async function gemini(system: string, prompt: string): Promise<{ rule?: unknown; reason?: unknown; lesson?: unknown; tags?: unknown; summary?: unknown } | null> {
+async function gemini(system: string, prompt: string): Promise<{ rule?: unknown; reason?: unknown; lesson?: unknown; tags?: unknown; summary?: unknown; reason_ar?: unknown; lesson_ar?: unknown; rule_ar?: unknown; summary_ar?: unknown } | null> {
   const key = process.env["GEMINI_API_KEY"];
   if (!key) return null;
   if (!(await import("@/lib/ai-budget.server").then((m) => m.takeAiCall()))) return null;
@@ -68,6 +68,8 @@ export async function processLessons(db: DB) {
       reason: typeof r?.reason === "string" ? r.reason.slice(0, 500) : null,
       lesson: typeof r?.lesson === "string" ? r.lesson.slice(0, 300) : null,
       rule: rule || null,
+      reason_ar: typeof r?.reason_ar === "string" ? r.reason_ar.slice(0, 800) : null,
+      lesson_ar: typeof r?.lesson_ar === "string" ? r.lesson_ar.slice(0, 500) : null,
       tags: Array.isArray(r?.tags) ? (r.tags as unknown[]).filter((x): x is string => typeof x === "string").slice(0, 3) : [],
       peak_profit: peak, missed_profit: Math.round(missed * 100) / 100, giveback_usd: Math.round(ex.giveback * 100) / 100, exit_verdict: ex.verdict,
     });
@@ -77,7 +79,7 @@ export async function processLessons(db: DB) {
       const { data: existing } = await db.from("learned_rules").select("id,rule,hits,status").eq("user_id", t.user_id);
       const match = (existing ?? []).find((e) => e.status !== "retired" && similarRule(e.rule, rule));
       if (match) await db.from("learned_rules").update({ hits: match.hits + 1, status: ruleStatus(match.hits + 1, match.status), updated_at: new Date().toISOString() }).eq("id", match.id);
-      else await db.from("learned_rules").insert({ user_id: t.user_id, symbol: sym, rule });
+      else await db.from("learned_rules").insert({ user_id: t.user_id, symbol: sym, rule, rule_ar: typeof r?.rule_ar === "string" && r.rule_ar.trim() ? r.rule_ar.trim().slice(0, 300) : null });
     }
   }
   return n;
@@ -123,9 +125,9 @@ export async function weeklyReviews(db: DB) {
     const { data: ex } = await db.from("weekly_reviews").select("id").eq("user_id", uid).eq("week_start", ws).maybeSingle();
     if (ex) continue;
     const net = rows.reduce((s, r) => s + Number(r.profit), 0);
-    const r = await gemini("You are a trading coach. Return ONLY JSON {summary}: max 5 short sentences on what worked, what failed and the focus for next week.", rows.map((x) => `${x.side} ${x.symbol} ${Number(x.profit).toFixed(2)} — ${x.lesson ?? ""}`).join("\n"));
+    const r = await gemini("You are a trading coach. Return ONLY JSON {summary, summary_ar}: summary = max 5 short sentences on what worked, what failed and the focus for next week; summary_ar = the same in clear Modern Standard Arabic.", rows.map((x) => `${x.side} ${x.symbol} ${Number(x.profit).toFixed(2)} — ${x.lesson ?? ""}`).join("\n"));
     await checkRules(db, uid, monday);
-    if (typeof r?.summary === "string") await db.from("weekly_reviews").insert({ user_id: uid, week_start: ws, summary: r.summary.slice(0, 1500), trades: rows.length, net });
+    if (typeof r?.summary === "string") await db.from("weekly_reviews").insert({ user_id: uid, week_start: ws, summary: r.summary.slice(0, 1500), summary_ar: typeof r.summary_ar === "string" ? r.summary_ar.slice(0, 2500) : null, trades: rows.length, net });
   }
 }
 
