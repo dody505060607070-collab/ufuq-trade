@@ -120,6 +120,13 @@
       "when": 1793368152837,
       "tag": "0016_gemini_slow_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793368550677,
+      "tag": "0017_arabic_ai_text",
+      "breakpoints": true
     }
   ]
 }

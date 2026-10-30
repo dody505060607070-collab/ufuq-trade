@@ -22,6 +22,7 @@ import { fmt, isOnline, priceDigits, queueCommand, timeAgo, useAccounts, useBrok
 import { cn } from "@/lib/utils";
 import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton";
 import { LiveStatusBar } from "@/components/app/LiveStatusBar";
+import { AiAnalysisCard } from "@/components/app/AiAnalysisCard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard | Ufuq Trade" }, { name: "description", content: "AI analysis, execution and trade management for your MT5 accounts." }] }),
@@ -217,7 +218,7 @@ function Dashboard() {
             </div>
           )}
         </div>
-        <h3 className="text-lg font-bold">{t("Recent Analysis")}</h3>
+        <div className="flex items-center justify-between"><h3 className="text-lg font-bold">{t("Recent Analysis")}</h3><Link to="/analyses" className="text-xs font-semibold text-primary-glow hover:underline">{t("Compare Gemini vs ChatGPT")}</Link></div>
         {busy && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />  {t("Analysing")} {symbol}…</p>}
         {(signals.data ?? []).map((s) => (
           <AnalysisCard key={s.id} tag={t("Platform signal")} symbol={s.symbol} direction={s.direction} entry={s.entry} sl={s.stop_loss} tp={s.take_profit} text={s.note} at={s.created_at} onUse={() => useSignal(s)} />
@@ -225,7 +226,7 @@ function Dashboard() {
         {shownAnalyses.length === 0 && !busy ? (
           <p className="pt-10 text-center text-sm text-muted-foreground">{t("No analysis yet. Open Analysis and request a symbol.")}</p>
         ) : (showAll ? shownAnalyses : shownAnalyses.slice(0, 3)).map((a) => (
-          <AnalysisCard key={a.id} symbol={a.symbol} tag={a.timeframe ?? undefined} direction={a.direction} confidence={a.confidence} entry={a.entry} sl={a.stop_loss} tp={a.take_profit} text={a.summary} at={a.created_at} onUse={() => useSignal(a)} />
+          <AiAnalysisCard key={a.id} a={a} onUse={() => useSignal(a)} />
         ))}
         {shownAnalyses.length > 3 && (
           <Button variant="secondary" className="w-full rounded-lg" onClick={() => setShowAll((v) => !v)}>

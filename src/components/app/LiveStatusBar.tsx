@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, Bot, Brain, Clock, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { useT } from "@/lib/i18n";
+import { useT, useAiText } from "@/lib/i18n";
 import { isOnline, timeAgo, useAccounts } from "@/lib/trading";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ function marketClosed(n: Date) {
 /** Top-of-dashboard strip: is MT5 connected, is Auto-Pilot on, what did it last decide, when is the next scan. */
 export function LiveStatusBar() {
   const t = useT();
+  const ai = useAiText();
   const { user } = useAuth();
   const accounts = useAccounts();
   const [now, setNow] = useState(() => Date.now());
@@ -70,7 +71,7 @@ export function LiveStatusBar() {
           sub={closed ? t("Weekend") : t("Every 10 minutes")} />
         <Cell icon={ev?.action === "opened" ? <Activity className="h-4 w-4" /> : <Brain className="h-4 w-4" />} ok={ev?.action === "opened"} neutral={ev?.action === "skipped"} label={t("Last AI decision")}
           value={ev ? `${ev.symbol !== "-" ? ev.symbol + " · " : ""}${ev.action === "opened" ? t("Opened a trade") : ev.action === "skipped" ? t("Skipped") : t("Error")}` : t("No decisions yet")}
-          sub={ev ? `${t(ev.detail ?? "")} · ${timeAgo(ev.created_at)}` : ""} />
+          sub={ev ? `${ai(ev.detail, ev.detail_ar)} · ${timeAgo(ev.created_at)}` : ""} />
       </div>
     </div>
   );

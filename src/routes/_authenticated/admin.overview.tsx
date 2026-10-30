@@ -1,4 +1,4 @@
-import { HelpNote } from "@/lib/i18n";
+import { HelpNote, Tx } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Panel } from "@/components/app/AppShell";
@@ -29,7 +29,7 @@ function Overview() {
         ))}
       </div>
       <Panel title="Latest contact messages">
-        {(msgs.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">No messages.</p> : (
+        {(msgs.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground"><Tx>No messages.</Tx></p> : (
           <ul className="divide-y divide-border">
             {msgs.data!.map((m) => (
               <li key={m.id} className="py-3 text-sm">

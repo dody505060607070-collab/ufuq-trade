@@ -50,6 +50,13 @@ export function dollarsPerPrice(symbol: string, tickValue?: number | null, point
   if (s.startsWith("XAU")) return 100;
   if (s.startsWith("XAG")) return 5000;
   if (s.includes("OIL") || s.startsWith("XTI")) return 1000;
+  // Index CFDs (contract size 1): about $1 per point per lot (UK100 is quoted in GBP, DE30 in EUR).
+  if (s.startsWith("UK100")) return 1.3;
+  if (s.startsWith("DE30") || s.startsWith("DE40") || s.startsWith("GER")) return 1.1;
+  if (/^(US30|US500|USTEC|NAS|SPX|JP225)/.test(s)) return 1;
+  if (s.startsWith("BTC") || s.startsWith("ETH")) return 1;
+  // JPY pairs: 100,000 units, priced ~150 yen → about $670 per 1.00 move.
+  if (s.endsWith("JPY")) return 670;
   return 100000;
 }
 

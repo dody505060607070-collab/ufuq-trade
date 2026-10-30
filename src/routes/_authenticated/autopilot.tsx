@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
-import { useT, HelpNote } from "@/lib/i18n";
+import { useT, useAiText, HelpNote } from "@/lib/i18n";
 import { useAccounts, useInstruments, isOnline, timeAgo } from "@/lib/trading";
 import { cn } from "@/lib/utils";
 import { RestartAutopilotButton } from "@/components/app/RestartAutopilotButton";
@@ -30,6 +30,7 @@ const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], time
 
 function AutoPilot() {
   const t = useT();
+  const ai = useAiText();
   const { user } = useAuth();
   const qc = useQueryClient();
   const accounts = useAccounts();
@@ -162,7 +163,7 @@ function AutoPilot() {
               <li key={e.id} className="flex gap-3 border-t border-border/40 py-1.5">
                 <span className={cn("w-16 shrink-0 text-xs font-semibold", e.action === "opened" ? "text-success" : e.action === "error" ? "text-destructive" : "text-muted-foreground")}>{t(e.action)}</span>
                 <span className="w-16 shrink-0 font-semibold">{e.symbol}</span>
-                <span className="flex-1 text-muted-foreground">{e.detail}</span>
+                <span className="flex-1 text-muted-foreground">{ai(e.detail, e.detail_ar)}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(e.created_at)}</span>
               </li>
             ))}

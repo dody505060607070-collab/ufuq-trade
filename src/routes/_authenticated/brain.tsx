@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useT } from "@/lib/i18n";
+import { useT, useAiText } from "@/lib/i18n";
 import { hourStats } from "@/lib/brain";
 import { fmt, isOnline, useAccounts } from "@/lib/trading";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,7 @@ const ago = (iso?: string | null) => {
 
 function BrainPage() {
   const t = useT();
+  const ai = useAiText();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [f, setF] = useState<"all" | "win" | "loss">("all");
@@ -68,7 +69,7 @@ function BrainPage() {
   const best = [...hours].sort((a, b) => b.net - a.net)[0];
   const worst = [...hours].sort((a, b) => a.net - b.net)[0];
   const hh = (h?: { hour: number }) => (h ? `${String(h.hour).padStart(2, "0")}:00` : "—");
-  const shown = L.filter((l) => (f === "all" || l.outcome === f) && (!q || `${l.symbol} ${l.lesson ?? ""} ${l.reason ?? ""}`.toLowerCase().includes(q.toLowerCase())));
+  const shown = L.filter((l) => (f === "all" || l.outcome === f) && (!q || `${l.symbol} ${l.lesson ?? ""} ${l.reason ?? ""} ${l.lesson_ar ?? ""} ${l.reason_ar ?? ""}`.toLowerCase().includes(q.toLowerCase())));
 
   const items = useMemo<Callout[]>(() => {
     const since = Date.now() - RANGES[range] * 36e5;
@@ -78,15 +79,15 @@ function BrainPage() {
       const mine = inRange.filter((l) => l.symbol === s), net = mine.reduce((a, l) => a + Number(l.profit), 0);
       return { id: `s:${s}`, kind: "symbol", title: s, sub: `${mine.length} ${t("trades")}`, value: mine.length ? money(net) : undefined, tone: net < 0 ? "down" : "up" };
     });
-    R.filter((r) => r.is_active).slice(0, 3).forEach((r) => out.push({ id: `r:${r.id}`, kind: "rule", title: short(r.rule), sub: `R-${r.id.slice(0, 4).toUpperCase()} · ${t("seen")} ${r.hits}×` }));
-    inRange.filter((l) => l.outcome === "win").slice(0, 2).forEach((l) => out.push({ id: `l:${l.id}`, kind: "win", title: "WIN TRADE", sub: `${l.side.toUpperCase()} ${l.symbol}`, value: money(Number(l.profit)), tone: "up" }));
-    inRange.filter((l) => l.outcome === "loss").slice(0, 2).forEach((l) => out.push({ id: `l:${l.id}`, kind: "loss", title: "LOSS TRADE", sub: `${l.side.toUpperCase()} ${l.symbol}`, value: money(Number(l.profit)), tone: "down" }));
+    R.filter((r) => r.is_active).slice(0, 3).forEach((r) => out.push({ id: `r:${r.id}`, kind: "rule", title: short(ai(r.rule, r.rule_ar)), sub: `R-${r.id.slice(0, 4).toUpperCase()} · ${t("seen")} ${r.hits}×` }));
+    inRange.filter((l) => l.outcome === "win").slice(0, 2).forEach((l) => out.push({ id: `l:${l.id}`, kind: "win", title: t("WIN TRADE"), sub: `${t(l.side.toUpperCase())} ${l.symbol}`, value: money(Number(l.profit)), tone: "up" }));
+    inRange.filter((l) => l.outcome === "loss").slice(0, 2).forEach((l) => out.push({ id: `l:${l.id}`, kind: "loss", title: t("LOSS TRADE"), sub: `${t(l.side.toUpperCase())} ${l.symbol}`, value: money(Number(l.profit)), tone: "down" }));
     const a = last.data;
-    out.push({ id: "x:ind", kind: "layer", title: "Market Analysis", sub: `${todayCount.data ?? 0} ${t("analyses in 24h")}` });
+    out.push({ id: "x:ind", kind: "layer", title: t("Market Analysis"), sub: `${todayCount.data ?? 0} ${t("analyses in 24h")}` });
     out.push({ id: "x:mt5", kind: "layer", title: "MetaTrader 5", sub: online ? `${online} ${t("connected")}` : t("Offline") });
-    out.push({ id: "x:ai", kind: "layer", title: "Prediction Layer", sub: a ? `${a.direction.toUpperCase()} ${a.symbol} · ${a.confidence ?? "—"}% · ${ago(a.created_at)}` : t("Waiting for analysis") });
+    out.push({ id: "x:ai", kind: "layer", title: t("Prediction Layer"), sub: a ? `${t(a.direction.toUpperCase())} ${a.symbol} · ${a.confidence ?? "—"}% · ${ago(a.created_at)}` : t("Waiting for analysis") });
     return out;
-  }, [L, R, range, last.data, todayCount.data, online, t]);
+  }, [L, R, range, last.data, todayCount.data, online, t, ai]);
 
   const toggle = async (id: string, is_active: boolean) => { await supabase.from("learned_rules").update({ is_active }).eq("id", id); void qc.invalidateQueries({ queryKey: ["rules"] }); };
   const remove = async (id: string) => { await supabase.from("learned_rules").delete().eq("id", id); void qc.invalidateQueries({ queryKey: ["rules"] }); };
@@ -131,8 +132,8 @@ function BrainPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-primary-glow">{picked.title}</p>
               {picked.sub && <p className="mt-1 text-muted-foreground">{picked.sub}</p>}
               {picked.value && <p className={cn("mt-1 font-medium", picked.tone === "down" ? "text-destructive" : "text-success")}>{picked.value}</p>}
-              {picked.kind === "rule" && <p className="mt-2 text-xs">{R.find((r) => `r:${r.id}` === picked.id)?.rule}</p>}
-              {(picked.kind === "win" || picked.kind === "loss") && <p className="mt-2 text-xs">{L.find((l) => `l:${l.id}` === picked.id)?.lesson}</p>}
+              {picked.kind === "rule" && <p className="mt-2 text-xs">{(() => { const r = R.find((x) => `r:${x.id}` === picked.id); return r ? ai(r.rule, r.rule_ar) : null; })()}</p>}
+              {(picked.kind === "win" || picked.kind === "loss") && <p className="mt-2 text-xs">{(() => { const l = L.find((x) => `l:${x.id}` === picked.id); return l ? ai(l.lesson, l.lesson_ar) : null; })()}</p>}
               <button className="mt-3 text-xs text-muted-foreground underline" onClick={() => setPicked(null)}>{t("Close")}</button>
             </div>
           )}
@@ -154,7 +155,7 @@ function BrainPage() {
                     {R.map((r) => (
                       <li key={r.id} className={cn("flex items-start gap-3 rounded-xl border border-border/60 p-3", !r.is_active && "opacity-50")}>
                         <Brain className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <div className="flex-1 text-sm"><p>{r.rule}</p><p className="mt-1 text-xs text-muted-foreground">{r.symbol ?? t("All")} · {t("seen")} {r.hits}×</p></div>
+                        <div className="flex-1 text-sm"><p>{ai(r.rule, r.rule_ar)}</p><p className="mt-1 text-xs text-muted-foreground">{r.symbol ?? t("All")} · {t("seen")} {r.hits}×</p></div>
                         <Switch checked={r.is_active} onCheckedChange={(v) => void toggle(r.id, v)} aria-label={t("Active")} />
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => void remove(r.id)} aria-label={t("Delete")}><Trash2 className="h-3.5 w-3.5" /></Button>
                       </li>
@@ -183,8 +184,8 @@ function BrainPage() {
                             <span className={Number(l.profit) >= 0 ? "text-success" : "text-destructive"}>{fmt(Number(l.profit))}</span>
                             <span className="ms-auto text-muted-foreground">{new Date(l.created_at).toLocaleString()}</span>
                           </div>
-                          {l.reason && <p className="mt-2 text-muted-foreground">{l.reason}</p>}
-                          {l.lesson && <p className="mt-1 font-medium">{l.lesson}</p>}
+                          {l.reason && <p className="mt-2 text-muted-foreground">{ai(l.reason, l.reason_ar)}</p>}
+                          {l.lesson && <p className="mt-1 font-medium">{ai(l.lesson, l.lesson_ar)}</p>}
                         </div>
                       </li>
                     ))}
@@ -196,7 +197,7 @@ function BrainPage() {
                   <SheetTrigger asChild><Button size="sm" variant="ghost" className="rounded-full text-xs">{t("This week's review")}</Button></SheetTrigger>
                   <SheetContent className={sheetCls}>
                     <SheetHeader><SheetTitle>{t("This week's review")} · {review.data.week_start}</SheetTitle></SheetHeader>
-                    <p className="mt-4 text-sm leading-relaxed">{review.data.summary}</p>
+                    <p className="mt-4 text-sm leading-relaxed">{ai(review.data.summary, review.data.summary_ar)}</p>
                     <p className="mt-2 text-xs text-muted-foreground">{review.data.trades} {t("trades")} · <span className={Number(review.data.net) >= 0 ? "text-success" : "text-destructive"}>{fmt(Number(review.data.net))}</span></p>
                   </SheetContent>
                 </Sheet>

@@ -51,3 +51,15 @@ describe("broker reference & dollar risk", () => {
     expect(riskCheck(p, { ...c, spreadPrice: 0, maxRiskPct: 2 }).allow).toBe(true);
   });
 });
+
+describe("index dollar risk", () => {
+  it("indices are about $1 per point per lot, not forex size", () => {
+    expect(dollarsPerPrice("US30")).toBe(1);
+    expect(dollarsPerPrice("UK100")).toBe(1.3);
+    expect(dollarsPerPrice("EURUSD")).toBe(100000);
+    expect(dollarsPerPrice("XAUUSD")).toBe(100);
+  });
+  it("broker tick value still wins when the EA sends it", () => {
+    expect(dollarsPerPrice("US30", 0.01, 0.01)).toBe(1);
+  });
+});
