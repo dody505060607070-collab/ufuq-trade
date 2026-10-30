@@ -171,4 +171,8 @@ export const AR_EXTRA: Record<string, string> = {
   "Next administrator action": "الإجراء التالي للمدير",
   "Nothing missing.": "لا يوجد نقص.",
   "Upload sanitized report (ufuq-report.json)": "رفع التقرير المنقّى (ufuq-report.json)",
+  "Result": "النتيجة",
+  "Detail": "التفاصيل",
+  "MT5 login": "رقم حساب MT5",
+  "Last sync": "آخر مزامنة",
 };
