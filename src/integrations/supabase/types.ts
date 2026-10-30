@@ -73,6 +73,7 @@ export type Database = {
           shared: boolean
           stop_loss: number | null
           summary: string | null
+          summary_ar: string | null
           symbol: string
           take_profit: number | null
           timeframe: string | null
@@ -88,6 +89,7 @@ export type Database = {
           shared?: boolean
           stop_loss?: number | null
           summary?: string | null
+          summary_ar?: string | null
           symbol: string
           take_profit?: number | null
           timeframe?: string | null
@@ -103,6 +105,7 @@ export type Database = {
           shared?: boolean
           stop_loss?: number | null
           summary?: string | null
+          summary_ar?: string | null
           symbol?: string
           take_profit?: number | null
           timeframe?: string | null
@@ -157,6 +160,7 @@ export type Database = {
           action: string
           created_at: string
           detail: string | null
+          detail_ar: string | null
           id: string
           symbol: string
           user_id: string
@@ -165,6 +169,7 @@ export type Database = {
           action: string
           created_at?: string
           detail?: string | null
+          detail_ar?: string | null
           id?: string
           symbol: string
           user_id: string
@@ -173,6 +178,7 @@ export type Database = {
           action?: string
           created_at?: string
           detail?: string | null
+          detail_ar?: string | null
           id?: string
           symbol?: string
           user_id?: string
@@ -708,6 +714,7 @@ export type Database = {
           id: string
           is_active: boolean
           rule: string
+          rule_ar: string | null
           status: string
           symbol: string | null
           updated_at: string
@@ -720,6 +727,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           rule: string
+          rule_ar?: string | null
           status?: string
           symbol?: string | null
           updated_at?: string
@@ -732,6 +740,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           rule?: string
+          rule_ar?: string | null
           status?: string
           symbol?: string | null
           updated_at?: string
@@ -1360,11 +1369,13 @@ export type Database = {
           giveback_usd: number | null
           id: string
           lesson: string | null
+          lesson_ar: string | null
           missed_profit: number | null
           outcome: string
           peak_profit: number | null
           profit: number
           reason: string | null
+          reason_ar: string | null
           rule: string | null
           side: string
           symbol: string
@@ -1378,11 +1389,13 @@ export type Database = {
           giveback_usd?: number | null
           id?: string
           lesson?: string | null
+          lesson_ar?: string | null
           missed_profit?: number | null
           outcome: string
           peak_profit?: number | null
           profit?: number
           reason?: string | null
+          reason_ar?: string | null
           rule?: string | null
           side: string
           symbol: string
@@ -1396,11 +1409,13 @@ export type Database = {
           giveback_usd?: number | null
           id?: string
           lesson?: string | null
+          lesson_ar?: string | null
           missed_profit?: number | null
           outcome?: string
           peak_profit?: number | null
           profit?: number
           reason?: string | null
+          reason_ar?: string | null
           rule?: string | null
           side?: string
           symbol?: string
@@ -1622,6 +1637,7 @@ export type Database = {
           id: string
           net: number
           summary: string
+          summary_ar: string | null
           trades: number
           user_id: string
           week_start: string
@@ -1631,6 +1647,7 @@ export type Database = {
           id?: string
           net?: number
           summary: string
+          summary_ar?: string | null
           trades?: number
           user_id: string
           week_start: string
@@ -1640,6 +1657,7 @@ export type Database = {
           id?: string
           net?: number
           summary?: string
+          summary_ar?: string | null
           trades?: number
           user_id?: string
           week_start?: string
