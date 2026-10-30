@@ -28,7 +28,6 @@ const RULES: Array<[RegExp, string]> = [
   [/Max (\d+) open trades reached/g, "تم الوصول للحد الأقصى $1 صفقات مفتوحة"],
   [/Daily limit of (\d+) trades reached/g, "تم الوصول لحد اليوم $1 صفقات"],
   [/Daily loss limit of (\S+)% reached/g, "تم الوصول لحد الخسارة اليومي $1%"],
-  [/Last (buy|sell) on this symbol lost; same direction locked (\d+) min \(needs (\d+)%\+\)/g, (_m: string) => _m] as unknown as [RegExp, string],
   [/High-impact news within 30 minutes/g, "خبر قوي خلال 30 دقيقة"],
   [/Missing SL\/TP levels/g, "لا يوجد وقف خسارة أو هدف"],
   [/Missing entry, stop or target/g, "لا يوجد دخول أو وقف أو هدف"],
@@ -94,7 +93,7 @@ const lostLock = /Last (buy|sell) on this symbol lost; same direction locked (\d
 export function toArabic(msg: string | null | undefined): string {
   if (!msg) return "";
   let s = msg.replace(lostLock, (_m, side: string, min: string, c: string) => `آخر ${side === "buy" ? "شراء" : "بيع"} على هذا السوق خسر؛ نفس الاتجاه مقفول ${min} دقيقة (يحتاج ${c}%+)`);
-  for (const [re, to] of RULES) if (typeof to === "string") s = s.replace(re, to);
+  for (const [re, to] of RULES) s = s.replace(re, to);
   return s;
 }
 
