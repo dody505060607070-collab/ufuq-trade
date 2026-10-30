@@ -17,3 +17,6 @@ export function analysisKey(symbol: string, timeframe: string, provider: AiProvi
 export function providerLabel(p: AiProvider): string {
   return p === "openai" ? "ChatGPT" : "Gemini";
 }
+
+/** ChatGPT rates the same setups ~5 points lower than Gemini, so ChatGPT accounts trade from this confidence (never below the 65% hard floor). User-approved 2026-10-30 for the $500 comparison account. */
+export const OPENAI_MIN_CONFIDENCE = 65;

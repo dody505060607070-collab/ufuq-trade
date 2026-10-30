@@ -53,7 +53,7 @@ export async function brokerCandles(db: DB, symbol: string, timeframe: string, l
 }
 
 /** Fresh AI analysis from live candles, calendar and headlines. provider picks Gemini (default) or ChatGPT. */
-export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null, provider: AiProvider = "gemini"): Promise<Levels> {
+export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null, provider: AiProvider = "gemini", opts: { slow?: boolean } = {}): Promise<Levels> {
   const [, { data: inst }] = await Promise.all([
     db.from("ai_models").select("model_id").eq("is_default", true).eq("is_active", true).maybeSingle(),
     db.from("instruments").select("name,yahoo_symbol").eq("symbol", symbol).maybeSingle(),
@@ -89,6 +89,10 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   const snap = snapshot(candles);
   const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nMulti-timeframe trends:\n${mtfText(mtf, snap?.adx14 ?? null)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades (confirmed 3+ times):\n${brain.rules}\n\nLessons from our last real trades (newest first — do not repeat a setup that just lost; losses cost more than wins earn):\n${brain.lessons}\n\nHindsight — what price did after our recent analyses, including ones we skipped (correlate and learn):\n${hindsight}\n\nProvide your directional analysis as json.`;
 
+  // Stale or missing prices (e.g. a cash index outside exchange hours): no trade possible, so skip the paid AI call.
+  const early = manualPrice == null ? dataBlockers({ lastCandleT: last?.t ?? null, timeframe, calendarOk: calStatus.ok, nowSec: Date.now() / 1000 }) : [];
+  if (early.length) return { direction: "neutral", confidence: 0, entry: null, stop_loss: null, take_profit: null, summary: `No trade (${early.join("; ")}). AI not called to save credit.` };
+
   let text: string | null;
   if (provider === "openai") {
     // ChatGPT accounts: the user's own OpenAI key only — no Gemini or Lovable AI fallback, so the comparison stays clean.
@@ -98,7 +102,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     // Gemini first, Radox AI as backup — no Lovable AI fallback.
     const geminiKey = process.env["GEMINI_API_KEY"] ?? "";
     if (!geminiKey && !process.env["RADOX_API_KEY"]) throw new Error("Gemini API key is not configured.");
-    text = await callGemini(geminiKey, prompt);
+    text = await callGemini(geminiKey, prompt, INSTRUCTIONS, opts.slow);
     if (!text) throw new Error(lastGeminiError ?? "Gemini analysis failed. Please try again.");
   }
   const match = text.match(/\{[\s\S]*\}/);
@@ -127,8 +131,11 @@ export async function newsNearby(symbol: string, windowMin = 30) {
   return blockingEvent(symbol, cal, Date.now(), windowMin);
 }
 
-async function callGemini(key: string, prompt: string, system = INSTRUCTIONS): Promise<string | null> {
-  if (!(await import("@/lib/ai-budget.server").then((m) => m.takeAiCall()))) { lastGeminiError = "Daily AI budget reached — resumes tomorrow (keeps the $5 Gemini credit lasting a month)"; return null; }
+async function callGemini(key: string, prompt: string, system = INSTRUCTIONS, slow = false): Promise<string | null> {
+  const budget = await import("@/lib/ai-budget.server");
+  // Normal budget first; once it is used up, Auto-Pilot (slow=true) still gets one call every SLOW_MODE_MINUTES.
+  const ok = (await budget.takeAiCall()) || (slow && (await budget.takeSlowAiCall()));
+  if (!ok) { lastGeminiError = slow ? "Daily AI budget used — slow mode: next Gemini analysis within 30 min" : "Daily AI budget reached — resumes tomorrow (keeps the $5 Gemini credit lasting a month)"; return null; }
   const primary = key ? await geminiOnce(key, prompt, system) : null;
   if (primary) return primary;
   // Backup: Radox AI (OpenAI-compatible) only when Gemini fails and RADOX_API_KEY is set.
