@@ -3,6 +3,10 @@ import { AR } from "@/i18n";
 import { toArabic } from "@/lib/msg-ar";
 
 export type Lang = "en" | "ar";
+let CURRENT: Lang = "en";
+/** Translate outside React (toasts, time labels): uses the language of the last render. */
+export function tr(en: string, vars?: Record<string, string | number>) { return fill(CURRENT === "ar" ? AR[en] ?? en : en, vars); }
+export const currentLang = () => CURRENT;
 const KEY = "arrissa-lang";
 
 type Ctx = { lang: Lang; setLang: (l: Lang) => void; t: (en: string, vars?: Record<string, string | number>) => string };
@@ -24,6 +28,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
   }, [lang]);
+  CURRENT = lang;
   const setLang = useCallback((l: Lang) => { setLangState(l); window.localStorage.setItem(KEY, l); }, []);
   const t = useCallback((en: string, vars?: Record<string, string | number>) => fill(lang === "ar" ? AR[en] ?? en : en, vars), [lang]);
   return <I18nContext.Provider value={{ lang, setLang, t }}>{children}</I18nContext.Provider>;

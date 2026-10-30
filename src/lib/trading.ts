@@ -1,3 +1,4 @@
+import { tr, currentLang } from "@/lib/i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,7 +67,7 @@ export function useProfile() {
     qc.setQueryData(["profile", user.id], (p: Profile | null | undefined) => (p ? { ...p, ...patch } : p));
     const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
     if (error) {
-      toast.error(error.code === "23505" ? "That username is already taken." : "Could not save.");
+      toast.error(tr(error.code === "23505" ? "That username is already taken." : "Could not save."));
       void qc.invalidateQueries({ queryKey: ["profile", user.id] });
       return false;
     }
@@ -84,7 +85,7 @@ export function isOnline(a: Pick<Account, "last_seen_at">, now = Date.now()) {
 
 export async function queueCommand(accounts: Account[], command: CommandName, payload: Json = {}) {
   if (!accounts.length) {
-    toast.error("Select at least one account.");
+    toast.error(tr("Select at least one account."));
     return false;
   }
   const { data: u } = await supabase.auth.getUser();
@@ -93,12 +94,12 @@ export async function queueCommand(accounts: Account[], command: CommandName, pa
     accounts.map((a) => ({ user_id: u.user!.id, account_id: a.id, command, payload })),
   );
   if (error) {
-    toast.error(`${COMMANDS[command]} failed.`);
+    toast.error(tr("{cmd} failed.", { cmd: tr(COMMANDS[command]) }));
     return false;
   }
   const offline = accounts.filter((a) => !isOnline(a)).length;
-  toast.success(`${COMMANDS[command]} sent to ${accounts.length} account(s).`, {
-    description: offline ? `${offline} account(s) EA offline — will run when the EA reconnects.` : undefined,
+  toast.success(tr("{cmd} sent to {n} account(s).", { cmd: tr(COMMANDS[command]), n: accounts.length }), {
+    description: offline ? tr("{n} account(s) EA offline — will run when the EA reconnects.", { n: offline }) : undefined,
   });
   return true;
 }
@@ -110,10 +111,11 @@ export const priceDigits = (p: number | null | undefined) => (p == null ? 2 : p 
 
 export function timeAgo(iso: string) {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
+  const ar = currentLang() === "ar";
+  if (s < 60) return ar ? "الآن" : "just now";
+  if (s < 3600) return ar ? `منذ ${Math.floor(s / 60)} د` : `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return ar ? `منذ ${Math.floor(s / 3600)} س` : `${Math.floor(s / 3600)}h ago`;
+  return ar ? `منذ ${Math.floor(s / 86400)} يوم` : `${Math.floor(s / 86400)}d ago`;
 }
 
 /** Validation for trade inputs, shared by the dashboard. Returns an error message or null. */
