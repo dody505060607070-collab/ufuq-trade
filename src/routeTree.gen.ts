@@ -30,6 +30,7 @@ import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WebAppInstallTriggerRouteImport } from './routes/web-app-install-trigger'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAnalysesRouteImport } from './routes/_authenticated/analyses'
 import { Route as AuthenticatedAutopilotRouteImport } from './routes/_authenticated/autopilot'
 import { Route as AuthenticatedBrainRouteImport } from './routes/_authenticated/brain'
 import { Route as AuthenticatedBrokersRouteImport } from './routes/_authenticated/brokers'
@@ -168,6 +169,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAnalysesRoute = AuthenticatedAnalysesRouteImport.update({
+  id: '/analyses',
+  path: '/analyses',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAutopilotRoute = AuthenticatedAutopilotRouteImport.update({
@@ -379,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/analyses': typeof AuthenticatedAnalysesRoute
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
   '/brokers': typeof AuthenticatedBrokersRoute
@@ -434,6 +441,7 @@ export interface FileRoutesByTo {
   '/verify-email': typeof VerifyEmailRoute
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/analyses': typeof AuthenticatedAnalysesRoute
   '/autopilot': typeof AuthenticatedAutopilotRoute
   '/brain': typeof AuthenticatedBrainRoute
   '/brokers': typeof AuthenticatedBrokersRoute
@@ -491,6 +499,7 @@ export interface FileRoutesById {
   '/web-app-install-trigger': typeof WebAppInstallTriggerRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/analyses': typeof AuthenticatedAnalysesRoute
   '/_authenticated/autopilot': typeof AuthenticatedAutopilotRoute
   '/_authenticated/brain': typeof AuthenticatedBrainRoute
   '/_authenticated/brokers': typeof AuthenticatedBrokersRoute
@@ -549,6 +558,7 @@ export interface FileRouteTypes {
     | '/web-app-install-trigger'
     | '/.well-known/oauth-protected-resource'
     | '/admin'
+    | '/analyses'
     | '/autopilot'
     | '/brain'
     | '/brokers'
@@ -604,6 +614,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/web-app-install-trigger'
     | '/.well-known/oauth-protected-resource'
+    | '/analyses'
     | '/autopilot'
     | '/brain'
     | '/brokers'
@@ -660,6 +671,7 @@ export interface FileRouteTypes {
     | '/web-app-install-trigger'
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
+    | '/_authenticated/analyses'
     | '/_authenticated/autopilot'
     | '/_authenticated/brain'
     | '/_authenticated/brokers'
@@ -869,6 +881,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analyses': {
+      id: '/_authenticated/analyses'
+      path: '/analyses'
+      fullPath: '/analyses'
+      preLoaderRoute: typeof AuthenticatedAnalysesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/autopilot': {
@@ -1182,6 +1201,7 @@ const AuthenticatedSettingsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedAnalysesRoute: typeof AuthenticatedAnalysesRoute
   AuthenticatedAutopilotRoute: typeof AuthenticatedAutopilotRoute
   AuthenticatedBrainRoute: typeof AuthenticatedBrainRoute
   AuthenticatedBrokersRoute: typeof AuthenticatedBrokersRoute
@@ -1199,6 +1219,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedAnalysesRoute: AuthenticatedAnalysesRoute,
   AuthenticatedAutopilotRoute: AuthenticatedAutopilotRoute,
   AuthenticatedBrainRoute: AuthenticatedBrainRoute,
   AuthenticatedBrokersRoute: AuthenticatedBrokersRoute,
