@@ -24,8 +24,8 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   // Only analyse for users with a live MT5 account (seen in the last 5 min) and auto trading on — saves AI calls.
   const liveSince = new Date(Date.now() - 5 * 60_000).toISOString();
   const { data: liveAccs } = all?.length
-    ? await db.from("trading_accounts").select("user_id").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
-    : { data: [] as { user_id: string }[] };
+    ? await db.from("trading_accounts").select("user_id,ai_provider").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
+    : { data: [] as { user_id: string; ai_provider: string }[] };
   const liveUsers = new Set((liveAccs ?? []).map((a) => a.user_id));
   const users = (all ?? []).filter((u) => liveUsers.has(u.user_id));
   if (!users.length) return { ok: true, users: 0, queued: 0 };
@@ -34,19 +34,21 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     await db.from("autopilot_events").insert(users.map((u) => ({ user_id: u.user_id, symbol: "-", action: "skipped", detail: QUIET_REASON })));
     return { ok: true, users: users.length, queued: 0, quiet: true };
   }
-  // One analysis per symbol/timeframe, shared by all users.
-  const pairs = [...new Set(users.flatMap((u) => u.symbols.map((s) => `${s}|${u.timeframe}`)))].slice(0, 12);
+  // One analysis per symbol/timeframe/AI provider, shared by all accounts using that provider.
+  const provsOf = (uid: string) => [...new Set((liveAccs ?? []).filter((a) => a.user_id === uid).map((a) => providerOf(a.ai_provider)))];
+  const pairs = [...new Set(users.flatMap((u) => provsOf(u.user_id).flatMap((p) => u.symbols.map((s) => analysisKey(s, u.timeframe, p)))))].slice(0, 16);
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
   const errors = new Map<string, string>();
   const news = new Map<string, boolean>();
   const owner = users[0]!.user_id;
   await Promise.all(pairs.map(async (k) => {
-    const [sym = "", tf = "H1"] = k.split("|");
+    const [sym = "", tf = "H1", pv] = k.split("|");
+    const prov = providerOf(pv);
     try {
-      let r = await getCached(db, sym, tf);
+      let r = await getCached(db, sym, tf, prov);
       if (!r) {
-        r = await runAI(db, sym, tf, null);
-        await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary });
+        r = await runAI(db, sym, tf, null, prov);
+        await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, provider: prov, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary });
       }
       results.set(k, r);
     } catch (e) { console.error("autopilot analysis", k, e); results.set(k, null); errors.set(k, e instanceof Error ? e.message : String(e)); }
