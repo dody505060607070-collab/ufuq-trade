@@ -113,6 +113,13 @@
       "when": 1793323459356,
       "tag": "0015_per_account_ai_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793368152837,
+      "tag": "0016_gemini_slow_mode",
+      "breakpoints": true
     }
   ]
 }

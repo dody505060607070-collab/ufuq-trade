@@ -45,14 +45,20 @@ export type Database = {
         Row: {
           calls: number
           day: string
+          slow_calls: number
+          slow_last: string | null
         }
         Insert: {
           calls?: number
           day: string
+          slow_calls?: number
+          slow_last?: string | null
         }
         Update: {
           calls?: number
           day?: string
+          slow_calls?: number
+          slow_last?: string | null
         }
         Relationships: []
       }
@@ -1759,6 +1765,7 @@ export type Database = {
         Returns: boolean
       }
       take_ai_call: { Args: { _cap: number }; Returns: boolean }
+      take_slow_ai_call: { Args: { _gap_min: number }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
