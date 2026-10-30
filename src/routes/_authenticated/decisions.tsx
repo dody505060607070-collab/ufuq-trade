@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Page } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useT, useAiText } from "@/lib/i18n";
+import { useT, useAiText, useI18n } from "@/lib/i18n";
 import { backtest, trendPullback, type BtResult } from "@/lib/backtest";
 import { getCandlesPublic } from "@/lib/market.functions";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ const TFS = ["M15", "H1", "H4"] as const;
 
 function Decisions() {
   const t = useT();
+  const ai = useAiText();
+  const { lang } = useI18n();
   const log = useQuery({ queryKey: ["decision_log"], refetchInterval: 30_000, queryFn: async () => (await supabase.from("decision_log").select("*").order("created_at", { ascending: false }).limit(100)).data ?? [] });
   const rows = log.data ?? [];
   const approved = rows.filter((r) => r.risk_verdict === "approved").length;

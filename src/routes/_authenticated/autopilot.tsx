@@ -30,6 +30,7 @@ const DEFAULTS: Settings = { enabled: false, symbols: ["XAUUSD", "EURUSD"], time
 
 function AutoPilot() {
   const t = useT();
+  const ai = useAiText();
   const { user } = useAuth();
   const qc = useQueryClient();
   const accounts = useAccounts();

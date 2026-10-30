@@ -16,6 +16,7 @@ function marketClosed(n: Date) {
 /** Top-of-dashboard strip: is MT5 connected, is Auto-Pilot on, what did it last decide, when is the next scan. */
 export function LiveStatusBar() {
   const t = useT();
+  const ai = useAiText();
   const { user } = useAuth();
   const accounts = useAccounts();
   const [now, setNow] = useState(() => Date.now());
