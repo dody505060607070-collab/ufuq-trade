@@ -24,6 +24,7 @@ type LastScan = { started_at: string; ended_at: string; assets: ScanRow[]; agent
 
 function Challenge() {
   const t = useT();
+  const ai = useAiText();
   const qc = useQueryClient();
   const stopFn = useServerFn(emergencyStopSim);
   const [busy, setBusy] = useState(false);
