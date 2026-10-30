@@ -50,15 +50,15 @@ export const SINGLE_AI_CALL = true;
 /** Off by user request (save Gemini credit for the whole month): real trades use one AI analysis; code risk checks still veto. */
 export const REAL_SECOND_CHECK = false;
 
-/** Thin-liquidity window (UTC hours, start inclusive → end exclusive): daily broker break + early Asian session.
- *  On the live account every Auto-Pilot trade opened here lost (5/5, -$91) while the rest won 9/10. */
-export const QUIET_START_UTC = 21;
-export const QUIET_END_UTC = 2;
+/** Thin-liquidity window (UTC hours, start inclusive → end exclusive): daily broker break + the hour the live losses clustered in (00 UTC: 3/3 lost).
+ *  Shortened from 21–02 to 22–01 by user request (5h was too long). */
+export const QUIET_START_UTC = 22;
+export const QUIET_END_UTC = 1;
 export function inQuietHours(d: Date): boolean {
   const h = d.getUTCHours();
   return QUIET_START_UTC > QUIET_END_UTC ? h >= QUIET_START_UTC || h < QUIET_END_UTC : h >= QUIET_START_UTC && h < QUIET_END_UTC;
 }
-export const QUIET_REASON = `Thin market hours (${QUIET_START_UTC}:00–0${QUIET_END_UTC}:00 UTC): no new trades — every past trade opened here lost`;
+export const QUIET_REASON = `Thin market hours (${QUIET_START_UTC}:00–0${QUIET_END_UTC}:00 UTC): no new trades — past trades opened here lost`;
 
 /** A repeat on the same symbol is blocked only if it is the SAME setup: same side, within this window, stop within half a stop-distance. */
 export const REPEAT_WINDOW_MINUTES = 30;
