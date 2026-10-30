@@ -60,6 +60,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   const atrs = new Map<string, number>(); const sources = new Map<string, string>();
   for (const k of results.keys()) {
     const [sym, tf] = k.split("|") as [string, string];
+    if (sources.has(sym)) continue;
     const bc = await brokerCandles(db, sym, tf, 20).catch(() => null);
     sources.set(sym, bc ? "broker" : "yahoo");
     if (bc) { let t = 0; for (let i = 1; i < bc.length; i++) t += Math.max(bc[i]!.h - bc[i]!.l, Math.abs(bc[i]!.h - bc[i - 1]!.c), Math.abs(bc[i]!.l - bc[i - 1]!.c)); atrs.set(sym, t / (bc.length - 1)); }
@@ -69,7 +70,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   let queued = 0;
   for (const u of users) {
     const log = (symbol: string, action: string, detail: string) => db.from("autopilot_events").insert({ user_id: u.user_id, symbol, action, detail });
-    const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity").eq("user_id", u.user_id).eq("auto_trading", true);
+    const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity,ai_provider").eq("user_id", u.user_id).eq("auto_trading", true);
     const live = (accounts ?? []).filter((a) => a.last_seen_at && Date.now() - new Date(a.last_seen_at).getTime() < 5 * 60_000);
     if (!live.length) { await log("-", "skipped", "No connected account with auto trading on"); continue; }
     const ids = live.map((a) => a.id);
