@@ -1,6 +1,6 @@
 import { skipReason, tradeLot, REAL_SECOND_CHECK, LOSS_LOCK_MINUTES, isSameSetup, inQuietHours, QUIET_REASON } from "@/lib/autopilot";
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
-import { providerOf, analysisKey, providerLabel } from "@/lib/ai-provider";
+import { providerOf, analysisKey, providerLabel, OPENAI_MIN_CONFIDENCE } from "@/lib/ai-provider";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -40,15 +40,29 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   const pairs = [...new Set(users.flatMap((u) => provsOf(u.user_id).flatMap((p) => u.symbols.map((s) => analysisKey(s, u.timeframe, p)))))].slice(0, 16);
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
   const errors = new Map<string, string>();
+  const waits = new Map<string, string>();
   const news = new Map<string, boolean>();
   const owner = users[0]!.user_id;
+  // Slow mode: once today's Gemini budget is used, analyse one Gemini symbol per SLOW_MODE_MINUTES (oldest analysis first) instead of stopping.
+  const { geminiBudgetUsed } = await import("@/lib/ai-budget.server");
+  const { pickSlowPair, SLOW_MODE_MINUTES } = await import("@/lib/signal-guard");
+  const slow = pairs.some((k) => k.endsWith("|gemini")) && (await geminiBudgetUsed());
+  let slowPick: string | null = null;
+  if (slow) {
+    const gem = pairs.filter((k) => k.endsWith("|gemini"));
+    const { data: recent } = await db.from("analyses").select("symbol,timeframe,created_at").eq("provider", "gemini").gte("created_at", new Date(Date.now() - 86400_000).toISOString()).order("created_at", { ascending: false }).limit(200);
+    const lastAt: Record<string, number> = {};
+    for (const a of recent ?? []) { const k = analysisKey(a.symbol, a.timeframe, "gemini"); lastAt[k] ??= new Date(a.created_at).getTime(); }
+    slowPick = pickSlowPair(gem, lastAt);
+  }
   await Promise.all(pairs.map(async (k) => {
     const [sym = "", tf = "H1", pv] = k.split("|");
     const prov = providerOf(pv);
     try {
       let r = await getCached(db, sym, tf, prov);
+      if (!r && slow && prov === "gemini" && k !== slowPick) { waits.set(k, `Daily Gemini budget used — slow mode: one analysis every ${SLOW_MODE_MINUTES} min, ${slowPick?.split("|")[0] ?? "another symbol"} goes first`); return; }
       if (!r) {
-        r = await runAI(db, sym, tf, null, prov);
+        r = await runAI(db, sym, tf, null, prov, { slow: slow && prov === "gemini" });
         await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, provider: prov, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary });
       }
       results.set(k, r);
@@ -93,6 +107,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       const key = analysisKey(sym, u.timeframe, prov);
       const tag = `[${providerLabel(prov)}] `;
       const r = results.get(key);
+      if (!r && waits.has(key)) { await log(sym, "skipped", `${tag}${waits.get(key)}`); continue; }
       if (!r) { await log(sym, "error", `${tag}Analysis unavailable: ${errors.get(key) ?? "unknown error"}`); continue; }
       const rows = [];
       let reason = "";
@@ -107,7 +122,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           quietHours: inQuietHours(new Date()),
           lostSameSide: (() => { const t = (closedToday ?? []).find((x) => x.account_id === acc.id && String(x.symbol).toUpperCase().startsWith(sym.toUpperCase())); return !!t && Number(t.profit ?? 0) < 0 && t.side === r.direction && Date.now() - new Date(t.closed_at as string).getTime() < LOSS_LOCK_MINUTES * 60_000; })(),
         };
-        const why = skipReason(r, u, st);
+        const why = skipReason(r, prov === "openai" ? { ...u, min_confidence: Math.min(Number(u.min_confidence), OPENAI_MIN_CONFIDENCE) } : u, st);
         const q = quotes.find((x) => x.account_id === acc.id && x.symbol === sym);
         const a = acc as { id: string; balance?: number | null };
         // Market orders fill at the broker price: shift entry/SL/TP to it, keeping the same distances (same risk & RR).
@@ -128,7 +143,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         let v = checks.get(key);
         if (!v) { v = REAL_SECOND_CHECK && prov === "gemini" ? await verifyTrade(sym, u.timeframe, r, live0 ?? null) : { agree: true, confidence: r.confidence, reason: "single analysis" }; checks.set(key, v); }
         const combined = Math.round((r.confidence + v.confidence) / 2);
-        if (!v.agree || combined < Math.max(MIN_CONFIDENCE_FLOOR, Number(u.min_confidence))) {
+        if (!v.agree || combined < Math.max(MIN_CONFIDENCE_FLOOR, prov === "openai" ? Math.min(Number(u.min_confidence), OPENAI_MIN_CONFIDENCE) : Number(u.min_confidence))) {
           reason = `Second AI check said no (${v.confidence}%, combined ${combined}%): ${v.reason}`;
           await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "rejected", risk_reason: reason.slice(0, 300) });
           continue;
