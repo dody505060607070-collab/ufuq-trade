@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Page } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useT } from "@/lib/i18n";
+import { useT, useAiText } from "@/lib/i18n";
 import { challengeProgress, drawdownPct } from "@/lib/challenge";
 import { emergencyStopSim } from "@/lib/sim.functions";
 import { riskAdjusted } from "@/lib/evidence";
@@ -167,7 +167,7 @@ function Challenge() {
             <tr key={e.id} className="border-t border-border">
               <td className="p-3 whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</td>
               <td className="p-3">{t(e.action)}</td>
-              <td className="p-3 text-muted-foreground">{e.detail}</td>
+              <td className="p-3 text-muted-foreground">{ai(e.detail)}</td>
             </tr>
           ))}
           {!events.data?.length && <tr><td className="p-4 text-muted-foreground">{t("No decisions yet.")}</td></tr>}
