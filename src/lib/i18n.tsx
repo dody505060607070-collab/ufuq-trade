@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { AR } from "@/i18n";
+import { toArabic } from "@/lib/msg-ar";
 
 export type Lang = "en" | "ar";
 const KEY = "arrissa-lang";
@@ -30,6 +31,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 export const useI18n = () => useContext(I18nContext);
 export const useT = () => useContext(I18nContext).t;
+
+/** Text written by the engine or the AI: in Arabic shows the stored Arabic copy, else the engine-message translation. */
+export function useAiText() {
+  const { lang } = useContext(I18nContext);
+  return useCallback((en: string | null | undefined, ar?: string | null) => (lang === "ar" ? ar || toArabic(en) : en ?? ""), [lang]);
+}
 
 export function LanguageToggle({ className }: { className?: string }) {
   const { lang, setLang } = useI18n();
