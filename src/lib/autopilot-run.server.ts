@@ -63,7 +63,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       if (!r && slow && prov === "gemini" && k !== slowPick) { waits.set(k, `Daily Gemini budget used — slow mode: one analysis every ${SLOW_MODE_MINUTES} min, ${slowPick?.split("|")[0] ?? "another symbol"} goes first`); return; }
       if (!r) {
         r = await runAI(db, sym, tf, null, prov, { slow: slow && prov === "gemini" });
-        await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, provider: prov, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary });
+        await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, provider: prov, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary, summary_ar: r.summary_ar ?? null });
       }
       results.set(k, r);
     } catch (e) {

@@ -191,7 +191,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
       // Agent 1 (AI part): Gemini must propose the same direction with levels.
       let ai = await getCached(db, r.symbol, r.tradeTf).catch(() => null);
       if (!ai) {
-        try { ai = await runAI(db, r.symbol, r.tradeTf, null); await db.from("analyses").insert({ user_id: c.user_id, symbol: r.symbol, timeframe: r.tradeTf, direction: ai.direction, confidence: Math.round(ai.confidence), entry: ai.entry, stop_loss: ai.stop_loss, take_profit: ai.take_profit, summary: ai.summary }); }
+        try { ai = await runAI(db, r.symbol, r.tradeTf, null); await db.from("analyses").insert({ user_id: c.user_id, symbol: r.symbol, timeframe: r.tradeTf, direction: ai.direction, confidence: Math.round(ai.confidence), entry: ai.entry, stop_loss: ai.stop_loss, take_profit: ai.take_profit, summary: ai.summary, summary_ar: ai.summary_ar ?? null }); }
         catch (e) { scanner.ai = `unavailable: ${(e as Error).message}`; agents.scanner = "AI unavailable"; await record("error", {}); await log("error", `${r.symbol}: scanner AI unavailable — ${(e as Error).message}`); continue; }
       }
       scanner.ai = { direction: ai.direction, confidence: ai.confidence, entry: ai.entry, stop: ai.stop_loss, target: ai.take_profit, summary: ai.summary.slice(0, 400) };

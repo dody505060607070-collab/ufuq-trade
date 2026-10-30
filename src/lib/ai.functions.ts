@@ -19,7 +19,7 @@ export const analyzeMarket = createServerFn({ method: "POST" })
     r ??= await runAI(context.supabase, data.symbol, data.timeframe, data.price);
     const { data: row, error } = await context.supabase
       .from("analyses")
-      .insert({ user_id: context.userId, symbol: data.symbol, timeframe: data.timeframe, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary })
+      .insert({ user_id: context.userId, symbol: data.symbol, timeframe: data.timeframe, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary, summary_ar: r.summary_ar ?? null })
       .select()
       .single();
     if (error) throw new Error("Could not save analysis.");
