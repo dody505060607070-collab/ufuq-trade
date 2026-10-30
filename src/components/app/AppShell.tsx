@@ -21,6 +21,7 @@ const nav = [
   { to: "/challenge", label: "$100 to $1M Demo Challenge", icon: Trophy },
   { to: "/brain", label: "AI Brain", icon: Brain },
   { to: "/whales", label: "Whale Radar", icon: Radar },
+  { to: "/analyses", label: "AI Analyses", icon: Sparkles },
   { to: "/decisions", label: "Decisions & Backtest", icon: FlaskConical },
   { to: "/platforms", label: "Connected Platforms", icon: Layers },
   { to: "/brokers", label: "Brokers", icon: Landmark },
