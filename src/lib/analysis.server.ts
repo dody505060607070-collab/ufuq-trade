@@ -11,6 +11,7 @@ import { memoryText } from "./profitlock";
 import { brainContext, hindsightContext } from "./brain.server";
 import { newsSentiment, sentimentText } from "./sentiment";
 import { mtfConflict, mtfText, isSplitTrade, SPLIT_MIN_CONFIDENCE, type MtfTrends } from "./mtf";
+import { OPENAI_MODEL, type AiProvider } from "./ai-provider";
 
 type DB = SupabaseClient<Database>;
 export type Levels = { direction: "buy" | "sell" | "neutral"; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null; summary: string };
@@ -29,13 +30,13 @@ const resultSchema = z.object({
 const INSTRUCTIONS =
   `You are a trading desk of eight experts reasoning in one pass: (0) Forecaster - before anything else, projects the most likely path of the next 3-6 candles from momentum, structure, liquidity targets and the last candle pattern, and states it in the summary; (1) Technical analyst - reads the pre-computed indicators (trend, EMA10/50/200, RSI14, MACD, ATR14, swing levels) and candles; (2) Bull researcher - strongest case to buy; (3) Bear researcher - strongest case to sell and what invalidates the bull case; (4) Smart-money analyst - reads the pre-computed ICT/SMC context (structure BOS/CHoCH, premium/discount, unfilled FVGs, order blocks, liquidity sweeps, kill zone) and favours entries at a discount FVG/order block in a bullish structure (or premium in bearish), except in MOMENTUM MODE where trading with the move from premium/discount is allowed; (5) Price-action trader - confirms the entry with the last candle pattern (engulfing/pin bar), displacement, equal-high/low liquidity pools and the daily bias with previous-day high/low, preferring trades in the daily direction; (6) Whale tracker - weighs big-money positioning (CFTC speculators) and the desk's own learned rules, never trading against a rule seen 3+ times without strong confirmation; (7) Risk manager - protect capital first; trade in the direction of H1/H4 when they agree with each other. An M15 move against H1/H4 is a PULLBACK, not a conflict: an M15 rally into premium/resistance inside an H1+H4 downtrend is a sell setup, an M15 dip into discount/support inside an H1+H4 uptrend is a buy setup. When H1 and H4 disagree (SPLIT MODE) do not stop there: M15 trending with one of them is itself the confirmation - trade in the M15 direction toward the forecast move with confidence 70+ (if M15 is ranging, trade only a pullback-breakout or reversal candle). If M15 and H1 agree and ADX >= 40, trade with H1 even if H4 still lags, confidence 65-75. Your job is to find the best trade, not to wait: always commit to the more likely side when the evidence leans one way. Place the stop beyond the nearest swing level, between ${STOP_ATR_MIN} and ${STOP_ATR_MAX} ATR from entry, and the target at least ${MIN_RR}x the stop distance; these rules are re-checked in code and any trade that breaks them is rejected. For XAUUSD weight USD drivers heavily (Fed, CPI, NFP, yields, risk sentiment). For USOIL weight the weekly EIA crude inventories (Wednesday), OPEC+ decisions, USD and risk sentiment. Desk pitfalls to avoid: big-money (COT) positioning is a weekly snapshot, not a prediction - use it only when price action agrees; a pullback entry is the level HOLDING (rejection wick or close back above support / below resistance), not the first touch; outside MOMENTUM MODE do not chase a candle that closes more than 2 ATR away from EMA10; a correct macro view is not a trade without a trigger inside the next 3-6 candles; if the reason for the trade is no longer true, say so instead of defending it. Trust the computed indicator numbers over your own estimates. Confidence reflects agreement between trend, momentum and news: high only when they align. Return ONLY a JSON object with keys: direction (buy|sell|neutral), confidence (0-100 integer), entry (number or null), stop_loss (number or null), take_profit (number or null), summary (max 5 sentences: verdict, bull vs bear key point, key levels, upcoming USD events, risk). Entry must be near the current price. For buy: stop_loss < entry < take_profit. For sell: take_profit < entry < stop_loss. Never return neutral when the prompt says MOMENTUM MODE ACTIVE unless there is a clear reversal candle, imminent high-impact news or missing data. Otherwise return neutral only when M15 trends against both H1 and H4, price is in the middle of a range with no level nearby and no setup, a high-impact event is within 30 minutes, or data is missing. When you return neutral, the first sentence of the summary must say exactly why and what would trigger a trade. If no price data is available, return null levels.`;
 
-/** Latest shared analysis of this symbol/timeframe from any user within the cache window. */
-export async function getCached(admin: DB, symbol: string, timeframe: string) {
+/** Latest shared analysis of this symbol/timeframe (by the same AI provider) within the cache window. */
+export async function getCached(admin: DB, symbol: string, timeframe: string, provider: AiProvider = "gemini") {
   const since = new Date(Date.now() - CACHE_MINUTES * 60_000).toISOString();
   const { data } = await admin
     .from("analyses")
     .select("direction,confidence,entry,stop_loss,take_profit,summary")
-    .eq("symbol", symbol).eq("timeframe", timeframe).gte("created_at", since)
+    .eq("symbol", symbol).eq("timeframe", timeframe).eq("provider", provider).gte("created_at", since)
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
   return data ? ({ ...data, direction: data.direction as Levels["direction"], confidence: data.confidence ?? 0, summary: data.summary ?? "" } as Levels) : null;
 }
@@ -51,8 +52,8 @@ export async function brokerCandles(db: DB, symbol: string, timeframe: string, l
   return rows.length >= 30 ? rows.map((r) => ({ t: r.t, o: r.o, h: r.h, l: r.l, c: r.c })) : null;
 }
 
-/** Fresh AI analysis from live candles, calendar and headlines. */
-export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null): Promise<Levels> {
+/** Fresh AI analysis from live candles, calendar and headlines. provider picks Gemini (default) or ChatGPT. */
+export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null, provider: AiProvider = "gemini"): Promise<Levels> {
   const [, { data: inst }] = await Promise.all([
     db.from("ai_models").select("model_id").eq("is_default", true).eq("is_active", true).maybeSingle(),
     db.from("instruments").select("name,yahoo_symbol").eq("symbol", symbol).maybeSingle(),
@@ -88,11 +89,18 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
   const snap = snapshot(candles);
   const prompt = `Instrument: ${symbol} (${inst?.name ?? ""})\nTimeframe: ${timeframe}\nCurrent price: ${price ?? "unknown"}\nDate (UTC): ${new Date().toISOString()}\n\nComputed indicators:\n${snap ? snapshotText(snap, dec) : "unavailable"}\n\nSmart-money (ICT) context:\n${ictText(candles, dec)}\n\nMulti-timeframe trends:\n${mtfText(mtf, snap?.adx14 ?? null)}\n\nPrice action & higher timeframe:\n${priceActionText(candles, daily, dec)}\n\nRecent ${timeframe} candles (UTC):\n${candleText || "unavailable"}\n\nEconomic calendar (±3 days, medium/high impact):\n${calStatus.ok ? events || "none in window" : "FAILED TO LOAD — treat upcoming news risk as unknown"}\n\nLatest headlines:\n${heads || "none"}\n\nTrade memory (our own recent closed ${symbol} trades — learn from them; if recent trades in one direction lost, demand stronger confirmation before repeating it):\n${memoryText(past)}\n\nBig-money positioning:\n${brain.whale}\n\nLearned rules from our past trades (confirmed 3+ times):\n${brain.rules}\n\nLessons from our last real trades (newest first — do not repeat a setup that just lost; losses cost more than wins earn):\n${brain.lessons}\n\nHindsight — what price did after our recent analyses, including ones we skipped (correlate and learn):\n${hindsight}\n\nProvide your directional analysis as json.`;
 
-  // Gemini first, Radox AI as backup — no Lovable AI fallback.
-  const geminiKey = process.env["GEMINI_API_KEY"] ?? "";
-  if (!geminiKey && !process.env["RADOX_API_KEY"]) throw new Error("Gemini API key is not configured.");
-  const text = await callGemini(geminiKey, prompt);
-  if (!text) throw new Error(lastGeminiError ?? "Gemini analysis failed. Please try again.");
+  let text: string | null;
+  if (provider === "openai") {
+    // ChatGPT accounts: the user's own OpenAI key only — no Gemini or Lovable AI fallback, so the comparison stays clean.
+    text = await callOpenAI(prompt);
+    if (!text) throw new Error(lastOpenAIError ?? "ChatGPT analysis failed. Please try again.");
+  } else {
+    // Gemini first, Radox AI as backup — no Lovable AI fallback.
+    const geminiKey = process.env["GEMINI_API_KEY"] ?? "";
+    if (!geminiKey && !process.env["RADOX_API_KEY"]) throw new Error("Gemini API key is not configured.");
+    text = await callGemini(geminiKey, prompt);
+    if (!text) throw new Error(lastGeminiError ?? "Gemini analysis failed. Please try again.");
+  }
   const match = text.match(/\{[\s\S]*\}/);
   let json: unknown = null;
   try { json = match ? JSON.parse(match[0]) : null; } catch { json = null; }
@@ -181,6 +189,38 @@ async function callRadox(prompt: string, system: string): Promise<string | null>
 
 /** Reason of the most recent failed Gemini call in this worker (null after a success). */
 export let lastGeminiError: string | null = null;
+/** Reason of the most recent failed ChatGPT call in this worker (null after a success). */
+export let lastOpenAIError: string | null = null;
+
+/** One ChatGPT call with the user's own OPENAI_API_KEY (not counted against the Gemini daily budget). */
+export async function callOpenAI(prompt: string, system = INSTRUCTIONS): Promise<string | null> {
+  const key = process.env["OPENAI_API_KEY"];
+  if (!key) { lastOpenAIError = "ChatGPT API key is not configured (OPENAI_API_KEY)"; return null; }
+  const model = process.env["OPENAI_MODEL"] || OPENAI_MODEL;
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: prompt }] }),
+    });
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 300);
+      console.error("OpenAI failed", res.status, body);
+      lastOpenAIError = res.status === 401 ? "ChatGPT API key rejected — check OPENAI_API_KEY"
+        : res.status === 429 ? (/quota|billing/i.test(body) ? "ChatGPT credit is used up — top up billing on platform.openai.com" : "ChatGPT rate limit — will retry next cycle")
+        : res.status === 404 ? `ChatGPT model ${model} is not available on this key`
+        : `ChatGPT error ${res.status}`;
+      return null;
+    }
+    lastOpenAIError = null;
+    const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    return j.choices?.[0]?.message?.content || null;
+  } catch (e) {
+    lastOpenAIError = "ChatGPT unreachable";
+    console.error("OpenAI error", e);
+    return null;
+  }
+}
 
 export async function callLovable(modelId: string, prompt: string): Promise<string> {
   const apiKey = process.env["LOVABLE_API_KEY"];

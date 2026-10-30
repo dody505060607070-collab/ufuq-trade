@@ -133,6 +133,12 @@ function AccountRow({ a }: { a: Account }) {
       <div className="mt-3 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2"><span className="text-muted-foreground">{t("Default lot")}</span><Input value={lot} onChange={(e) => setLot(e.target.value)} className="h-8 w-20 rounded-full" /><Button size="sm" variant="secondary" className="rounded-full" onClick={() => { const v = Number(lot); if (!(v >= 0.01 && v <= 100)) return toast.error(t("Lot must be 0.01–100.")); void update({ lot_size: v }, t("Lot size saved.")); }}>{t("Save")}</Button></div>
         <label className="flex items-center gap-2"><Switch checked={a.auto_trading} onCheckedChange={(v) => update({ auto_trading: v }, v ? t("Auto trading enabled.") : t("Auto trading disabled."))} />  {t("Auto-trade platform signals")}</label>
+        <div className="flex items-center gap-1 rounded-full bg-muted/40 p-1" role="group" aria-label={t("AI for this account")}>
+          <span className="px-2 text-xs text-muted-foreground">{t("AI for this account")}</span>
+          {(["gemini", "openai"] as const).map((p) => (
+            <Button key={p} size="sm" variant={a.ai_provider === p ? "default" : "ghost"} className="h-7 rounded-full" onClick={() => a.ai_provider !== p && update({ ai_provider: p }, t("AI saved for this account."))}>{p === "openai" ? "ChatGPT" : "Gemini"}</Button>
+          ))}
+        </div>
         <Button size="sm" variant="ghost" className="ms-auto text-destructive" onClick={remove}><Trash2 />  {t("Disconnect")}</Button>
       </div>
     </div>

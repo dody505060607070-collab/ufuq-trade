@@ -1,5 +1,6 @@
 import { skipReason, tradeLot, REAL_SECOND_CHECK, LOSS_LOCK_MINUTES, isSameSetup, inQuietHours, QUIET_REASON } from "@/lib/autopilot";
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
+import { providerOf, analysisKey, providerLabel } from "@/lib/ai-provider";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -24,8 +25,8 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   // Only analyse for users with a live MT5 account (seen in the last 5 min) and auto trading on — saves AI calls.
   const liveSince = new Date(Date.now() - 5 * 60_000).toISOString();
   const { data: liveAccs } = all?.length
-    ? await db.from("trading_accounts").select("user_id").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
-    : { data: [] as { user_id: string }[] };
+    ? await db.from("trading_accounts").select("user_id,ai_provider").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
+    : { data: [] as { user_id: string; ai_provider: string }[] };
   const liveUsers = new Set((liveAccs ?? []).map((a) => a.user_id));
   const users = (all ?? []).filter((u) => liveUsers.has(u.user_id));
   if (!users.length) return { ok: true, users: 0, queued: 0 };
@@ -34,19 +35,21 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     await db.from("autopilot_events").insert(users.map((u) => ({ user_id: u.user_id, symbol: "-", action: "skipped", detail: QUIET_REASON })));
     return { ok: true, users: users.length, queued: 0, quiet: true };
   }
-  // One analysis per symbol/timeframe, shared by all users.
-  const pairs = [...new Set(users.flatMap((u) => u.symbols.map((s) => `${s}|${u.timeframe}`)))].slice(0, 12);
+  // One analysis per symbol/timeframe/AI provider, shared by all accounts using that provider.
+  const provsOf = (uid: string) => [...new Set((liveAccs ?? []).filter((a) => a.user_id === uid).map((a) => providerOf(a.ai_provider)))];
+  const pairs = [...new Set(users.flatMap((u) => provsOf(u.user_id).flatMap((p) => u.symbols.map((s) => analysisKey(s, u.timeframe, p)))))].slice(0, 16);
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
   const errors = new Map<string, string>();
   const news = new Map<string, boolean>();
   const owner = users[0]!.user_id;
   await Promise.all(pairs.map(async (k) => {
-    const [sym = "", tf = "H1"] = k.split("|");
+    const [sym = "", tf = "H1", pv] = k.split("|");
+    const prov = providerOf(pv);
     try {
-      let r = await getCached(db, sym, tf);
+      let r = await getCached(db, sym, tf, prov);
       if (!r) {
-        r = await runAI(db, sym, tf, null);
-        await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary });
+        r = await runAI(db, sym, tf, null, prov);
+        await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, provider: prov, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary });
       }
       results.set(k, r);
     } catch (e) { console.error("autopilot analysis", k, e); results.set(k, null); errors.set(k, e instanceof Error ? e.message : String(e)); }
@@ -58,6 +61,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   const atrs = new Map<string, number>(); const sources = new Map<string, string>();
   for (const k of results.keys()) {
     const [sym, tf] = k.split("|") as [string, string];
+    if (sources.has(sym)) continue;
     const bc = await brokerCandles(db, sym, tf, 20).catch(() => null);
     sources.set(sym, bc ? "broker" : "yahoo");
     if (bc) { let t = 0; for (let i = 1; i < bc.length; i++) t += Math.max(bc[i]!.h - bc[i]!.l, Math.abs(bc[i]!.h - bc[i - 1]!.c), Math.abs(bc[i]!.l - bc[i - 1]!.c)); atrs.set(sym, t / (bc.length - 1)); }
@@ -67,7 +71,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   let queued = 0;
   for (const u of users) {
     const log = (symbol: string, action: string, detail: string) => db.from("autopilot_events").insert({ user_id: u.user_id, symbol, action, detail });
-    const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity").eq("user_id", u.user_id).eq("auto_trading", true);
+    const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity,ai_provider").eq("user_id", u.user_id).eq("auto_trading", true);
     const live = (accounts ?? []).filter((a) => a.last_seen_at && Date.now() - new Date(a.last_seen_at).getTime() < 5 * 60_000);
     if (!live.length) { await log("-", "skipped", "No connected account with auto trading on"); continue; }
     const ids = live.map((a) => a.id);
@@ -83,12 +87,16 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     const { data: qrows } = await db.from("broker_quotes").select("*").in("account_id", ids);
     const quotes = qrows ?? [];
     const auto = (cmds ?? []).filter((c) => (c.payload as { autopilot?: boolean })?.autopilot);
-    for (const sym of u.symbols) {
-      const r = results.get(`${sym}|${u.timeframe}`);
-      if (!r) { await log(sym, "error", `Analysis unavailable: ${errors.get(`${sym}|${u.timeframe}`) ?? "unknown error"}`); continue; }
+    // Each account trades on the analysis of its own AI (Gemini or ChatGPT).
+    const groups = [...new Set(live.map((a) => providerOf(a.ai_provider)))].map((p) => ({ prov: p, accs: live.filter((a) => providerOf(a.ai_provider) === p) }));
+    for (const sym of u.symbols) for (const { prov, accs } of groups) {
+      const key = analysisKey(sym, u.timeframe, prov);
+      const tag = `[${providerLabel(prov)}] `;
+      const r = results.get(key);
+      if (!r) { await log(sym, "error", `${tag}Analysis unavailable: ${errors.get(key) ?? "unknown error"}`); continue; }
       const rows = [];
       let reason = "";
-      for (const acc of live) {
+      for (const acc of accs) {
         const st = {
           openTotal: (open ?? []).filter((t) => t.account_id === acc.id).length,
           openOnSymbol: (open ?? []).filter((t) => t.account_id === acc.id && t.symbol.toUpperCase().startsWith(sym.toUpperCase())).length,
@@ -114,25 +122,25 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           maxDailyLossPct: Number(u.max_daily_loss_pct ?? 5), maxRiskPct: Number(u.max_risk_pct ?? 5),
           quoteAgeSec: q?.updated_at ? (Date.now() - new Date(q.updated_at).getTime()) / 1000 : null,
         });
-        if (!verdict.allow) await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: verdict.allow ? "approved" : "rejected", risk_reason: verdict.reason });
+        if (!verdict.allow) await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: verdict.allow ? "approved" : "rejected", risk_reason: verdict.reason });
         if (!verdict.allow) { reason = verdict.reason; continue; }
-        // Second opinion: an independent AI check must agree, and the average confidence must stay above the floor.
-        let v = checks.get(sym);
-        if (!v) { v = REAL_SECOND_CHECK ? await verifyTrade(sym, u.timeframe, r, live0 ?? null) : { agree: true, confidence: r.confidence, reason: "single analysis" }; checks.set(sym, v); }
+        // Second opinion (off by default): an independent AI check must agree, and the average confidence must stay above the floor.
+        let v = checks.get(key);
+        if (!v) { v = REAL_SECOND_CHECK && prov === "gemini" ? await verifyTrade(sym, u.timeframe, r, live0 ?? null) : { agree: true, confidence: r.confidence, reason: "single analysis" }; checks.set(key, v); }
         const combined = Math.round((r.confidence + v.confidence) / 2);
         if (!v.agree || combined < Math.max(MIN_CONFIDENCE_FLOOR, Number(u.min_confidence))) {
           reason = `Second AI check said no (${v.confidence}%, combined ${combined}%): ${v.reason}`;
-          await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "rejected", risk_reason: reason.slice(0, 300) });
+          await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "rejected", risk_reason: reason.slice(0, 300) });
           continue;
         }
-        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: v.reason.startsWith("skipped") || v.reason === "single analysis" ? `Approved by AI ${r.confidence}% + code risk checks (${v.reason})` : `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
-        rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot, sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true } });
+        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: v.reason.startsWith("skipped") || v.reason === "single analysis" ? `Approved by ${providerLabel(prov)} ${r.confidence}% + code risk checks (${v.reason})` : `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
+        rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot, sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true, ai_provider: prov } });
       }
       if (rows.length) {
         await db.from("trade_commands").insert(rows);
         queued += rows.length;
-        await log(sym, "opened", `${r.direction.toUpperCase()} ${u.lot_size} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}`);
-      } else await log(sym, "skipped", `${r.direction.toUpperCase()} ${r.confidence}% — ${reason}`);
+        await log(sym, "opened", `${tag}${r.direction.toUpperCase()} ${u.lot_size} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}`);
+      } else await log(sym, "skipped", `${tag}${r.direction.toUpperCase()} ${r.confidence}% — ${reason}`);
     }
   }
   return { ok: true, users: users.length, queued };

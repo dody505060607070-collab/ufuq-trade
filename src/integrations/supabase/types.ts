@@ -63,6 +63,7 @@ export type Database = {
           direction: string
           entry: number | null
           id: string
+          provider: string
           shared: boolean
           stop_loss: number | null
           summary: string | null
@@ -77,6 +78,7 @@ export type Database = {
           direction: string
           entry?: number | null
           id?: string
+          provider?: string
           shared?: boolean
           stop_loss?: number | null
           summary?: string | null
@@ -91,6 +93,7 @@ export type Database = {
           direction?: string
           entry?: number | null
           id?: string
+          provider?: string
           shared?: boolean
           stop_loss?: number | null
           summary?: string | null
@@ -487,6 +490,7 @@ export type Database = {
           account_id: string | null
           ai_confidence: number | null
           ai_direction: string | null
+          ai_provider: string | null
           command_id: string | null
           created_at: string
           data_source: string | null
@@ -511,6 +515,7 @@ export type Database = {
           account_id?: string | null
           ai_confidence?: number | null
           ai_direction?: string | null
+          ai_provider?: string | null
           command_id?: string | null
           created_at?: string
           data_source?: string | null
@@ -535,6 +540,7 @@ export type Database = {
           account_id?: string | null
           ai_confidence?: number | null
           ai_direction?: string | null
+          ai_provider?: string | null
           command_id?: string | null
           created_at?: string
           data_source?: string | null
@@ -1471,6 +1477,7 @@ export type Database = {
       }
       trading_accounts: {
         Row: {
+          ai_provider: string
           auto_trading: boolean
           balance: number | null
           broker_name: string | null
@@ -1498,6 +1505,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_provider?: string
           auto_trading?: boolean
           balance?: number | null
           broker_name?: string | null
@@ -1525,6 +1533,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          ai_provider?: string
           auto_trading?: boolean
           balance?: number | null
           broker_name?: string | null
