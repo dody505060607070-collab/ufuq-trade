@@ -192,6 +192,7 @@ type Dec = { id: string; symbol: string; timeframe: string; direction: string; o
 type Rev = { id: string; symbol: string; timeframe: string | null; profit: number; r_multiple: number; process_score: number; outcome_class: string; followed_plan: boolean; lessons: unknown; strategy_version: string | null };
 function AgentReports({ dec, reviews }: { dec: Dec[]; reviews: Rev[] }) {
   const t = useT();
+  const ai = useAiText();
   const graded = dec.filter((d) => d.hindsight && d.hindsight !== "neither hit in 24h");
   const acc = graded.filter((d) => d.outcome === "opened"), rej = graded.filter((d) => d.outcome !== "opened");
   const tpRate = (a: Dec[]) => a.length ? `${Math.round((a.filter((d) => d.hindsight === "tp_first").length / a.length) * 100)}% (${a.length})` : "—";
@@ -217,10 +218,10 @@ function AgentReports({ dec, reviews }: { dec: Dec[]; reviews: Rev[] }) {
             const cl = d.checklist as { q: string; ok: boolean | null; note: string }[] | null;
             return (
               <details key={d.id} className="rounded-lg border border-border p-3 text-sm">
-                <summary className="cursor-pointer">{new Date(d.created_at).toLocaleString()} · <b>{d.symbol}</b> {d.timeframe} {d.direction.toUpperCase()} · {t(d.outcome)}{d.hindsight ? ` · ${t("hindsight")}: ${d.hindsight}` : ""}</summary>
+                <summary className="cursor-pointer">{new Date(d.created_at).toLocaleString()} · <b>{d.symbol}</b> {d.timeframe} {t(d.direction.toUpperCase())} · {t(d.outcome)}{d.hindsight ? ` · ${t("hindsight")}: ${t(d.hindsight)}` : ""}</summary>
                 {ev?.tools && <div className="mt-2"><div className="font-medium">{t("Tools")}</div>{ev.tools.map((x) => <div key={x.name} className={cn("text-xs", !x.used && "text-muted-foreground")}>{x.used ? "✓" : "—"} {x.name}: {x.used ? x.result : x.why}</div>)}</div>}
                 {db && <div className="mt-2 grid gap-2 md:grid-cols-2"><div><div className="font-medium text-success">{t("Bull researcher")}</div>{(db.bull ?? []).map((x) => <div key={x} className="text-xs">• {x}</div>)}</div><div><div className="font-medium text-destructive">{t("Bear researcher")}</div>{[...(db.bear ?? []), ...(db.failure ?? [])].map((x) => <div key={x} className="text-xs">• {x}</div>)}</div><div className="text-xs md:col-span-2">{t("Research manager")}: <b>{db.decision}</b> — {db.reason} <span className="text-muted-foreground">({db.model})</span></div></div>}
-                {cl && <div className="mt-2"><div className="font-medium">{t("Checklist")}</div>{cl.map((x) => <div key={x.q} className="text-xs">{x.ok === true ? "✓" : x.ok === false ? "✗" : "?"} {x.q} — {x.note}</div>)}</div>}
+                {cl && <div className="mt-2"><div className="font-medium">{t("Checklist")}</div>{cl.map((x) => <div key={x.q} className="text-xs">{x.ok === true ? "✓" : x.ok === false ? "✗" : "?"} {ai(x.q)} — {ai(x.note)}</div>)}</div>}
               </details>
             );
           })}
@@ -232,7 +233,7 @@ function AgentReports({ dec, reviews }: { dec: Dec[]; reviews: Rev[] }) {
         <h2 className="font-semibold">{t("Post-trade reviews")}</h2>
         {reviews.map((r) => <div key={r.id} className="mt-2 border-t border-border pt-2 text-sm"><b>{r.symbol}</b> {r.timeframe} · {r.r_multiple}R · {t("process")} {r.process_score}% · {t(r.outcome_class)} · {r.followed_plan ? t("followed plan") : t("left the plan")}<div className="text-xs text-muted-foreground">{((r.lessons as string[]) ?? []).join(" · ")}</div></div>)}
         {!reviews.length && <p className="mt-2 text-sm text-muted-foreground">{t("No closed demo trades to review yet.")}</p>}
-        {lessons.size > 0 && <div className="mt-3"><div className="font-medium text-sm">{t("Repeated lessons")}</div>{[...lessons.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([l, n]) => <div key={l} className="text-xs">×{n} {l}</div>)}</div>}
+        {lessons.size > 0 && <div className="mt-3"><div className="font-medium text-sm">{t("Repeated lessons")}</div>{[...lessons.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([l, n]) => <div key={l} className="text-xs">×{n} {ai(l)}</div>)}</div>}
         <p className="mt-2 text-xs text-muted-foreground">{t("Lessons are recorded for review only; they never change risk limits or trade size automatically.")}</p>
       </section>
     </>
