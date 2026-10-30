@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Page } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useT } from "@/lib/i18n";
+import { useT, useAiText } from "@/lib/i18n";
 import { backtest, trendPullback, type BtResult } from "@/lib/backtest";
 import { getCandlesPublic } from "@/lib/market.functions";
 import { cn } from "@/lib/utils";
@@ -78,12 +78,12 @@ function Decisions() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-border">
-                <td className="p-3 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
+                <td className="p-3 whitespace-nowrap">{new Date(r.created_at).toLocaleString(lang === "ar" ? "ar-EG" : undefined)}</td>
                 <td className="p-3">{r.symbol} {r.timeframe}</td>
-                <td className="p-3 uppercase">{r.ai_direction} {r.ai_confidence}%</td>
+                <td className="p-3 uppercase">{r.ai_provider === "openai" ? "ChatGPT" : "Gemini"} · {t(String(r.ai_direction ?? "").toUpperCase())} {r.ai_confidence}%</td>
                 <td className="p-3 whitespace-nowrap">{r.entry ?? "-"} / {r.stop_loss ?? "-"} / {r.take_profit ?? "-"}</td>
                 <td className="p-3">{r.data_source === "broker" ? "MT5" : "Yahoo"}</td>
-                <td className={cn("p-3", r.risk_verdict === "approved" ? "text-primary" : "text-muted-foreground")}>{r.risk_reason}</td>
+                <td className={cn("p-3", r.risk_verdict === "approved" ? "text-primary" : "text-muted-foreground")}>{ai(r.risk_reason)}</td>
               </tr>
             ))}
             {!rows.length && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{t("No decisions yet — they appear after the next Auto-Pilot cycle.")}</td></tr>}
