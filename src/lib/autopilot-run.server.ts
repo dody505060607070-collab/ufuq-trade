@@ -66,7 +66,11 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, provider: prov, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary });
       }
       results.set(k, r);
-    } catch (e) { console.error("autopilot analysis", k, e); results.set(k, null); errors.set(k, e instanceof Error ? e.message : String(e)); }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      results.set(k, null);
+      if (msg.includes("slow mode")) waits.set(k, msg); else { console.error("autopilot analysis", k, e); errors.set(k, msg); }
+    }
     if (!news.has(sym)) news.set(sym, !!(await newsNearby(sym)));
   }));
 
