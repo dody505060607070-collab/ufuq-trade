@@ -15,6 +15,7 @@ export const AR_EXTRA: Record<string, string> = {
   "Loading…": "جارٍ التحميل…",
   "Blocked by the safety checks": "منعتها فحوصات الأمان",
   "What the AI wanted": "ما أراده الذكاء الاصطناعي",
+  "This analysis was written before Arabic was turned on, so the AI text is in English.": "هذا التحليل مكتوب قبل تفعيل العربية، لذلك نص الذكاء الاصطناعي بالإنجليزية. التحليلات الجديدة ستظهر بالعربي.",
   "Read full analysis": "اقرأ التحليل كاملًا",
   "Compare Gemini vs ChatGPT": "قارن Gemini مع ChatGPT",
   "R/R": "العائد/المخاطرة",

@@ -66,6 +66,7 @@ const RULES: Array<[RegExp, string]> = [
   [/Demo target reached/g, "تم الوصول لهدف التجربة"],
   [/Target reached/g, "تم الوصول للهدف"],
   [/no live price — emergency close waits for the market/g, "لا يوجد سعر حي — الإغلاق الطارئ ينتظر فتح السوق"],
+  [/scanner AI unavailable/g, "ذكاء الماسح غير متاح"],
   [/ — closing early/g, " — إغلاق مبكر"],
   [/thesis invalidated/g, "فكرة الصفقة لم تعد صحيحة"],
   [/Drawdown limit (\S+)% reached — new trades blocked until you review and resume/g, "تم الوصول لحد التراجع $1% — الصفقات الجديدة متوقفة حتى تراجع وتستأنف"],
@@ -81,10 +82,7 @@ const RULES: Array<[RegExp, string]> = [
   [/\bBUY\b/g, "شراء"],
   [/\bSELL\b/g, "بيع"],
   [/\bNEUTRAL\b/g, "محايد"],
-  [/\bbuy\b/g, "شراء"],
-  [/\bsell\b/g, "بيع"],
   [/ lot · /g, " لوت · "],
-  [/\bunavailable\b/g, "غير متاح"],
 ];
 
 const lostLock = /Last (buy|sell) on this symbol lost; same direction locked (\d+) min \(needs (\d+)%\+\)/g;
