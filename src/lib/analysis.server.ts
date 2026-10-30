@@ -206,7 +206,7 @@ export async function callOpenAI(prompt: string, system = INSTRUCTIONS): Promise
     if (!res.ok) {
       const body = (await res.text()).slice(0, 300);
       console.error("OpenAI failed", res.status, body);
-      lastOpenAIError = res.status === 401 ? "ChatGPT API key rejected — check OPENAI_API_KEY"
+      lastOpenAIError = res.status === 401 && /model.request/.test(body) ? "ChatGPT key lacks model permission — set the key to All (or Model capabilities: Write) on platform.openai.com" : res.status === 401 ? "ChatGPT API key rejected — check OPENAI_API_KEY"
         : res.status === 429 ? (/quota|billing/i.test(body) ? "ChatGPT credit is used up — top up billing on platform.openai.com" : "ChatGPT rate limit — will retry next cycle")
         : res.status === 404 ? `ChatGPT model ${model} is not available on this key`
         : `ChatGPT error ${res.status}`;
