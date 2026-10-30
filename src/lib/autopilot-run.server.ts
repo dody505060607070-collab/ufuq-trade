@@ -1,5 +1,6 @@
 import { skipReason, tradeLot, REAL_SECOND_CHECK, LOSS_LOCK_MINUTES, isSameSetup, inQuietHours, QUIET_REASON } from "@/lib/autopilot";
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
+import { toArabic, firstSentence } from "@/lib/msg-ar";
 import { providerOf, analysisKey, providerLabel, OPENAI_MIN_CONFIDENCE } from "@/lib/ai-provider";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -32,7 +33,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   if (!users.length) return { ok: true, users: 0, queued: 0 };
   // Thin-liquidity hours: no new trades, so skip the paid AI analysis too.
   if (inQuietHours(new Date())) {
-    await db.from("autopilot_events").insert(users.map((u) => ({ user_id: u.user_id, symbol: "-", action: "skipped", detail: QUIET_REASON })));
+    await db.from("autopilot_events").insert(users.map((u) => ({ user_id: u.user_id, symbol: "-", action: "skipped", detail: QUIET_REASON, detail_ar: toArabic(QUIET_REASON) })));
     return { ok: true, users: users.length, queued: 0, quiet: true };
   }
   // One analysis per symbol/timeframe/AI provider, shared by all accounts using that provider.
@@ -88,7 +89,12 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   const hourAgo = new Date(Date.now() - 3600_000).toISOString();
   let queued = 0;
   for (const u of users) {
-    const log = (symbol: string, action: string, detail: string) => db.from("autopilot_events").insert({ user_id: u.user_id, symbol, action, detail });
+    // detail_ar: Arabic copy; the AI's own Arabic sentence replaces its English one when available.
+    const log = (symbol: string, action: string, detail: string, aiAr?: string | null) => {
+      const m = detail.match(/^(.*?)Waiting: (.*)$/);
+      const detail_ar = m && aiAr ? `${toArabic(m[1])}انتظار: ${firstSentence(aiAr)}` : toArabic(detail);
+      return db.from("autopilot_events").insert({ user_id: u.user_id, symbol, action, detail, detail_ar });
+    };
     const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity,ai_provider").eq("user_id", u.user_id).eq("auto_trading", true);
     const live = (accounts ?? []).filter((a) => a.last_seen_at && Date.now() - new Date(a.last_seen_at).getTime() < 5 * 60_000);
     if (!live.length) { await log("-", "skipped", "No connected account with auto trading on"); continue; }
@@ -159,7 +165,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         await db.from("trade_commands").insert(rows);
         queued += rows.length;
         await log(sym, "opened", `${tag}${r.direction.toUpperCase()} ${u.lot_size} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}`);
-      } else await log(sym, "skipped", `${tag}${r.direction.toUpperCase()} ${r.confidence}% — ${reason}`);
+      } else await log(sym, "skipped", `${tag}${r.direction.toUpperCase()} ${r.confidence}% — ${reason}`, r.summary_ar);
     }
   }
   return { ok: true, users: users.length, queued };
