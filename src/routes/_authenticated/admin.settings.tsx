@@ -1,4 +1,4 @@
-import { HelpNote } from "@/lib/i18n";
+import { HelpNote, Tx } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -27,8 +27,8 @@ function AdminSettings() {
       <HelpNote>{"Settings control site-wide options."}</HelpNote>
     <Panel>
       <div className="divide-y divide-border">
-        <label className="flex items-center justify-between py-4"><span><span className="text-sm font-medium">Maintenance mode</span><br /><span className="text-xs text-muted-foreground">Show a maintenance banner to all users.</span></span><Switch checked={!!s.data?.maintenance} onCheckedChange={(v) => set({ maintenance: v })} /></label>
-        <label className="flex items-center justify-between py-4"><span><span className="text-sm font-medium">Open registration</span><br /><span className="text-xs text-muted-foreground">Allow new users to create accounts.</span></span><Switch checked={s.data?.signup_open !== false} onCheckedChange={(v) => set({ signup_open: v })} /></label>
+        <label className="flex items-center justify-between py-4"><span><span className="text-sm font-medium"><Tx>Maintenance mode</Tx></span><br /><span className="text-xs text-muted-foreground"><Tx>Show a maintenance banner to all users.</Tx></span></span><Switch checked={!!s.data?.maintenance} onCheckedChange={(v) => set({ maintenance: v })} /></label>
+        <label className="flex items-center justify-between py-4"><span><span className="text-sm font-medium"><Tx>Open registration</Tx></span><br /><span className="text-xs text-muted-foreground"><Tx>Allow new users to create accounts.</Tx></span></span><Switch checked={s.data?.signup_open !== false} onCheckedChange={(v) => set({ signup_open: v })} /></label>
       </div>
     </Panel>
     </>

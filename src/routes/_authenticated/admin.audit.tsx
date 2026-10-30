@@ -1,4 +1,4 @@
-import { HelpNote } from "@/lib/i18n";
+import { HelpNote, Tx } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ function Audit() {
       <HelpNote>{"Audit is a log of actions performed in the admin area."}</HelpNote>
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-sm">
-        <thead className="bg-muted/40 text-start text-xs text-muted-foreground"><tr><th className="px-4 py-3">Time</th><th>Action</th><th>Details</th></tr></thead>
+        <thead className="bg-muted/40 text-start text-xs text-muted-foreground"><tr><th className="px-4 py-3"><Tx>Time</Tx></th><th><Tx>Action</Tx></th><th><Tx>Details</Tx></th></tr></thead>
         <tbody>
           {(logs.data ?? []).map((l) => (
             <tr key={l.id} className="border-t border-border">
@@ -21,7 +21,7 @@ function Audit() {
               <td className="max-w-md truncate font-mono text-xs text-muted-foreground">{JSON.stringify(l.details)}</td>
             </tr>
           ))}
-          {logs.data?.length === 0 && <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">No activity yet.</td></tr>}
+          {logs.data?.length === 0 && <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground"><Tx>No activity yet.</Tx></td></tr>}
         </tbody>
       </table>
     </div>

@@ -1,4 +1,4 @@
-import { useT, HelpNote, LanguageToggle } from "@/lib/i18n";
+import { useT, HelpNote, LanguageToggle, Tx } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
@@ -43,7 +43,7 @@ function EaConfig() {
   return (
     <Page title={t("MT5 EA Configuration")} subtitle={t("Use these credentials to connect your Ufuq Trade EA to this account.")}>
       <HelpNote>{"The EA is a small program running inside MetaTrader 5 that connects this site to your broker account and executes trades. Download it, put it in MQL5/Experts, Compile it in MetaEditor, allow WebRequest, then attach it to a chart with your username and API key."}</HelpNote>
-      <Button asChild variant="outline"><Link to="/settings/assistants">Assistant access</Link></Button>
+      <Button asChild variant="outline"><Link to="/settings/assistants"><Tx>Assistant access</Tx></Link></Button>
       <Card title={t("Download EA")}>
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary-glow"><Download className="h-5 w-5" /></span>

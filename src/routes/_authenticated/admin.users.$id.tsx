@@ -1,3 +1,4 @@
+import { Tx } from "@/lib/i18n";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,7 +29,7 @@ function UserDetail() {
     },
   });
   if (!data.data) return <p className="text-sm text-muted-foreground">Loading…</p>;
-  if (!data.data.profile) return <p className="text-sm text-muted-foreground">Account not found.</p>;
+  if (!data.data.profile) return <p className="text-sm text-muted-foreground"><Tx>Account not found.</Tx></p>;
   const { profile, roles, accounts, trades } = data.data;
   const isAdmin = roles.includes("admin");
   const toggleAdmin = async () => {
@@ -42,7 +43,7 @@ function UserDetail() {
   const net = trades.filter((t) => t.status === "closed").reduce((s, t) => s + Number(t.profit ?? 0), 0);
   return (
     <div className="space-y-6">
-      <Link to="/admin/users" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Users</Link>
+      <Link to="/admin/users" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> <Tx>Users</Tx></Link>
       <Panel>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -54,12 +55,12 @@ function UserDetail() {
         </div>
       </Panel>
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground">Accounts</p><p className="text-2xl font-semibold">{accounts.length}</p></div>
-        <div className="rounded-xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground">Trades</p><p className="text-2xl font-semibold">{trades.length}</p></div>
-        <div className="rounded-xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground">Net closed P/L</p><p className="text-2xl font-semibold">{fmt(net)}</p></div>
+        <div className="rounded-xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground"><Tx>Accounts</Tx></p><p className="text-2xl font-semibold">{accounts.length}</p></div>
+        <div className="rounded-xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground"><Tx>Trades</Tx></p><p className="text-2xl font-semibold">{trades.length}</p></div>
+        <div className="rounded-xl border border-border bg-card p-5"><p className="text-xs text-muted-foreground"><Tx>Net closed P/L</Tx></p><p className="text-2xl font-semibold">{fmt(net)}</p></div>
       </div>
       <Panel title="Trading accounts">
-        {accounts.length === 0 ? <p className="text-sm text-muted-foreground">No accounts.</p> : (
+        {accounts.length === 0 ? <p className="text-sm text-muted-foreground"><Tx>No accounts.</Tx></p> : (
           <ul className="divide-y divide-border text-sm">
             {accounts.map((a) => <li key={a.id} className="flex justify-between py-2"><span>{a.label || a.login} <span className="text-xs uppercase text-muted-foreground">{a.platform} · {a.server}</span></span><span>${fmt(a.equity)}</span></li>)}
           </ul>

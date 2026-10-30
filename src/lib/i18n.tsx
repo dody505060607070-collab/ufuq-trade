@@ -57,6 +57,11 @@ export function LanguageToggle({ className }: { className?: string }) {
   );
 }
 
+/** Inline translated text for places without a t() hook: <Tx>English text</Tx>. */
+export function Tx({ children }: { children: string }) {
+  return <>{useT()(children)}</>;
+}
+
 /** Short explanation box: what this page/feature is for. */
 export function HelpNote({ children }: { children: string }) {
   const t = useT();

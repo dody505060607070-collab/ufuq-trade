@@ -1,3 +1,4 @@
+import { Tx } from "@/lib/i18n";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -30,7 +31,7 @@ function Assistants() {
   }
   return <Page title="Assistant access" subtitle="Private account connections">
     <Card title="Authorized assistants">
-      {grants.isPending ? <p>Loading…</p> : grants.isError ? <p role="alert">Could not load assistant access.</p> : !grants.data?.length ? <p className="text-muted-foreground">No authorized assistants.</p> : grants.data.map((g) => <div key={g.client.id} className="flex items-center justify-between gap-3 border-b border-border py-4"><span className="break-words">{g.client.name}</span><Button variant="outline" disabled={!!busy} onClick={() => void revoke(g.client.id)}>Revoke access</Button></div>)}
+      {grants.isPending ? <p>Loading…</p> : grants.isError ? <p role="alert"><Tx>Could not load assistant access.</Tx></p> : !grants.data?.length ? <p className="text-muted-foreground"><Tx>No authorized assistants.</Tx></p> : grants.data.map((g) => <div key={g.client.id} className="flex items-center justify-between gap-3 border-b border-border py-4"><span className="break-words">{g.client.name}</span><Button variant="outline" disabled={!!busy} onClick={() => void revoke(g.client.id)}><Tx>Revoke access</Tx></Button></div>)}
       {error && <p role="alert" className="mt-4 text-destructive">{error}</p>}
     </Card>
   </Page>;

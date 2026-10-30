@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { HelpNote } from "@/lib/i18n";
+import { HelpNote, Tx } from "@/lib/i18n";
 import { vpsStatus, parseReport, SYNC_FRESH_MIN, type Check } from "@/lib/vps-status";
 
 export const Route = createFileRoute("/_authenticated/admin/vps")({
@@ -59,19 +59,19 @@ function VpsPage() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-4">
-          <div className="text-xs text-muted-foreground">Endpoint reachability (no credentials)</div>
+          <div className="text-xs text-muted-foreground"><Tx>Endpoint reachability (no credentials)</Tx></div>
           <div className="mt-1 text-sm">{probe ? `${probe.result} — ${probe.detail}` : "Not checked yet"}</div>
-          <button onClick={runProbe} className="mt-3 rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground">Check endpoint</button>
+          <button onClick={runProbe} className="mt-3 rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground"><Tx>Check endpoint</Tx></button>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
-          <div className="text-xs text-muted-foreground">EA authentication</div>
+          <div className="text-xs text-muted-foreground"><Tx>EA authentication</Tx></div>
           <div className="mt-1 text-sm">{fresh ? "PASS — server accepted an authenticated sync recently" : "NOT VERIFIED — no recent authenticated sync"}</div>
         </div>
       </div>
       <div className="rounded-xl border border-border bg-card p-4">
-        <div className="text-sm font-medium">Next administrator action</div>
-        <ul className="mt-2 list-disc ps-5 text-sm text-muted-foreground">{missing.length ? missing.map((m) => <li key={m}>{m}</li>) : <li>Nothing missing.</li>}</ul>
-        <label className="mt-4 block text-sm">Upload sanitized report (ufuq-report.json)
+        <div className="text-sm font-medium"><Tx>Next administrator action</Tx></div>
+        <ul className="mt-2 list-disc ps-5 text-sm text-muted-foreground">{missing.length ? missing.map((m) => <li key={m}>{m}</li>) : <li><Tx>Nothing missing.</Tx></li>}</ul>
+        <label className="mt-4 block text-sm"><Tx>Upload sanitized report (ufuq-report.json)</Tx>
           <input type="file" accept=".json,application/json" className="mt-2 block text-sm" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
         </label>
         {msg && <p className="mt-2 text-sm">{msg}</p>}
@@ -79,7 +79,7 @@ function VpsPage() {
       {latest && (
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-start text-xs text-muted-foreground"><tr><th className="px-4 py-2 text-start">Check ({latest.hostname ?? "?"})</th><th className="text-start">Result</th><th className="text-start">Detail</th></tr></thead>
+            <thead className="bg-muted/40 text-start text-xs text-muted-foreground"><tr><th className="px-4 py-2 text-start">Check ({latest.hostname ?? "?"})</th><th className="text-start"><Tx>Result</Tx></th><th className="text-start"><Tx>Detail</Tx></th></tr></thead>
             <tbody>{(latest.checks as Check[]).map((c, i) => (
               <tr key={i} className="border-t border-border"><td className="px-4 py-2">{c.name}</td><td className={c.result === "PASS" ? "text-primary" : c.result === "FAIL" ? "text-destructive" : "text-muted-foreground"}>{c.result}</td><td className="text-xs text-muted-foreground">{c.detail}</td></tr>
             ))}</tbody>
@@ -88,7 +88,7 @@ function VpsPage() {
       )}
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-4 py-2 text-start">MT5 login</th><th className="text-start">Server</th><th className="text-start">Last sync</th></tr></thead>
+          <thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-4 py-2 text-start"><Tx>MT5 login</Tx></th><th className="text-start"><Tx>Server</Tx></th><th className="text-start"><Tx>Last sync</Tx></th></tr></thead>
           <tbody>{(accounts.data ?? []).map((a) => (
             <tr key={a.id} className="border-t border-border"><td className="px-4 py-2 font-mono">{a.login}</td><td>{a.server ?? "—"}</td><td>{a.last_seen_at ? new Date(a.last_seen_at).toLocaleString() : "never"}</td></tr>
           ))}</tbody>
