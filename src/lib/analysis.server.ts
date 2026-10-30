@@ -15,7 +15,7 @@ import { OPENAI_MODEL, type AiProvider } from "./ai-provider";
 import { toArabic } from "./msg-ar";
 
 type DB = SupabaseClient<Database>;
-export type Levels = { direction: "buy" | "sell" | "neutral"; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null; summary: string; summary_ar?: string | null };
+export type Levels = { direction: "buy" | "sell" | "neutral"; confidence: number; entry: number | null; stop_loss: number | null; take_profit: number | null; summary: string; summary_ar?: string | null | undefined };
 
 export const CACHE_MINUTES = 30; // longer reuse = fewer Gemini calls
 

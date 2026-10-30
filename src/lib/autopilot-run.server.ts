@@ -53,7 +53,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     const gem = pairs.filter((k) => k.endsWith("|gemini"));
     const { data: recent } = await db.from("analyses").select("symbol,timeframe,created_at").eq("provider", "gemini").gte("created_at", new Date(Date.now() - 86400_000).toISOString()).order("created_at", { ascending: false }).limit(200);
     const lastAt: Record<string, number> = {};
-    for (const a of recent ?? []) { const k = analysisKey(a.symbol, a.timeframe, "gemini"); lastAt[k] ??= new Date(a.created_at).getTime(); }
+    for (const a of recent ?? []) { const k = analysisKey(a.symbol, a.timeframe ?? "H1", "gemini"); lastAt[k] ??= new Date(a.created_at).getTime(); }
     slowPick = pickSlowPair(gem, lastAt);
   }
   await Promise.all(pairs.map(async (k) => {
