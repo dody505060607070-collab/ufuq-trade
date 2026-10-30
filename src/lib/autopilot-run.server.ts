@@ -1,5 +1,6 @@
 import { skipReason, tradeLot, REAL_SECOND_CHECK, LOSS_LOCK_MINUTES, isSameSetup, inQuietHours, QUIET_REASON } from "@/lib/autopilot";
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
+import { providerOf, analysisKey, providerLabel } from "@/lib/ai-provider";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -86,12 +87,16 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     const { data: qrows } = await db.from("broker_quotes").select("*").in("account_id", ids);
     const quotes = qrows ?? [];
     const auto = (cmds ?? []).filter((c) => (c.payload as { autopilot?: boolean })?.autopilot);
-    for (const sym of u.symbols) {
-      const r = results.get(`${sym}|${u.timeframe}`);
-      if (!r) { await log(sym, "error", `Analysis unavailable: ${errors.get(`${sym}|${u.timeframe}`) ?? "unknown error"}`); continue; }
+    // Each account trades on the analysis of its own AI (Gemini or ChatGPT).
+    const groups = [...new Set(live.map((a) => providerOf(a.ai_provider)))].map((p) => ({ prov: p, accs: live.filter((a) => providerOf(a.ai_provider) === p) }));
+    for (const sym of u.symbols) for (const { prov, accs } of groups) {
+      const key = analysisKey(sym, u.timeframe, prov);
+      const tag = `[${providerLabel(prov)}] `;
+      const r = results.get(key);
+      if (!r) { await log(sym, "error", `${tag}Analysis unavailable: ${errors.get(key) ?? "unknown error"}`); continue; }
       const rows = [];
       let reason = "";
-      for (const acc of live) {
+      for (const acc of accs) {
         const st = {
           openTotal: (open ?? []).filter((t) => t.account_id === acc.id).length,
           openOnSymbol: (open ?? []).filter((t) => t.account_id === acc.id && t.symbol.toUpperCase().startsWith(sym.toUpperCase())).length,
@@ -117,25 +122,25 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           maxDailyLossPct: Number(u.max_daily_loss_pct ?? 5), maxRiskPct: Number(u.max_risk_pct ?? 5),
           quoteAgeSec: q?.updated_at ? (Date.now() - new Date(q.updated_at).getTime()) / 1000 : null,
         });
-        if (!verdict.allow) await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: verdict.allow ? "approved" : "rejected", risk_reason: verdict.reason });
+        if (!verdict.allow) await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: verdict.allow ? "approved" : "rejected", risk_reason: verdict.reason });
         if (!verdict.allow) { reason = verdict.reason; continue; }
-        // Second opinion: an independent AI check must agree, and the average confidence must stay above the floor.
-        let v = checks.get(sym);
-        if (!v) { v = REAL_SECOND_CHECK ? await verifyTrade(sym, u.timeframe, r, live0 ?? null) : { agree: true, confidence: r.confidence, reason: "single analysis" }; checks.set(sym, v); }
+        // Second opinion (off by default): an independent AI check must agree, and the average confidence must stay above the floor.
+        let v = checks.get(key);
+        if (!v) { v = REAL_SECOND_CHECK && prov === "gemini" ? await verifyTrade(sym, u.timeframe, r, live0 ?? null) : { agree: true, confidence: r.confidence, reason: "single analysis" }; checks.set(key, v); }
         const combined = Math.round((r.confidence + v.confidence) / 2);
         if (!v.agree || combined < Math.max(MIN_CONFIDENCE_FLOOR, Number(u.min_confidence))) {
           reason = `Second AI check said no (${v.confidence}%, combined ${combined}%): ${v.reason}`;
-          await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "rejected", risk_reason: reason.slice(0, 300) });
+          await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "rejected", risk_reason: reason.slice(0, 300) });
           continue;
         }
-        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: v.reason.startsWith("skipped") || v.reason === "single analysis" ? `Approved by AI ${r.confidence}% + code risk checks (${v.reason})` : `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
-        rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot, sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true } });
+        await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: v.reason.startsWith("skipped") || v.reason === "single analysis" ? `Approved by ${providerLabel(prov)} ${r.confidence}% + code risk checks (${v.reason})` : `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
+        rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot, sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true, ai_provider: prov } });
       }
       if (rows.length) {
         await db.from("trade_commands").insert(rows);
         queued += rows.length;
-        await log(sym, "opened", `${r.direction.toUpperCase()} ${u.lot_size} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}`);
-      } else await log(sym, "skipped", `${r.direction.toUpperCase()} ${r.confidence}% — ${reason}`);
+        await log(sym, "opened", `${tag}${r.direction.toUpperCase()} ${u.lot_size} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}`);
+      } else await log(sym, "skipped", `${tag}${r.direction.toUpperCase()} ${r.confidence}% — ${reason}`);
     }
   }
   return { ok: true, users: users.length, queued };
