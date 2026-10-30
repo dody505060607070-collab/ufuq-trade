@@ -17,3 +17,11 @@ describe("thin market hours (21:00–02:00 UTC)", () => {
   it("skipReason refuses a 72% trade in quiet hours", () => expect(skipReason(sig, rules, { ...st, quietHours: true })).toMatch(/Thin market hours/));
   it("the same trade passes outside quiet hours", () => expect(skipReason(sig, rules, { ...st, quietHours: false })).toBeNull());
 });
+
+import { inQuietHours } from "./autopilot";
+describe("quiet window 22:00–01:00 UTC", () => {
+  it("21:30 UTC is open for trading", () => expect(inQuietHours(new Date("2026-10-30T21:30:00Z"))).toBe(false));
+  it("23:00 UTC is paused", () => expect(inQuietHours(new Date("2026-10-30T23:00:00Z"))).toBe(true));
+  it("00:30 UTC is paused", () => expect(inQuietHours(new Date("2026-10-30T00:30:00Z"))).toBe(true));
+  it("01:00 UTC is open again", () => expect(inQuietHours(new Date("2026-10-30T01:00:00Z"))).toBe(false));
+});
