@@ -10,7 +10,7 @@
 //| Each MT5 login is registered automatically on the website.      |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.32"
+#property version   "1.50"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -42,6 +42,7 @@ bool     g_marketDue = true;   // send broker data on the next successful sync
 input string InpDataSymbol  = "XAUUSD";                                        // Symbol whose broker data is sent for analysis
 input double InpProfitClose = 20.0;                                             // Close a trade fully once its profit reaches this many dollars (0 = off)
 input bool   InpProtect     = true;                                            // Auto-protect trades: half close + breakeven at 1R, trail after 1.5R
+input string InpQuoteSymbols = "EURUSD,GBPUSD,EURJPY,US30,UK100";            // Extra markets whose live broker price is sent (real trades need it)
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -55,7 +56,7 @@ int OnInit()
    trade.SetDeviationInPoints(InpSlippage);
    g_lastHistory = TimeCurrent() - 3 * 86400;
    EventSetTimer(MathMax(1, InpSyncSeconds));
-   Print("ArrissaEA 1.30 started for account ", AccountInfoInteger(ACCOUNT_LOGIN), " on ", AccountInfoString(ACCOUNT_SERVER), " -> ", InpApiUrl);
+   Print("ArrissaEA 1.50 started for account ", AccountInfoInteger(ACCOUNT_LOGIN), " on ", AccountInfoString(ACCOUNT_SERVER), " -> ", InpApiUrl);
    if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) Print("ArrissaEA: Algo Trading button is OFF - the EA syncs but cannot open trades.");
    Sync();   // connect immediately instead of waiting for the first timer tick
    return(INIT_SUCCEEDED);
@@ -387,6 +388,35 @@ string MarketJson()
    return m;
   }
 
+// Light quote (price + contract specs, no candles) so the website trades this market on the broker's own price.
+string QuoteJson(string psym)
+  {
+   string sym = ResolveSymbol(psym);
+   if(sym == "") return "";
+   string m = "{\"symbol\":\"" + Esc(psym) + "\",\"broker_symbol\":\"" + Esc(sym) + "\",";
+   m += "\"bid\":" + Num(SymbolInfoDouble(sym, SYMBOL_BID)) + ",\"ask\":" + Num(SymbolInfoDouble(sym, SYMBOL_ASK)) + ",";
+   m += "\"spread\":" + IntegerToString(SymbolInfoInteger(sym, SYMBOL_SPREAD)) + ",\"point\":" + DoubleToString(SymbolInfoDouble(sym, SYMBOL_POINT), 8) + ",";
+   m += "\"tick_value\":" + DoubleToString(SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_VALUE) * SymbolInfoDouble(sym, SYMBOL_POINT) / MathMax(SymbolInfoDouble(sym, SYMBOL_TRADE_TICK_SIZE), 1e-10), 8) + ",";
+   m += "\"contract_size\":" + Num(SymbolInfoDouble(sym, SYMBOL_TRADE_CONTRACT_SIZE), 2) + ",\"min_lot\":" + Num(SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN), 2) + "}";
+   return m;
+  }
+
+string QuotesJson()
+  {
+   string parts[];
+   int n = StringSplit(InpQuoteSymbols, ',', parts);
+   string out = "";
+   for(int i = 0; i < n && i < 10; i++)
+     {
+      string ps = parts[i];
+      StringTrimLeft(ps); StringTrimRight(ps); StringToUpper(ps);
+      if(ps == "" || ps == InpDataSymbol) continue;
+      string q = QuoteJson(ps);
+      if(q != "") out += "," + q;
+     }
+   return out;
+  }
+
 string BuildBody(bool withMarket)
   {
    string b = "{\"account\":{";
@@ -452,7 +482,7 @@ string BuildBody(bool withMarket)
    b += "],\"hedge_fired\":[";
    for(int i = 0; i < ArraySize(g_fired); i++) { if(i > 0) b += ","; b += "\"" + g_fired[i] + "\""; }
    b += "]";
-   if(withMarket) { string m = MarketJson(); if(m != "") b += ",\"market\":[" + m + "]"; }
+   if(withMarket) { string m = MarketJson(); string q = QuotesJson(); if(m == "" && q != "") q = StringSubstr(q, 1); if(m != "" || q != "") b += ",\"market\":[" + m + q + "]"; }
    b += "}";
    return b;
   }

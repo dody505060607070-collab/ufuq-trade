@@ -48,7 +48,7 @@ function EaConfig() {
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary-glow"><Download className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">{t("Ufuq Trade EA")} <span className="ms-1 rounded-md bg-primary/20 px-1.5 py-0.5 text-xs text-primary-glow">{t("v")}{ea.data?.version ?? "1.32"}</span></p>
+            <p className="font-semibold">{t("Ufuq Trade EA")} <span className="ms-1 rounded-md bg-primary/20 px-1.5 py-0.5 text-xs text-primary-glow">{t("v")}{ea.data?.version ?? "1.50"}</span></p>
             <p className="text-sm text-muted-foreground">{t("MetaTrader 5 Expert Advisor — connect your MT5 account to the Ufuq Trade platform.")}</p>
           </div>
           <Button asChild variant="hero" className="h-11 rounded-full px-6"><a href={fileUrl} download>{isSource ? t("Download .mq5") : t("Download .ex5")}</a></Button>
