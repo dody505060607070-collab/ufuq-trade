@@ -75,7 +75,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     if (!news.has(sym)) news.set(sym, !!(await newsNearby(sym)));
   }));
 
-  const { riskCheck, dollarsPerPrice, reanchor } = await import("@/lib/risk-engine");
+  const { riskCheck, dollarsPerPrice, reanchor, brokerGate, effectiveLot } = await import("@/lib/risk-engine");
   const { brokerCandles } = await import("@/lib/analysis.server");
   const atrs = new Map<string, number>(); const sources = new Map<string, string>();
   for (const k of results.keys()) {
@@ -137,12 +137,14 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         const a = acc as { id: string; balance?: number | null };
         // Market orders fill at the broker price: shift entry/SL/TP to it, keeping the same distances (same risk & RR).
         const live0 = q ? (r.direction === "buy" ? q.ask ?? q.bid : q.bid) : null;
-        const r2 = reanchor(r, live0 ?? null);
-        // Strong setups (>= STRONG_CONFIDENCE) use STRONG_LOT_MULT x lot; the risk engine still caps the dollar risk.
+        const gate = brokerGate(r, live0 ?? null);
+        const r2 = reanchor(r, live0 ?? null, q?.point);
+        // Strong setups (>= STRONG_CONFIDENCE) use STRONG_LOT_MULT x lot; the risk engine still caps the dollar risk
+        // on the volume the broker will really fill (its minimum lot can be larger).
         const lot = tradeLot(Number(u.lot_size), r.confidence);
-        const verdict = why ? { allow: false, reason: why } : riskCheck(r2, {
+        const verdict = why ? { allow: false, reason: why } : gate ? { allow: false, reason: gate } : riskCheck(r2, {
           price: live0 ?? r2.entry, spreadPrice: q?.bid != null && q?.ask != null ? q.ask - q.bid : null, atr: atrs.get(sym) ?? null,
-          balance: a.balance ?? null, lot, dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
+          balance: a.balance ?? null, lot: effectiveLot(lot, q?.min_lot), dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
           dayPnl: (closedToday ?? []).reduce((s2, t) => s2 + Number(t.profit ?? 0), 0),
           maxDailyLossPct: Number(u.max_daily_loss_pct ?? 5), maxRiskPct: Number(u.max_risk_pct ?? 5),
           quoteAgeSec: q?.updated_at ? (Date.now() - new Date(q.updated_at).getTime()) / 1000 : null,
