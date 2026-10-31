@@ -82,3 +82,13 @@ describe("real trades use the broker's own price", () => {
     expect(roundPrice(1.123456)).toBe(1.12346);
   });
 });
+
+describe("2% per-trade risk (user setting 2026-10-31)", () => {
+  const base = { price: 4055, spreadPrice: 0.2, atr: 8, balance: 990, lot: 0.02, dollarsPerPricePerLot: 100, dayPnl: 0, maxDailyLossPct: 5, maxRiskPct: 2 };
+  it("blocks the 12-point gold stop at 0.02 lot (~$25 > $19.80)", () =>
+    expect(riskCheck({ direction: "buy", confidence: 72, entry: 4055, stop_loss: 4042.7, take_profit: 4073.5 }, base).allow).toBe(false));
+  it("allows an 8-point gold stop at 0.02 lot (~$16)", () =>
+    expect(riskCheck({ direction: "buy", confidence: 72, entry: 4055, stop_loss: 4047, take_profit: 4067 }, base).allow).toBe(true));
+  it("stops new trades after a 5% daily loss ($49.50 on $990)", () =>
+    expect(riskCheck({ direction: "buy", confidence: 72, entry: 4055, stop_loss: 4047, take_profit: 4067 }, { ...base, dayPnl: -50 }).allow).toBe(false));
+});
