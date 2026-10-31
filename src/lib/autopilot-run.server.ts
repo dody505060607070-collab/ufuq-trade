@@ -41,12 +41,14 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   const allPairs = [...new Set(users.flatMap((u) => provsOf(u.user_id).flatMap((p) => u.symbols.map((s) => analysisKey(s, u.timeframe, p)))))];
   // Real trades need the broker's own live price; markets the EA doesn't price yet are not analysed (no AI cost).
   const { MAX_QUOTE_AGE_SEC } = await import("@/lib/risk-engine");
-  const { data: freshQ } = await db.from("broker_quotes").select("account_id,symbol,updated_at").in("account_id", (liveAccs ?? []).map((a) => (a as { id?: string }).id ?? "")).gte("updated_at", new Date(Date.now() - MAX_QUOTE_AGE_SEC * 1000).toISOString());
-  const priced = new Set((freshQ ?? []).flatMap((q) => { const a = (liveAccs ?? []).find((x) => (x as { id?: string }).id === q.account_id); return a ? [`${q.symbol}|${providerOf(a.ai_provider)}`] : []; }));
+  const { data: freshQ } = await db.from("broker_quotes").select("account_id,symbol,updated_at").in("account_id", (liveAccs ?? []).map((a) => a.id)).gte("updated_at", new Date(Date.now() - MAX_QUOTE_AGE_SEC * 1000).toISOString());
+  const priced = new Set((freshQ ?? []).flatMap((q) => { const a = (liveAccs ?? []).find((x) => x.id === q.account_id); return a ? [`${q.symbol}|${providerOf(a.ai_provider)}`] : []; }));
   const pairs = allPairs.filter((k) => { const [s, , p] = k.split("|"); return priced.has(`${s}|${p}`); }).slice(0, 16);
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
   const errors = new Map<string, string>();
   const waits = new Map<string, string>();
+  const unpricedPairs = allPairs.filter((k) => { const [s, , p] = k.split("|"); return !priced.has(`${s}|${p}`); });
+  for (const k of unpricedPairs) waits.set(k, "Waiting: no live broker price for this market yet (real trades use the broker's own price)");
   const news = new Map<string, boolean>();
   const owner = users[0]!.user_id;
   // Slow mode: once today's Gemini budget is used, analyse one Gemini symbol per SLOW_MODE_MINUTES (oldest analysis first) instead of stopping.
