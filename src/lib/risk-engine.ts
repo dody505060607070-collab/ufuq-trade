@@ -60,10 +60,39 @@ export function dollarsPerPrice(symbol: string, tickValue?: number | null, point
   return 100000;
 }
 
+/** Rounds a price to the broker's tick (point); without one, keeps enough decimals for forex (5) or metals/indices (2-3). */
+export function roundPrice(x: number, point?: number | null): number {
+  if (point && point > 0) { const d = Math.max(0, Math.min(8, Math.round(-Math.log10(point)))); return Number(x.toFixed(d)); }
+  const ax = Math.abs(x);
+  return Number(x.toFixed(ax < 10 ? 5 : ax < 1000 ? 3 : 2));
+}
+
 // Market orders fill at the live price: move entry/SL/TP to it, keeping the AI's distances (same risk and RR).
-export function reanchor<T extends Proposal>(p: T, price: number | null): T {
+export function reanchor<T extends Proposal>(p: T, price: number | null, point?: number | null): T {
   if (price == null || p.entry == null || p.stop_loss == null || p.take_profit == null) return p;
   const d = price - p.entry;
-  const r = (x: number) => Math.round(x * 100) / 100;
+  const r = (x: number) => roundPrice(x, point);
   return { ...p, entry: r(price), stop_loss: r(p.stop_loss + d), take_profit: r(p.take_profit + d) };
+}
+
+/** The AI's price may be off from the broker by at most this share of the stop distance. */
+export const MAX_PRICE_GAP_OF_STOP = 0.5;
+
+/**
+ * Real-money gate: a trade needs the broker's own live price for that market, and the price the AI
+ * analysed must be close to it. Without it the stop, target and dollar risk are guesses
+ * (e.g. a Dow trade analysed 195 points away from the broker price, on a 10x contract).
+ */
+export function brokerGate(p: Proposal, livePrice: number | null): string | null {
+  if (p.direction !== "buy" && p.direction !== "sell") return null;
+  if (livePrice == null) return "Waiting: no live broker price for this market yet (real trades use the broker's own price)";
+  if (p.entry == null || p.stop_loss == null) return null;
+  const stop = Math.abs(p.entry - p.stop_loss);
+  if (stop > 0 && Math.abs(livePrice - p.entry) > stop * MAX_PRICE_GAP_OF_STOP) return "Waiting: the analysed price is too far from the broker price";
+  return null;
+}
+
+/** Brokers raise orders below their minimum volume to that minimum, so risk is measured on the real volume. */
+export function effectiveLot(lot: number, minLot?: number | null): number {
+  return minLot && minLot > lot ? minLot : lot;
 }
