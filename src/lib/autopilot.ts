@@ -39,7 +39,8 @@ export function skipReason(sig: AutoSignal & { summary?: string | null }, rules:
 
 /** Confidence at which a trade uses a bigger size, and how much bigger. */
 export const STRONG_CONFIDENCE = 85;
-export const STRONG_LOT_MULT = 2;
+/** 1 = off (2026-10-31): no data yet shows 85%+ setups win more, so they keep the normal lot. */
+export const STRONG_LOT_MULT = 1;
 export function tradeLot(baseLot: number, confidence: number): number {
   const lot = confidence >= STRONG_CONFIDENCE ? baseLot * STRONG_LOT_MULT : baseLot;
   return Math.round(lot * 100) / 100;

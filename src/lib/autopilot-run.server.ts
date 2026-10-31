@@ -102,7 +102,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       const detail_ar = m && aiAr ? `${toArabic(m[1])}انتظار: ${firstSentence(aiAr)}` : toArabic(detail);
       return db.from("autopilot_events").insert({ user_id: u.user_id, symbol, action, detail, detail_ar });
     };
-    const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity,ai_provider").eq("user_id", u.user_id).eq("auto_trading", true);
+    const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity,ai_provider,lot_size").eq("user_id", u.user_id).eq("auto_trading", true);
     const live = (accounts ?? []).filter((a) => a.last_seen_at && Date.now() - new Date(a.last_seen_at).getTime() < 5 * 60_000);
     if (!live.length) { await log("-", "skipped", "No connected account with auto trading on"); continue; }
     const ids = live.map((a) => a.id);
@@ -148,7 +148,9 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         const r2 = reanchor(r, live0 ?? null, q?.point);
         // Strong setups (>= STRONG_CONFIDENCE) use STRONG_LOT_MULT x lot; the risk engine still caps the dollar risk
         // on the volume the broker will really fill (its minimum lot can be larger).
-        const lot = tradeLot(Number(u.lot_size), r.confidence);
+        // Each account uses its own lot when set (so a smaller account risks the same share of its balance), else the Auto-Pilot lot.
+        const accLot = Number((acc as { lot_size?: number | null }).lot_size ?? 0);
+        const lot = tradeLot(accLot > 0 ? accLot : Number(u.lot_size), r.confidence);
         const verdict = why ? { allow: false, reason: why } : gate ? { allow: false, reason: gate } : riskCheck(r2, {
           price: live0 ?? r2.entry, spreadPrice: q?.bid != null && q?.ask != null ? q.ask - q.bid : null, atr: atrs.get(sym) ?? null,
           balance: a.balance ?? null, lot: effectiveLot(lot, q?.min_lot), dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
@@ -173,7 +175,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       if (rows.length) {
         await db.from("trade_commands").insert(rows);
         queued += rows.length;
-        await log(sym, "opened", `${tag}${r.direction.toUpperCase()} ${u.lot_size} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}`);
+        await log(sym, "opened", `${tag}${r.direction.toUpperCase()} ${(rows[0]!.payload as { lot: number }).lot} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}`);
       } else await log(sym, "skipped", `${tag}${r.direction.toUpperCase()} ${r.confidence}% — ${reason}`, r.summary_ar);
     }
   }
