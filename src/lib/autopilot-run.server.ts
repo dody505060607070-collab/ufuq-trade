@@ -26,8 +26,8 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   // Only analyse for users with a live MT5 account (seen in the last 5 min) and auto trading on — saves AI calls.
   const liveSince = new Date(Date.now() - 5 * 60_000).toISOString();
   const { data: liveAccs } = all?.length
-    ? await db.from("trading_accounts").select("user_id,ai_provider").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
-    : { data: [] as { user_id: string; ai_provider: string }[] };
+    ? await db.from("trading_accounts").select("id,user_id,ai_provider").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
+    : { data: [] as { id: string; user_id: string; ai_provider: string }[] };
   const liveUsers = new Set((liveAccs ?? []).map((a) => a.user_id));
   const users = (all ?? []).filter((u) => liveUsers.has(u.user_id));
   if (!users.length) return { ok: true, users: 0, queued: 0 };
@@ -38,7 +38,12 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   }
   // One analysis per symbol/timeframe/AI provider, shared by all accounts using that provider.
   const provsOf = (uid: string) => [...new Set((liveAccs ?? []).filter((a) => a.user_id === uid).map((a) => providerOf(a.ai_provider)))];
-  const pairs = [...new Set(users.flatMap((u) => provsOf(u.user_id).flatMap((p) => u.symbols.map((s) => analysisKey(s, u.timeframe, p)))))].slice(0, 16);
+  const allPairs = [...new Set(users.flatMap((u) => provsOf(u.user_id).flatMap((p) => u.symbols.map((s) => analysisKey(s, u.timeframe, p)))))];
+  // Real trades need the broker's own live price; markets the EA doesn't price yet are not analysed (no AI cost).
+  const { MAX_QUOTE_AGE_SEC } = await import("@/lib/risk-engine");
+  const { data: freshQ } = await db.from("broker_quotes").select("account_id,symbol,updated_at").in("account_id", (liveAccs ?? []).map((a) => (a as { id?: string }).id ?? "")).gte("updated_at", new Date(Date.now() - MAX_QUOTE_AGE_SEC * 1000).toISOString());
+  const priced = new Set((freshQ ?? []).flatMap((q) => { const a = (liveAccs ?? []).find((x) => (x as { id?: string }).id === q.account_id); return a ? [`${q.symbol}|${providerOf(a.ai_provider)}`] : []; }));
+  const pairs = allPairs.filter((k) => { const [s, , p] = k.split("|"); return priced.has(`${s}|${p}`); }).slice(0, 16);
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
   const errors = new Map<string, string>();
   const waits = new Map<string, string>();
