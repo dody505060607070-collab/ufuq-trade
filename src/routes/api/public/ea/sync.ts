@@ -43,7 +43,7 @@ const body = z.object({
     bid: z.number().optional(), ask: z.number().optional(), spread: z.number().int().optional(),
     point: z.number().optional(), tick_value: z.number().optional(), contract_size: z.number().optional(), min_lot: z.number().optional(),
     candles: z.record(z.enum(["M5", "M15", "H1", "H4", "D1"]), z.array(z.tuple([z.number(), z.number(), z.number(), z.number(), z.number(), z.number()])).max(300)).optional(),
-  })).max(5).optional(),
+  })).max(12).optional(),
 });
 
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: cors });

@@ -26,8 +26,8 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   // Only analyse for users with a live MT5 account (seen in the last 5 min) and auto trading on — saves AI calls.
   const liveSince = new Date(Date.now() - 5 * 60_000).toISOString();
   const { data: liveAccs } = all?.length
-    ? await db.from("trading_accounts").select("user_id,ai_provider").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
-    : { data: [] as { user_id: string; ai_provider: string }[] };
+    ? await db.from("trading_accounts").select("id,user_id,ai_provider").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
+    : { data: [] as { id: string; user_id: string; ai_provider: string }[] };
   const liveUsers = new Set((liveAccs ?? []).map((a) => a.user_id));
   const users = (all ?? []).filter((u) => liveUsers.has(u.user_id));
   if (!users.length) return { ok: true, users: 0, queued: 0 };
@@ -38,10 +38,17 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   }
   // One analysis per symbol/timeframe/AI provider, shared by all accounts using that provider.
   const provsOf = (uid: string) => [...new Set((liveAccs ?? []).filter((a) => a.user_id === uid).map((a) => providerOf(a.ai_provider)))];
-  const pairs = [...new Set(users.flatMap((u) => provsOf(u.user_id).flatMap((p) => u.symbols.map((s) => analysisKey(s, u.timeframe, p)))))].slice(0, 16);
+  const allPairs = [...new Set(users.flatMap((u) => provsOf(u.user_id).flatMap((p) => u.symbols.map((s) => analysisKey(s, u.timeframe, p)))))];
+  // Real trades need the broker's own live price; markets the EA doesn't price yet are not analysed (no AI cost).
+  const { MAX_QUOTE_AGE_SEC } = await import("@/lib/risk-engine");
+  const { data: freshQ } = await db.from("broker_quotes").select("account_id,symbol,updated_at").in("account_id", (liveAccs ?? []).map((a) => a.id)).gte("updated_at", new Date(Date.now() - MAX_QUOTE_AGE_SEC * 1000).toISOString());
+  const priced = new Set((freshQ ?? []).flatMap((q) => { const a = (liveAccs ?? []).find((x) => x.id === q.account_id); return a ? [`${q.symbol}|${providerOf(a.ai_provider)}`] : []; }));
+  const pairs = allPairs.filter((k) => { const [s, , p] = k.split("|"); return priced.has(`${s}|${p}`); }).slice(0, 16);
   const results = new Map<string, Awaited<ReturnType<typeof runAI>> | null>();
   const errors = new Map<string, string>();
   const waits = new Map<string, string>();
+  const unpricedPairs = allPairs.filter((k) => { const [s, , p] = k.split("|"); return !priced.has(`${s}|${p}`); });
+  for (const k of unpricedPairs) waits.set(k, "Waiting: no live broker price for this market yet (real trades use the broker's own price)");
   const news = new Map<string, boolean>();
   const owner = users[0]!.user_id;
   // Slow mode: once today's Gemini budget is used, analyse one Gemini symbol per SLOW_MODE_MINUTES (oldest analysis first) instead of stopping.
@@ -75,7 +82,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     if (!news.has(sym)) news.set(sym, !!(await newsNearby(sym)));
   }));
 
-  const { riskCheck, dollarsPerPrice, reanchor } = await import("@/lib/risk-engine");
+  const { riskCheck, dollarsPerPrice, reanchor, brokerGate, effectiveLot } = await import("@/lib/risk-engine");
   const { brokerCandles } = await import("@/lib/analysis.server");
   const atrs = new Map<string, number>(); const sources = new Map<string, string>();
   for (const k of results.keys()) {
@@ -137,12 +144,14 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
         const a = acc as { id: string; balance?: number | null };
         // Market orders fill at the broker price: shift entry/SL/TP to it, keeping the same distances (same risk & RR).
         const live0 = q ? (r.direction === "buy" ? q.ask ?? q.bid : q.bid) : null;
-        const r2 = reanchor(r, live0 ?? null);
-        // Strong setups (>= STRONG_CONFIDENCE) use STRONG_LOT_MULT x lot; the risk engine still caps the dollar risk.
+        const gate = brokerGate(r, live0 ?? null);
+        const r2 = reanchor(r, live0 ?? null, q?.point);
+        // Strong setups (>= STRONG_CONFIDENCE) use STRONG_LOT_MULT x lot; the risk engine still caps the dollar risk
+        // on the volume the broker will really fill (its minimum lot can be larger).
         const lot = tradeLot(Number(u.lot_size), r.confidence);
-        const verdict = why ? { allow: false, reason: why } : riskCheck(r2, {
+        const verdict = why ? { allow: false, reason: why } : gate ? { allow: false, reason: gate } : riskCheck(r2, {
           price: live0 ?? r2.entry, spreadPrice: q?.bid != null && q?.ask != null ? q.ask - q.bid : null, atr: atrs.get(sym) ?? null,
-          balance: a.balance ?? null, lot, dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
+          balance: a.balance ?? null, lot: effectiveLot(lot, q?.min_lot), dollarsPerPricePerLot: dollarsPerPrice(sym, q?.tick_value, q?.point),
           dayPnl: (closedToday ?? []).reduce((s2, t) => s2 + Number(t.profit ?? 0), 0),
           maxDailyLossPct: Number(u.max_daily_loss_pct ?? 5), maxRiskPct: Number(u.max_risk_pct ?? 5),
           quoteAgeSec: q?.updated_at ? (Date.now() - new Date(q.updated_at).getTime()) / 1000 : null,
