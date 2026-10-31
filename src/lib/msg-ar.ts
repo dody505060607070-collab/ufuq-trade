@@ -49,6 +49,8 @@ const RULES: Array<[RegExp, string]> = [
   [/Stop (\S+) ATR is inside market noise \(min (\S+)\)/g, "الوقف $1 ATR داخل ضوضاء السوق (الحد الأدنى $2)"],
   [/Stop (\S+) ATR is too wide \(max (\S+)\)/g, "الوقف $1 ATR واسع جدًا (الحد الأقصى $2)"],
   [/Waiting: /g, "انتظار: "],
+  [/no live broker price for this market yet \(real trades use the broker's own price\)/g, "لا يوجد سعر حي من الوسيط لهذا السوق بعد (الصفقات الحقيقية تستخدم سعر الوسيط نفسه)"],
+  [/the analysed price is too far from the broker price/g, "السعر الذي تم تحليله بعيد جدًا عن سعر الوسيط"],
   // Risk engine verdicts
   [/No trade: AI is neutral/g, "لا صفقة: الذكاء الاصطناعي محايد"],
   [/Broker price is stale \((\d+)s old\)/g, "سعر الوسيط قديم (منذ $1 ثانية)"],

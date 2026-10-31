@@ -63,3 +63,22 @@ describe("index dollar risk", () => {
     expect(dollarsPerPrice("US30", 0.01, 0.01)).toBe(1);
   });
 });
+
+import { brokerGate, effectiveLot, roundPrice } from "./risk-engine";
+describe("real trades use the broker's own price", () => {
+  // US30 on 2026-10-30: AI entry 51825, stop 52030 (205 pts), broker filled at 51630.5 (195 pts away).
+  const us30 = { direction: "sell", confidence: 72, entry: 51825, stop_loss: 52030, take_profit: 51510 };
+  it("blocks a market with no broker price", () => expect(brokerGate(us30, null)).toMatch(/no live broker price/));
+  it("blocks when the analysed price is more than half a stop away from the broker", () => expect(brokerGate(us30, 51630.5)).toMatch(/too far/));
+  it("allows gold when the broker price is close (0.6 of a 15-point stop)", () =>
+    expect(brokerGate({ direction: "sell", confidence: 72, entry: 4004.34, stop_loss: 4019.5, take_profit: 3974 }, 4004.965)).toBeNull());
+  it("measures risk on the broker minimum lot (UK100 0.02 -> 0.05)", () => {
+    expect(effectiveLot(0.02, 0.05)).toBe(0.05);
+    expect(effectiveLot(0.02, 0.01)).toBe(0.02);
+  });
+  it("keeps forex decimals when moving levels to the broker price", () => {
+    const p = _re({ direction: "buy", confidence: 74, entry: 1.33835, stop_loss: 1.33615, take_profit: 1.342 }, 1.33879, 0.00001);
+    expect(p.stop_loss).toBe(1.33659); expect(p.take_profit).toBe(1.34244);
+    expect(roundPrice(1.123456)).toBe(1.12346);
+  });
+});
