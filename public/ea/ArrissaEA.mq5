@@ -725,6 +725,7 @@ string BuildBody(bool withMarket)
    b += "\"server\":\"" + Esc(AccountInfoString(ACCOUNT_SERVER)) + "\",";
    b += "\"company\":\"" + Esc(AccountInfoString(ACCOUNT_COMPANY)) + "\",";
    b += "\"currency\":\"" + Esc(AccountInfoString(ACCOUNT_CURRENCY)) + "\",";
+   b += "\"ea_version\":\"1.60\",";
    b += "\"balance\":" + Num(AccountInfoDouble(ACCOUNT_BALANCE), 2) + ",";
    b += "\"equity\":" + Num(AccountInfoDouble(ACCOUNT_EQUITY), 2) + ",";
    b += "\"free_margin\":" + Num(AccountInfoDouble(ACCOUNT_MARGIN_FREE), 2) + ",";

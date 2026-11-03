@@ -34,6 +34,7 @@ const body = z.object({
     login: z.union([z.string(), z.number()]).transform(String).optional(),
     server: z.string().max(100).optional(),
     company: z.string().max(100).optional(),
+    ea_version: z.string().max(10).optional(),
   }).optional(),
   positions: z.array(position).max(500).optional(),
   closed: z.array(position).max(500).optional(),
