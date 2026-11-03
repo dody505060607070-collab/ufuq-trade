@@ -2,6 +2,7 @@ import { skipReason, tradeLot, REAL_SECOND_CHECK, LOSS_LOCK_MINUTES, isSameSetup
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
 import { toArabic, firstSentence } from "@/lib/msg-ar";
 import { providerOf, analysisKey, providerLabel, OPENAI_MIN_CONFIDENCE } from "@/lib/ai-provider";
+import { timeMachine, tmLine, type TmResult } from "@/lib/timemachine";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -175,7 +176,12 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       if (rows.length) {
         await db.from("trade_commands").insert(rows);
         queued += rows.length;
-        await log(sym, "opened", `${tag}${r.direction.toUpperCase()} ${(rows[0]!.payload as { lot: number }).lot} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}`);
+        // Time Machine: information only on real trades (computed after the order is queued, never blocks it).
+        const p0 = rows[0]!.payload as { side: "buy" | "sell"; sl: number; tp: number };
+        const q0 = quotes.find((x) => x.account_id === rows[0]!.account_id && x.symbol === sym);
+        const e0 = q0 ? (p0.side === "buy" ? q0.ask ?? q0.bid : q0.bid) : r.entry;
+        const tm = e0 != null ? await timeMachineFor(sym, p0.side, Number(e0), p0.sl, p0.tp) : null;
+        await log(sym, "opened", `${tag}${r.direction.toUpperCase()} ${(rows[0]!.payload as { lot: number }).lot} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}${tm ? ` · ${tmLine(tm)}` : ""}`);
       } else await log(sym, "skipped", `${tag}${r.direction.toUpperCase()} ${r.confidence}% — ${reason}`, r.summary_ar);
     }
   }
