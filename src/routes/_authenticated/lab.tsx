@@ -196,7 +196,7 @@ function RunCard({ r, admin, onApply }: { r: Run; admin: boolean; onApply: () =>
       {r.error && <p className="mt-1 text-xs text-destructive">{r.error}</p>}
       {x && (
         <>
-          <p className="mt-1 text-xs text-muted-foreground">{t("{n} one-minute bars, {e} versions tested, spread {s} ({src}).", { n: x.bars, e: x.evaluations, s: x.spread, src: t(x.spread_source === "broker" ? "broker" : "estimate") })}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t("{n} one-minute bars, {e} versions tested, spread {s} ({src}).", { n: x.bars, e: x.evaluations, s: Number(x.spread.toPrecision(3)), src: t(x.spread_source === "broker" ? "broker" : "estimate") })}</p>
           <table className="mt-2 w-full text-xs">
             <thead className="text-muted-foreground"><tr><th className="text-start font-medium">{t("Part")}</th><th className="text-end font-medium">{t("Trades")}</th><th className="text-end font-medium">{t("Winning")}</th><th className="text-end font-medium">{t("Net")}</th><th className="text-end font-medium">{t("Drawdown")}</th><th className="text-end font-medium">{t("Avg min")}</th></tr></thead>
             <tbody>
