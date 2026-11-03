@@ -7,8 +7,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import {
   LayoutGrid, Landmark, Monitor, SlidersHorizontal, KeyRound, ArrowRightLeft, BarChart3, User, ShieldCheck, LogOut, FileText, ArrowLeft, Bot, Brain, Radar, Layers,
   FlaskConical, Trophy,
-  Sparkles,
-} from "lucide-react";
+  Sparkles, Zap } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -23,6 +22,7 @@ const nav = [
   { to: "/brain", label: "AI Brain", icon: Brain },
   { to: "/whales", label: "Whale Radar", icon: Radar },
   { to: "/analyses", label: "AI Analyses", icon: Sparkles },
+  { to: "/lab", label: "Fast Scalping & Lab", icon: Zap },
   { to: "/decisions", label: "Decisions & Backtest", icon: FlaskConical },
   { to: "/platforms", label: "Connected Platforms", icon: Layers },
   { to: "/brokers", label: "Brokers", icon: Landmark },
