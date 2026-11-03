@@ -49,3 +49,13 @@ describe("time machine", () => {
     expect(timeMachine({ side: "buy", entry: 2000, sl: 1990, tp: 2010, bars: walk(5) })).toBeNull();
   });
 });
+
+describe("time machine veto", () => {
+  const base = { replays: 10000, seed: 19, horizon: 48, days: 60, avg_r: -0.1, rr: 1.5, breakeven: 0.4, tp_share: 0.1, lean: "stop" as const, strength: "strong" as const, verdict: "" };
+  it("does not veto when fewer than 30% of replays hit a side (2% target, 19% stop)", () => {
+    expect(tmBlocks({ ...base, tp_first: 0.02, sl_first: 0.19, neither: 0.79 })).toBe(false);
+  });
+  it("vetoes a strong stop lean when most replays hit a side", () => {
+    expect(tmBlocks({ ...base, tp_first: 0.15, sl_first: 0.8, neither: 0.05 })).toBe(true);
+  });
+});

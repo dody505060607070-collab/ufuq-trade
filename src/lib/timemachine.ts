@@ -107,5 +107,7 @@ export function tmLine(t: TmResult): string {
   return `Time Machine (${t.replays.toLocaleString("en")} replays, ${t.horizon * 5 / 60}h, ${t.days} days, seed ${t.seed}): target ${pct(t.tp_first)} · stop ${pct(t.sl_first)} · open ${pct(t.neither)} · avg ${t.avg_r >= 0 ? "+" : ""}${t.avg_r.toFixed(2)}R — ${t.verdict.split(":")[0]}`;
 }
 
-/** Paper-challenge veto: only when the replays point strongly toward the stop. */
-export const tmBlocks = (t: TmResult | null) => !!t && t.lean === "stop" && t.strength === "strong";
+/** Paper-challenge veto: only when the replays point strongly toward the stop AND at least TM_MIN_DECISIVE of
+ *  them hit a side (otherwise the price at the end of the horizon decides, and the lean is noise). */
+export const TM_MIN_DECISIVE = 0.3;
+export const tmBlocks = (t: TmResult | null) => !!t && t.lean === "stop" && t.strength === "strong" && t.tp_first + t.sl_first >= TM_MIN_DECISIVE;

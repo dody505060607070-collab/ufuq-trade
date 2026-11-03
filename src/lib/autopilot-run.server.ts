@@ -136,7 +136,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       const r = results.get(key);
       if (!r && waits.has(key)) { await log(sym, "skipped", `${tag}${waits.get(key)}`); continue; }
       if (!r) { await log(sym, "error", `${tag}Analysis unavailable: ${errors.get(key) ?? "unknown error"}`); continue; }
-      const rows = [];
+      const rows: Database["public"]["Tables"]["trade_commands"]["Insert"][] = [];
       let reason = "";
       for (const acc of accs) {
         const st = {
