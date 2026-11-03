@@ -7,7 +7,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import {
   LayoutGrid, Landmark, Monitor, SlidersHorizontal, KeyRound, ArrowRightLeft, BarChart3, User, ShieldCheck, LogOut, FileText, ArrowLeft, Bot, Brain, Radar, Layers,
   FlaskConical, Trophy,
-  Sparkles,, Zap } from "lucide-react";
+  Sparkles, Zap } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
