@@ -198,7 +198,7 @@ export function evolve(b: Bar[], spread: number, opt: { seed?: number; populatio
   const chosen_test_trades = simulate(b, chosen, spread, split.test[0], split.test[1]);
   const chosen_test = stats(chosen_test_trades);
   // Random policies: same number of trades, same stop/target/hold rule, random entry bars and sides, test segment.
-  const ema = atrSeries(b, chosen.atrLen);
+  const atrC = atrSeries(b, chosen.atrLen);
   const n = Math.max(5, chosen_test.trades), nets: number[] = [];
   for (let k = 0; k < R; k++) {
     let net = 0;
@@ -206,7 +206,7 @@ export function evolve(b: Bar[], spread: number, opt: { seed?: number; populatio
       let tr: SimTrade | null = null;
       for (let tries = 0; tries < 20 && !tr; tries++) {
         const i = split.test[0] + Math.floor(r() * Math.max(1, split.test[1] - split.test[0] - chosen.holdBars - 2));
-        const a = ema[i];
+        const a = atrC[i];
         if (!(a! > 0)) continue;
         tr = walkTrade(b, i, r() < 0.5 ? "buy" : "sell", chosen.slAtr * a!, chosen.rr, chosen.holdBars, spread, split.test[1]);
       }
