@@ -111,3 +111,5 @@ export function tmLine(t: TmResult): string {
  *  them hit a side (otherwise the price at the end of the horizon decides, and the lean is noise). */
 export const TM_MIN_DECISIVE = 0.3;
 export const tmBlocks = (t: TmResult | null) => !!t && t.lean === "stop" && t.strength === "strong" && t.tp_first + t.sl_first >= TM_MIN_DECISIVE;
+/** Real (demo) accounts also use the same veto — approved by the owner on 2026-11-03. */
+export const TM_REAL_VETO = true;
