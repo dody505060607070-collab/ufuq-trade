@@ -86,6 +86,15 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   const { riskCheck, dollarsPerPrice, reanchor, brokerGate, effectiveLot } = await import("@/lib/risk-engine");
   const { brokerCandles } = await import("@/lib/analysis.server");
   const atrs = new Map<string, number>(); const sources = new Map<string, string>();
+  // Time Machine replays from 60 days of the symbol's own M5 bars (free Yahoo data, no AI call). Fail-open: null.
+  const timeMachineFor = async (sym: string, side: "buy" | "sell", entry: number, sl: number, tp: number): Promise<TmResult | null> => {
+    try {
+      const { data: inst } = await db.from("instruments").select("yahoo_symbol").eq("symbol", sym).maybeSingle();
+      if (!inst?.yahoo_symbol) return null;
+      const { fetchM5History } = await import("@/lib/market.server");
+      return timeMachine({ side, entry, sl, tp, bars: await fetchM5History(inst.yahoo_symbol), now: Math.floor(Date.now() / 1000) });
+    } catch { return null; }
+  };
   for (const k of results.keys()) {
     const [sym, tf] = k.split("|") as [string, string];
     if (sources.has(sym)) continue;
