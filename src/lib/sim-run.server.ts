@@ -231,7 +231,7 @@ async function runOne(db: DB, c: Database["public"]["Tables"]["sim_challenges"][
       if (!v.agree || combined < floor) { await record("rejected_reviewer", { reviewer }); await log("rejected", `Reviewer · ${r.symbol} ${r.direction!.toUpperCase()} — ${String(reviewer["decision"])} (${v.confidence}%): ${v.reason}`.slice(0, 480)); continue; }
       // Time Machine (no AI call): replay the next 4h from 60 days of this asset's own M5 bars; veto only when strongly toward the stop.
       const tm = await import("@/lib/market.server").then((x) => x.fetchM5History(spec.yahoo)).then((bars) => timeMachine({ side: r.direction!, entry: mid, sl: prop.stop_loss, tp: prop.take_profit, bars, now: Math.floor(Date.now() / 1000) })).catch(() => null);
-      scanner.timemachine = tm ? { ...tm, line: tmLine(tm) } : "unavailable";
+      scanner["timemachine"] = tm ? { ...tm, line: tmLine(tm) } : "unavailable";
       if (tmBlocks(tm)) { await record("rejected_checklist", { reviewer }); await log("rejected", `${r.symbol} ${r.direction!.toUpperCase()} — replays point strongly to the stop — not opened · ${tmLine(tm!)}`.slice(0, 480)); continue; }
       // Agent 3: deterministic risk & execution supervisor (final veto).
       const conv = quoteToUsd(spec, mids, mid);
