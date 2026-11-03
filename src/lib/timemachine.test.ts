@@ -59,3 +59,10 @@ describe("time machine veto", () => {
     expect(tmBlocks({ ...base, tp_first: 0.15, sl_first: 0.8, neither: 0.05 })).toBe(true);
   });
 });
+
+describe("time machine on real demo accounts", () => {
+  it("the veto is switched on for real accounts (owner approved 2026-11-03)", async () => {
+    const { TM_REAL_VETO } = await import("./timemachine");
+    expect(TM_REAL_VETO).toBe(true);
+  });
+});

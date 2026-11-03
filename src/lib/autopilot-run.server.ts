@@ -197,11 +197,11 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       if (rows.length) {
         await db.from("trade_commands").insert(rows);
         queued += rows.length;
-        // Time Machine: information only on real trades (computed after the order is queued, never blocks it).
+        // Time Machine line for the log (reuses the veto replay when it already ran this cycle).
         const p0 = rows[0]!.payload as { side: "buy" | "sell"; sl: number; tp: number };
         const q0 = quotes.find((x) => x.account_id === rows[0]!.account_id && x.symbol === sym);
         const e0 = q0 ? (p0.side === "buy" ? q0.ask ?? q0.bid : q0.bid) : r.entry;
-        const tm = e0 != null ? await timeMachineFor(sym, p0.side, Number(e0), p0.sl, p0.tp) : null;
+        const tm = tms.has(key) ? tms.get(key) ?? null : e0 != null ? await timeMachineFor(sym, p0.side, Number(e0), p0.sl, p0.tp) : null;
         await log(sym, "opened", `${tag}${r.direction.toUpperCase()} ${(rows[0]!.payload as { lot: number }).lot} lot · ${r.confidence}% · SL ${r.stop_loss} · TP ${r.take_profit}${tm ? ` · ${tmLine(tm)}` : ""}`);
       } else await log(sym, "skipped", `${tag}${r.direction.toUpperCase()} ${r.confidence}% — ${reason}`, r.summary_ar);
     }
