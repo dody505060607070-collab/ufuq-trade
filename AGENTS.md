@@ -10,8 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
-- Remote assistant access uses OAuth-only read-only MCP tools with caller ownership filters and existing approval/RLS checks; never expose credentials or trading mutations. Why: assistant access must not widen account permissions.
-- Browser assistant tools register in their owning visible screen with fail-open telemetry and no credentials. Why: the user's active view defines their scope.
+- Assistant access: OAuth-only read-only MCP tools with ownership filters and RLS; browser tools register in their visible screen, fail-open, no credentials. Why: must not widen permissions.
 - New trading settings share DEFAULT_TRADE_LOT; existing users are changed only through their authenticated settings. Why: avoid changing other users' trading risk.
 - Backend is Lovable Cloud; every user-owned table is protected by RLS scoped to auth.uid(), admin access goes through public.has_role(). Why: browser writes directly to the DB.
 - Roles live only in public.user_roles; the signup trigger grants admin to the first user when no admin exists. Why: bootstraps the owner without hardcoded emails.
