@@ -74,7 +74,7 @@ function LiveScalps() {
                 <p className="font-semibold">#{a.login} <span className="text-xs text-muted-foreground">{a.ai_provider === "openai" ? "ChatGPT" : "Gemini"}</span></p>
                 <span className={cn("rounded-full px-2 py-0.5 text-xs", a.fast_scalp ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}>{a.fast_scalp ? t("Scalping ON") : t("Scalping OFF")}</span>
               </div>
-              {a.fast_scalp && a.ea_version && Number(a.ea_version) < 1.6 && <p className="mt-1 text-xs text-warning">{t("Robot {v} is installed — install 1.60 to scalp.", { v: a.ea_version })}</p>}
+              {a.fast_scalp && Number(a.ea_version ?? 0) < 1.6 && <p className="mt-1 text-xs text-warning">{t("Robot {v} is installed — install 1.60 to scalp.", { v: a.ea_version ?? "?" })}</p>}
               {!closed.length && !mine.length ? <p className="mt-2 text-xs text-muted-foreground">{t("No scalp yet.")}</p> : (
                 <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                   <dt className="text-muted-foreground">{t("Closed scalps")}</dt><dd>{closed.length} ({mine.length - closed.length} {t("open")})</dd>
