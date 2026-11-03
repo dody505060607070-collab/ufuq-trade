@@ -34,3 +34,10 @@
 # Server request (Oct 27 21:27)
 - [x] Read full server.log, check VPS reachability, challenge + MT5 status, deliver Windows repair kit.
 - [ ] Run kit on the VPS — blocked: no remote-desktop tool from here; user runs it.
+
+# Nov 3 — Fast execution + Evolution Lab (Ufuq_Trading_Evolution_and_Fast_Execution.md)
+- [x] EA 1.60: confirmed closes, $ profit close independent of Auto-protect, no Sleep in the command loop, OnTick local work, execution timings
+- [x] Fast scalping (local M1 breakout, time exit, magic+1), website S/B lines, on for both Exness demo accounts at user request
+- [x] Evolution Lab (evolve → validate → test once vs 1,000 random) + live scalp results + timing report page
+- [ ] Install EA 1.60 on both terminals — blocked: user must download and attach it on the VPS
+- [ ] Judge results after 4 days — blocked: needs live trading time
