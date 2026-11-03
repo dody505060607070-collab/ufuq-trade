@@ -13,8 +13,10 @@ export const runLab = createServerFn({ method: "POST" })
     const { data: recent } = await sb.from("lab_runs").select("id").eq("user_id", context.userId).gte("created_at", new Date(Date.now() - 2 * 60_000).toISOString()).limit(1);
     if (recent?.length) throw new Error("One lab run every 2 minutes.");
     const seed = Math.floor(Math.random() * 1_000_000);
-    const { data: run, error } = await sb.from("lab_runs").insert({ user_id: context.userId, symbol: data.symbol, status: "running", seed }).select("id").single();
+    const { data: run, error } = await sb.from("lab_runs").insert({ user_id: context.userId, symbol: data.symbol, seed }).select("id").single();
     if (error || !run) throw new Error("Could not start the run (account approval required).");
+    // Results are written by the server only (users can't edit a run), so every number shown is a real run.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     try {
       const { data: inst } = await sb.from("instruments").select("yahoo_symbol").eq("symbol", data.symbol).maybeSingle();
       if (!inst?.yahoo_symbol) throw new Error("No price source for this market");
@@ -26,14 +28,13 @@ export const runLab = createServerFn({ method: "POST" })
       const { data: q } = await sb.from("broker_quotes").select("spread_points,point").eq("symbol", data.symbol).limit(5);
       const sp = (q ?? []).map((x) => Number(x.spread_points ?? 0) * Number(x.point ?? 0)).filter((x) => x > 0);
       const spread = sp.length ? sp.reduce((a, b) => a + b, 0) / sp.length : fallbackSpread(data.symbol, done[done.length - 1]!.c);
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { scalpParams } = await import("./scalp-sync.server");
       const current = await scalpParams(supabaseAdmin);
       const result = evolve(done, spread, { seed, current });
-      await sb.from("lab_runs").update({ status: "completed", result: { ...result, spread_source: sp.length ? "broker" : "estimate", data_source: "Yahoo 1m (research only)" } as never, finished_at: new Date().toISOString() }).eq("id", run.id);
+      await supabaseAdmin.from("lab_runs").update({ status: "completed", result: { ...result, spread_source: sp.length ? "broker" : "estimate", data_source: "Yahoo 1m (research only)" } as never, finished_at: new Date().toISOString() }).eq("id", run.id);
       return { id: run.id };
     } catch (e) {
-      await sb.from("lab_runs").update({ status: "failed", error: e instanceof Error ? e.message : String(e), finished_at: new Date().toISOString() }).eq("id", run.id);
+      await supabaseAdmin.from("lab_runs").update({ status: "failed", error: e instanceof Error ? e.message : String(e), finished_at: new Date().toISOString() }).eq("id", run.id);
       throw e;
     }
   });
@@ -53,7 +54,8 @@ export const applyLab = createServerFn({ method: "POST" })
     const params = clampParams({ ...SCALP_DEFAULTS, ...(chosen as object) });
     const { error } = await sb.from("app_settings").upsert({ key: "scalp_params", value: params as never, updated_at: new Date().toISOString() });
     if (error) throw new Error("Could not save the settings.");
-    await sb.from("lab_runs").update({ applied: true }).eq("id", run.id);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("lab_runs").update({ applied: true }).eq("id", run.id);
     return { params };
   });
 
