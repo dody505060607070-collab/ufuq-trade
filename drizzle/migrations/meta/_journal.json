@@ -127,6 +127,13 @@
       "when": 1793368550677,
       "tag": "0017_arabic_ai_text",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793735570559,
+      "tag": "0018_fast_scalp_and_evolution_lab",
+      "breakpoints": true
     }
   ]
 }

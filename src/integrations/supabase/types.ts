@@ -593,6 +593,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ea_exec_events: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          kind: string
+          ms: number | null
+          ok: boolean
+          reason: string | null
+          spread: number | null
+          symbol: string | null
+          ticket: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          ms?: number | null
+          ok?: boolean
+          reason?: string | null
+          spread?: number | null
+          symbol?: string | null
+          ticket?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          ms?: number | null
+          ok?: boolean
+          reason?: string | null
+          spread?: number | null
+          symbol?: string | null
+          ticket?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ea_releases: {
         Row: {
           created_at: string
@@ -704,6 +746,45 @@ export type Database = {
           symbol?: string
           tv_symbol?: string
           yahoo_symbol?: string | null
+        }
+        Relationships: []
+      }
+      lab_runs: {
+        Row: {
+          applied: boolean
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          result: Json | null
+          seed: number
+          status: string
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          applied?: boolean
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          result?: Json | null
+          seed?: number
+          status?: string
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          applied?: boolean
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          result?: Json | null
+          seed?: number
+          status?: string
+          symbol?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1431,6 +1512,7 @@ export type Database = {
           close_price: number | null
           closed_at: string | null
           closed_volume: number
+          exit_reason: string | null
           id: string
           open_price: number | null
           opened_at: string | null
@@ -1440,6 +1522,7 @@ export type Database = {
           side: string
           status: string
           stop_loss: number | null
+          strategy: string | null
           symbol: string
           take_profit: number | null
           ticket: string
@@ -1451,6 +1534,7 @@ export type Database = {
           close_price?: number | null
           closed_at?: string | null
           closed_volume?: number
+          exit_reason?: string | null
           id?: string
           open_price?: number | null
           opened_at?: string | null
@@ -1460,6 +1544,7 @@ export type Database = {
           side: string
           status?: string
           stop_loss?: number | null
+          strategy?: string | null
           symbol: string
           take_profit?: number | null
           ticket: string
@@ -1471,6 +1556,7 @@ export type Database = {
           close_price?: number | null
           closed_at?: string | null
           closed_volume?: number
+          exit_reason?: string | null
           id?: string
           open_price?: number | null
           opened_at?: string | null
@@ -1480,6 +1566,7 @@ export type Database = {
           side?: string
           status?: string
           stop_loss?: number | null
+          strategy?: string | null
           symbol?: string
           take_profit?: number | null
           ticket?: string
@@ -1511,6 +1598,7 @@ export type Database = {
           equity: number | null
           executor_id: string | null
           executor_seen_at: string | null
+          fast_scalp: boolean
           free_margin: number | null
           id: string
           label: string | null
@@ -1539,6 +1627,7 @@ export type Database = {
           equity?: number | null
           executor_id?: string | null
           executor_seen_at?: string | null
+          fast_scalp?: boolean
           free_margin?: number | null
           id?: string
           label?: string | null
@@ -1567,6 +1656,7 @@ export type Database = {
           equity?: number | null
           executor_id?: string | null
           executor_seen_at?: string | null
+          fast_scalp?: boolean
           free_margin?: number | null
           id?: string
           label?: string | null
