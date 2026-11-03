@@ -2,7 +2,7 @@ import { skipReason, tradeLot, REAL_SECOND_CHECK, LOSS_LOCK_MINUTES, isSameSetup
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
 import { toArabic, firstSentence } from "@/lib/msg-ar";
 import { providerOf, analysisKey, providerLabel, OPENAI_MIN_CONFIDENCE } from "@/lib/ai-provider";
-import { timeMachine, tmLine, type TmResult } from "@/lib/timemachine";
+import { timeMachine, tmLine, tmBlocks, TM_REAL_VETO, type TmResult } from "@/lib/timemachine";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -95,6 +95,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       return timeMachine({ side, entry, sl, tp, bars: await fetchM5History(inst.yahoo_symbol), now: Math.floor(Date.now() / 1000) });
     } catch { return null; }
   };
+  const tms = new Map<string, TmResult | null>(); // one replay per symbol/provider per cycle
   for (const k of results.keys()) {
     const [sym, tf] = k.split("|") as [string, string];
     if (sources.has(sym)) continue;
@@ -178,6 +179,17 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
           reason = `Second AI check said no (${v.confidence}%, combined ${combined}%): ${v.reason}`;
           await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "rejected", risk_reason: reason.slice(0, 300) });
           continue;
+        }
+        // Time Machine veto (user-approved 2026-11-03 for the demo accounts): same rule as the paper challenge —
+        // block only a strong stop lean with enough decisive replays. Fail-open when data is missing.
+        if (TM_REAL_VETO) {
+          if (!tms.has(key)) tms.set(key, await timeMachineFor(sym, r.direction as "buy" | "sell", Number(r2.entry), Number(r2.stop_loss), Number(r2.take_profit)));
+          const tm = tms.get(key) ?? null;
+          if (tmBlocks(tm)) {
+            reason = `replays point strongly to the stop — not opened · ${tmLine(tm!)}`;
+            await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: Math.round(r.confidence), entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "rejected", risk_reason: reason.slice(0, 300) });
+            continue;
+          }
         }
         await db.from("decision_log").insert({ user_id: u.user_id, account_id: acc.id, symbol: sym, timeframe: u.timeframe, data_source: sources.get(sym) ?? "yahoo", ai_provider: prov, ai_direction: r.direction, ai_confidence: combined, entry: r2.entry, stop_loss: r2.stop_loss, take_profit: r2.take_profit, risk_verdict: "approved", risk_reason: v.reason.startsWith("skipped") || v.reason === "single analysis" ? `Approved by ${providerLabel(prov)} ${r.confidence}% + code risk checks (${v.reason})` : `Both AI checks agree (${r.confidence}% + ${v.confidence}%)` });
         rows.push({ user_id: u.user_id, account_id: acc.id, command: "open_trade", payload: { symbol: sym, side: r.direction, order_type: "market", lot, sl: r2.stop_loss, tp: r2.take_profit, count: 1, delay_seconds: 0, autopilot: true, ai_provider: prov } });
