@@ -2,7 +2,7 @@
 // Slow context (AI analysis, news, quiet hours, daily loss) is decided here; entries/exits happen locally in the EA.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { SCALP_DEFAULTS, clampParams, scalpLine, type ScalpParams } from "./scalp";
+import { SCALP_DEFAULTS, SCALP_SYMBOLS, clampParams, scalpLine, type ScalpParams } from "./scalp";
 import { inQuietHours, QUIET_REASON } from "./autopilot";
 
 type Db = SupabaseClient<Database>;
@@ -30,7 +30,8 @@ async function build(db: Db, accountId: string): Promise<string[]> {
     db.from("autopilot_settings").select("symbols,max_daily_loss_pct").eq("user_id", a.user_id).maybeSingle(),
     scalpParams(db),
   ]);
-  const symbols = (s?.symbols?.length ? s.symbols : ["XAUUSD"]).slice(0, 6);
+  const mine = (s?.symbols ?? []).map((x) => x.toUpperCase()).filter((x) => SCALP_SYMBOLS.includes(x));
+  const symbols = mine.length ? mine : ["XAUUSD"];
   const dayLossUsd = Number(a.balance ?? 0) * Number(s?.max_daily_loss_pct ?? 5) / 100;
   let reason = "";
   if (inQuietHours(new Date())) reason = QUIET_REASON;

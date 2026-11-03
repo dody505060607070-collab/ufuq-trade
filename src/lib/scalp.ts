@@ -16,6 +16,8 @@ export const SCALP_BOUNDS: Record<keyof ScalpParams, [number, number, boolean]> 
   lookback: [5, 60, true], atrLen: [5, 30, true], slAtr: [0.8, 3, false], rr: [1.5, 3, false], holdBars: [1, 15, true], emaLen: [10, 200, true], spreadFrac: [0.1, 0.4, false],
 };
 export const SCALP_MIN_RR = 1.5;
+/** Markets fast scalping may trade (the user's main markets; indices were removed after losses). */
+export const SCALP_SYMBOLS = ["XAUUSD", "EURUSD", "GBPUSD"];
 export const SCALP_MAX_POSITIONS = 2;      // scalps open at the same time, all symbols
 export const SCALP_LOSS_COOLDOWN_MIN = 10; // per symbol after a losing scalp
 export const SCALP_SIGNAL_TTL_SEC = 120;   // EA opens no new scalp when the website's settings are older than this
