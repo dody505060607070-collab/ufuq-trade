@@ -173,6 +173,13 @@ function StatLine({ label, s }: { label: string; s: SimStats }) {
   return <tr className="border-t border-border/50"><td className="py-1">{t(label)}</td><td className="text-end">{s.trades}</td><td className="text-end">{Math.round(s.win_rate * 100)}%</td><td className={cn("text-end", s.net_r >= 0 ? "text-success" : "text-destructive")}>{s.net_r >= 0 ? "+" : ""}{s.net_r}R</td><td className="text-end">{s.max_dd_r}R</td><td className="text-end">{s.avg_bars}</td></tr>;
 }
 
+function reasonText(w: string, t: (en: string, v?: Record<string, string | number>) => string) {
+  const a = w.match(/^only (\d+) test trades/), b = w.match(/^beats (\d+)% of random/);
+  if (a) return t("only {n} test trades (need 20+)", { n: a[1]! });
+  if (b) return t("beats {n}% of random strategies (need 95%)", { n: b[1]! });
+  return t(w);
+}
+
 const paramText = (p: ScalpParams) => `N=${p.lookback} · ATR${p.atrLen} · stop ${p.slAtr}×ATR · R ${p.rr} · ${p.holdBars} min · EMA${p.emaLen}`;
 
 function RunCard({ r, admin, onApply }: { r: Run; admin: boolean; onApply: () => void }) {
@@ -200,7 +207,7 @@ function RunCard({ r, admin, onApply }: { r: Run; admin: boolean; onApply: () =>
             </tbody>
           </table>
           <p className="mt-2 text-xs">{t("Random strategies on the final test: median {a}R, top 5% from {b}R. The best version beat {c}% of them.", { a: x.random.p50, b: x.random.p95, c: x.random.beaten_pct })}</p>
-          {x.verdict_reasons.length > 0 && <p className="mt-1 text-xs text-warning">{t("Why not proven:")} {x.verdict_reasons.map((w) => t(w.replace(/\d+(\.\d+)?/g, "#"), {})).join(" · ")} <span className="text-muted-foreground">({x.verdict_reasons.join("; ")})</span></p>}
+          {x.verdict_reasons.length > 0 && <p className="mt-1 text-xs text-warning">{t("Why not proven:")} {x.verdict_reasons.map((w) => reasonText(w, t)).join(" · ")}</p>}
           <p className="mt-1 text-xs text-muted-foreground">{t("Best version")}: {paramText(x.chosen)}</p>
           <p className="text-xs text-muted-foreground">{t("Current robot")}: {paramText(x.current)}</p>
           {admin && r.status === "completed" && (r.applied ? <p className="mt-2 text-xs text-success">{t("These settings were sent to the robots.")}</p> : <Button size="sm" variant="secondary" className="mt-2 rounded-full" onClick={onApply}>{t("Use these settings for fast scalping")}</Button>)}
