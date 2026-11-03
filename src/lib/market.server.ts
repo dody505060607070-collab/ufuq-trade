@@ -150,3 +150,15 @@ async function loadCalendar(): Promise<{ ok: boolean; events: CalendarEvent[] }>
     return { ok: false, events: [] };
   }
 }
+
+// 60 days of M5 bars for the Time Machine pool; cached per Worker for 30 minutes (one request per symbol).
+const tmCache = new Map<string, { at: number; bars: Candle[] }>();
+export async function fetchM5History(yahoo: string): Promise<Candle[]> {
+  const hit = tmCache.get(yahoo);
+  if (hit && Date.now() - hit.at < 30 * 60_000) return hit.bars;
+  const { bars } = await fetchChart(yahoo, "5m", "60d");
+  // Drop the last bar: it may still be forming.
+  const done = bars.slice(0, -1);
+  tmCache.set(yahoo, { at: Date.now(), bars: done });
+  return done;
+}

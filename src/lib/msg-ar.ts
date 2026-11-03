@@ -3,6 +3,16 @@
 // AI free text is not translated here — the AI writes its own Arabic copy (summary_ar, lesson_ar…).
 
 const RULES: Array<[RegExp, string]> = [
+  // Time Machine (trade replays)
+  [/Time Machine \((\S+) replays, (\S+)h, (\d+) days, seed (\d+)\): target (\d+)% · stop (\d+)% · open (\d+)% · avg (\S+)R — /g, "آلة الزمن ($1 إعادة تشغيل، $2 ساعة، $3 يوم، بذرة $4): الهدف أولًا $5% · الوقف أولًا $6% · مفتوحة $7% · متوسط $8R — "],
+  [/Strongly toward the stop/g, "تميل بقوة نحو الوقف"],
+  [/Strongly toward the target/g, "تميل بقوة نحو الهدف"],
+  [/Leans toward the stop/g, "تميل نحو الوقف"],
+  [/Leans toward the target/g, "تميل نحو الهدف"],
+  [/Close to a coin flip/g, "قريبة من رمي عملة"],
+  [/Close to break-even/g, "قريبة من التعادل"],
+  [/Almost no replay hit the stop or the target in the horizon/g, "تقريبًا لم تصل أي إعادة تشغيل للوقف أو الهدف"],
+  [/replays point strongly to the stop — not opened/g, "إعادات التشغيل تشير بقوة للوقف — لم تُفتح"],
   // Auto-Pilot status
   [/No connected account with auto trading on/g, "لا يوجد حساب متصل مفعّل عليه التداول التلقائي"],
   [/Daily AI budget used — slow mode: one analysis every (\d+) min, (\S+) goes first/g, "انتهى رصيد Gemini اليومي — الوضع البطيء: تحليل واحد كل $1 دقيقة، الدور الآن على $2"],
