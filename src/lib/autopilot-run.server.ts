@@ -118,10 +118,10 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     if (!live.length) { await log("-", "skipped", "No connected account with auto trading on"); continue; }
     const ids = live.map((a) => a.id);
     const [{ data: open }, { data: cmds }] = await Promise.all([
-      db.from("trades").select("account_id,symbol").in("account_id", ids).eq("status", "open").or("strategy.is.null,strategy.neq.scalp"),
+      db.from("trades").select("account_id,symbol").in("account_id", ids).eq("status", "open"),
       db.from("trade_commands").select("account_id,payload,created_at").in("account_id", ids).eq("command", "open_trade").gte("created_at", dayStart.toISOString()),
     ]);
-    const { data: closedToday } = await db.from("trades").select("account_id,symbol,side,profit,closed_at").in("account_id", ids).eq("status", "closed").or("strategy.is.null,strategy.neq.scalp").gte("closed_at", dayStart.toISOString()).order("closed_at", { ascending: false });
+    const { data: closedToday } = await db.from("trades").select("account_id,symbol,side,profit,closed_at").in("account_id", ids).eq("status", "closed").gte("closed_at", dayStart.toISOString()).order("closed_at", { ascending: false });
     const ext = u as unknown as { cooldown_minutes?: number; daily_target_usd?: number };
     const lastClose = closedToday?.[0]?.closed_at;
     const pause = pauseReason(lastClose ? (Date.now() - new Date(lastClose).getTime()) / 60_000 : null, adaptiveCooldown(Number(ext.cooldown_minutes ?? 0), (closedToday ?? []).map((t) => Number(t.profit ?? 0))), (closedToday ?? []).reduce((a, t) => a + Number(t.profit ?? 0), 0), Number(ext.daily_target_usd ?? 0));

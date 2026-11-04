@@ -48,7 +48,7 @@ function EaConfig() {
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary-glow"><Download className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">{t("Ufuq Trade EA")} <span className="ms-1 rounded-md bg-primary/20 px-1.5 py-0.5 text-xs text-primary-glow">{t("v")}{ea.data?.version ?? "1.60"}</span></p>
+            <p className="font-semibold">{t("Ufuq Trade EA")} <span className="ms-1 rounded-md bg-primary/20 px-1.5 py-0.5 text-xs text-primary-glow">{t("v")}{ea.data?.version ?? "1.50"}</span></p>
             <p className="text-sm text-muted-foreground">{t("MetaTrader 5 Expert Advisor — connect your MT5 account to the Ufuq Trade platform.")}</p>
           </div>
           <Button asChild variant="hero" className="h-11 rounded-full px-6"><a href={fileUrl} download>{isSource ? t("Download .mq5") : t("Download .ex5")}</a></Button>
@@ -133,7 +133,6 @@ function AccountRow({ a }: { a: Account }) {
       <div className="mt-3 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2"><span className="text-muted-foreground">{t("Default lot")}</span><Input value={lot} onChange={(e) => setLot(e.target.value)} className="h-8 w-20 rounded-full" /><Button size="sm" variant="secondary" className="rounded-full" onClick={() => { const v = Number(lot); if (!(v >= 0.01 && v <= 100)) return toast.error(t("Lot must be 0.01–100.")); void update({ lot_size: v }, t("Lot size saved.")); }}>{t("Save")}</Button></div>
         <label className="flex items-center gap-2"><Switch checked={a.auto_trading} onCheckedChange={(v) => update({ auto_trading: v }, v ? t("Auto trading enabled.") : t("Auto trading disabled."))} />  {t("Auto-trade platform signals")}</label>
-        <label className="flex items-center gap-2" title={t("Robot 1.60 opens short breakout trades on its own (1-minute candles, stop and target at the broker, closes after 5 minutes). Same lot, max 2% risk per trade, stops at the daily loss limit, news and night pause.")}><Switch checked={a.fast_scalp} onCheckedChange={(v) => update({ fast_scalp: v }, v ? t("Fast scalping on for this account.") : t("Fast scalping off for this account."))} />  {t("Fast scalping (robot 1.60)")}</label>
         <div className="flex items-center gap-1 rounded-full bg-muted/40 p-1" role="group" aria-label={t("AI for this account")}>
           <span className="px-2 text-xs text-muted-foreground">{t("AI for this account")}</span>
           {(["gemini", "openai"] as const).map((p) => (

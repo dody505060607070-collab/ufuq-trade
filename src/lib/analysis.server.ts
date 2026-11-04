@@ -64,7 +64,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     brokerCandles(db, symbol, timeframe, 80).then((b) => b ?? (inst?.yahoo_symbol ? fetchCandles(inst.yahoo_symbol, timeframe, 80).catch(() => []) : [])),
     fetchCalendarStatus(),
     fetchNews(15),
-    db.from("trades").select("side,profit,closed_at").ilike("symbol", `${symbol}%`).eq("status", "closed").or("strategy.is.null,strategy.neq.scalp").order("closed_at", { ascending: false }).limit(10).then((r) => r.data ?? []),
+    db.from("trades").select("side,profit,closed_at").ilike("symbol", `${symbol}%`).eq("status", "closed").order("closed_at", { ascending: false }).limit(10).then((r) => r.data ?? []),
     inst?.yahoo_symbol && timeframe !== "D1" ? fetchCandles(inst.yahoo_symbol, "D1", 20).catch(() => []) : Promise.resolve([]),
   ]);
   const calendar = calStatus.events;

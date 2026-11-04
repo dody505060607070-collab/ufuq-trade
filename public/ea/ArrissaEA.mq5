@@ -8,14 +8,9 @@
 //| add the URL in EACH terminal's WebRequest list, attach this EA   |
 //| to one chart per terminal with the same Username + API key.     |
 //| Each MT5 login is registered automatically on the website.      |
-//| 1.60: closes are confirmed before being logged, the $ profit     |
-//| close works even with Auto-protect off, no Sleep() inside the   |
-//| command loop, execution timings are reported, and an optional   |
-//| local Fast Scalping engine (switched on per account on the      |
-//| website; scalps use magic number + 1).                          |
 //+------------------------------------------------------------------+
 #property copyright "Arrissa"
-#property version   "1.60"
+#property version   "1.50"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -28,7 +23,6 @@ input long   InpMagic       = 777001;                                          /
 input int    InpSlippage    = 30;                                              // Max slippage (points)
 
 CTrade   trade;
-CTrade   strade;          // fast scalps (magic + 1)
 datetime g_lastHistory = 0;
 string   g_results[];
 string   g_fired[];
@@ -60,11 +54,9 @@ int OnInit()
      }
    trade.SetExpertMagicNumber(InpMagic);
    trade.SetDeviationInPoints(InpSlippage);
-   strade.SetExpertMagicNumber(InpMagic + 1);
-   strade.SetDeviationInPoints(InpSlippage);
    g_lastHistory = TimeCurrent() - 3 * 86400;
    EventSetTimer(MathMax(1, InpSyncSeconds));
-   Print("ArrissaEA 1.60 started for account ", AccountInfoInteger(ACCOUNT_LOGIN), " on ", AccountInfoString(ACCOUNT_SERVER), " -> ", InpApiUrl);
+   Print("ArrissaEA 1.50 started for account ", AccountInfoInteger(ACCOUNT_LOGIN), " on ", AccountInfoString(ACCOUNT_SERVER), " -> ", InpApiUrl);
    if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) Print("ArrissaEA: Algo Trading button is OFF - the EA syncs but cannot open trades.");
    Sync();   // connect immediately instead of waiting for the first timer tick
    return(INIT_SUCCEEDED);
@@ -72,33 +64,12 @@ int OnInit()
 
 void OnDeinit(const int reason) { EventKillTimer(); }
 
-// Fast local work first (protection, profit close, scalps), the website sync last: WebRequest blocks this EA
-// until it returns, so it must never sit in front of trade management.
-void LocalWork()
-  {
-   CheckCapTrail();
-   CheckProfitClose();
-   ProtectPositions();
-   ScalpManage();
-   ScalpEntries();
-   ProcessQueue();
-  }
-
 void OnTimer()
   {
-   LocalWork();
+   CheckCapTrail();
+   ProtectPositions();
    CheckWatches();
    Sync();
-  }
-
-ulong g_lastTickWork = 0;
-void OnTick()
-  {
-   // Light: at most 4 times a second, no network.
-   ulong now = GetMicrosecondCount();
-   if(now - g_lastTickWork < 250000) return;
-   g_lastTickWork = now;
-   LocalWork();
   }
 
 //+------------------------------------------------------------------+
@@ -131,42 +102,6 @@ void PushResult(string id, bool ok, string msg)
    int n = ArraySize(g_results);
    ArrayResize(g_results, n + 1);
    g_results[n] = "{\"id\":\"" + id + "\",\"status\":\"" + (ok ? "done" : "failed") + "\",\"result\":\"" + Esc(StringSubstr(msg, 0, 400)) + "\"}";
-  }
-
-string g_exec[];
-void PushExec(string kind, string sym, string ticket, double ms, bool ok, string reason, long spread = -1)
-  {
-   int n = ArraySize(g_exec);
-   if(n >= 100) return;
-   ArrayResize(g_exec, n + 1);
-   g_exec[n] = "{\"kind\":\"" + kind + "\",\"symbol\":\"" + Esc(sym) + "\",\"ticket\":\"" + ticket + "\",\"ms\":" + DoubleToString(ms, 1) + ",\"ok\":" + (ok ? "true" : "false") + ",\"reason\":\"" + Esc(StringSubstr(reason, 0, 190)) + "\"" + (spread >= 0 ? ",\"spread\":" + IntegerToString(spread) : "") + "}";
-  }
-
-double MsSince(ulong t0) { return (double)(GetMicrosecondCount() - t0) / 1000.0; }
-bool   Done(CTrade &t) { uint rc = t.ResultRetcode(); return rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED || rc == TRADE_RETCODE_DONE_PARTIAL; }
-
-// Close requests: one per ticket per 10 s; logged as closed only after the broker confirms.
-ulong  g_crTk[];
-ulong  g_crAt[];
-string g_crWhy[];
-int CrIndex(ulong tk) { for(int i = 0; i < ArraySize(g_crTk); i++) if(g_crTk[i] == tk) return i; return -1; }
-
-bool CloseReq(CTrade &t, ulong tk, string why)
-  {
-   int k = CrIndex(tk);
-   if(k >= 0 && GetMicrosecondCount() - g_crAt[k] < 10000000) return false;
-   if(!PositionSelectByTicket(tk)) return false;
-   string sym = PositionGetString(POSITION_SYMBOL);
-   ulong t0 = GetMicrosecondCount();
-   bool sent = t.PositionClose(tk);
-   bool ok = sent && Done(t);
-   double ms = MsSince(t0);
-   if(k < 0) { k = ArraySize(g_crTk); ArrayResize(g_crTk, k + 1); ArrayResize(g_crAt, k + 1); ArrayResize(g_crWhy, k + 1); }
-   g_crTk[k] = tk; g_crAt[k] = GetMicrosecondCount(); g_crWhy[k] = why;
-   PushExec(ok ? "close" : "close_fail", sym, IntegerToString((long)tk), ms, ok, why + (ok ? "" : " | " + t.ResultRetcodeDescription()), SymbolInfoInteger(sym, SYMBOL_SPREAD));
-   if(ok) Print("ArrissaEA: ", why, " - #", tk, " closed (confirmed in ", DoubleToString(ms, 0), " ms)");
-   else   Print("ArrissaEA: ", why, " - close of #", tk, " FAILED: ", t.ResultRetcodeDescription(), " (will retry in 10 s)");
-   return ok;
   }
 
 bool TrySymbol(string name)
@@ -237,63 +172,6 @@ int CloseAll()
   }
 
 //+------------------------------------------------------------------+
-//| Order queue (replaces Sleep between repeated orders)             |
-//+------------------------------------------------------------------+
-string g_qId[], g_qSym[], g_qSide[], g_qType[], g_qErr[];
-double g_qLot[], g_qSl[], g_qTp[], g_qPx[];
-int    g_qLeft[], g_qDelay[], g_qOpened[];
-ulong  g_qNext[];
-bool   g_qUntil[];
-
-void QueueDrop(int i)
-  {
-   int last = ArraySize(g_qId) - 1;
-   if(i != last)
-     {
-      g_qId[i] = g_qId[last]; g_qSym[i] = g_qSym[last]; g_qSide[i] = g_qSide[last]; g_qType[i] = g_qType[last]; g_qErr[i] = g_qErr[last];
-      g_qLot[i] = g_qLot[last]; g_qSl[i] = g_qSl[last]; g_qTp[i] = g_qTp[last]; g_qPx[i] = g_qPx[last];
-      g_qLeft[i] = g_qLeft[last]; g_qDelay[i] = g_qDelay[last]; g_qOpened[i] = g_qOpened[last]; g_qNext[i] = g_qNext[last]; g_qUntil[i] = g_qUntil[last];
-     }
-   ArrayResize(g_qId, last); ArrayResize(g_qSym, last); ArrayResize(g_qSide, last); ArrayResize(g_qType, last); ArrayResize(g_qErr, last);
-   ArrayResize(g_qLot, last); ArrayResize(g_qSl, last); ArrayResize(g_qTp, last); ArrayResize(g_qPx, last);
-   ArrayResize(g_qLeft, last); ArrayResize(g_qDelay, last); ArrayResize(g_qOpened, last); ArrayResize(g_qNext, last); ArrayResize(g_qUntil, last);
-  }
-
-void ProcessQueue()
-  {
-   for(int i = ArraySize(g_qId) - 1; i >= 0; i--)
-     {
-      bool finished = false;
-      while(g_qLeft[i] > 0 && GetMicrosecondCount() >= g_qNext[i])
-        {
-         string sym = g_qSym[i]; bool buy = g_qSide[i] == "buy"; double lot = g_qLot[i];
-         if(g_qUntil[i])
-           {
-            double need = 0, px = buy ? SymbolInfoDouble(sym, SYMBOL_ASK) : SymbolInfoDouble(sym, SYMBOL_BID);
-            if(!OrderCalcMargin(buy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, sym, lot, px, need) || need >= AccountInfoDouble(ACCOUNT_MARGIN_FREE) * 0.95) { g_qLeft[i] = 0; break; }
-           }
-         ulong t0 = GetMicrosecondCount();
-         bool ok = false;
-         if(g_qType[i] == "limit")      ok = buy ? trade.BuyLimit(lot, g_qPx[i], sym, g_qSl[i], g_qTp[i]) : trade.SellLimit(lot, g_qPx[i], sym, g_qSl[i], g_qTp[i]);
-         else if(g_qType[i] == "stop")  ok = buy ? trade.BuyStop(lot, g_qPx[i], sym, g_qSl[i], g_qTp[i]) : trade.SellStop(lot, g_qPx[i], sym, g_qSl[i], g_qTp[i]);
-         else                           ok = buy ? trade.Buy(lot, sym, 0, g_qSl[i], g_qTp[i], "Arrissa") : trade.Sell(lot, sym, 0, g_qSl[i], g_qTp[i], "Arrissa");
-         ok = ok && Done(trade);
-         PushExec(ok ? "open" : "open_fail", sym, IntegerToString((long)trade.ResultOrder()), MsSince(t0), ok, ok ? g_qSide[i] + " " + g_qType[i] : trade.ResultRetcodeDescription(), SymbolInfoInteger(sym, SYMBOL_SPREAD));
-         g_qLeft[i]--;
-         if(ok) g_qOpened[i]++;
-         else { g_qErr[i] = trade.ResultRetcodeDescription(); if(g_qUntil[i]) { g_qLeft[i] = 0; break; } }
-         if(g_qDelay[i] > 0) { g_qNext[i] = GetMicrosecondCount() + (ulong)g_qDelay[i] * 1000000; break; }
-        }
-      if(g_qLeft[i] <= 0) finished = true;
-      if(finished)
-        {
-         PushResult(g_qId[i], g_qOpened[i] > 0, "Opened " + IntegerToString(g_qOpened[i]) + " " + g_qSide[i] + " " + g_qSym[i] + (g_qErr[i] != "" ? " | " + g_qErr[i] : ""));
-         QueueDrop(i);
-        }
-     }
-  }
-
-//+------------------------------------------------------------------+
 //| Command execution                                                |
 //+------------------------------------------------------------------+
 void Execute(string &f[])
@@ -314,24 +192,33 @@ void Execute(string &f[])
       if(lot <= 0) lot = SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN);
       lot = NormLot(sym, lot);
       sl = NormPrice(sym, sl); tp = NormPrice(sym, tp); price = NormPrice(sym, price);
+      bool buy = side == "buy";
       int target = untilNoMargin ? 200 : MathMax(1, MathMin(50, count));
-      // Queue: the first order goes now; delayed ones are sent by the timer (no Sleep blocking protection).
-      int q = ArraySize(g_qId);
-      ArrayResize(g_qId, q + 1); ArrayResize(g_qSym, q + 1); ArrayResize(g_qSide, q + 1); ArrayResize(g_qType, q + 1); ArrayResize(g_qLot, q + 1);
-      ArrayResize(g_qSl, q + 1); ArrayResize(g_qTp, q + 1); ArrayResize(g_qPx, q + 1); ArrayResize(g_qLeft, q + 1); ArrayResize(g_qDelay, q + 1);
-      ArrayResize(g_qNext, q + 1); ArrayResize(g_qOpened, q + 1); ArrayResize(g_qErr, q + 1); ArrayResize(g_qUntil, q + 1);
-      g_qId[q] = id; g_qSym[q] = sym; g_qSide[q] = side; g_qType[q] = otype; g_qLot[q] = lot; g_qSl[q] = sl; g_qTp[q] = tp; g_qPx[q] = price;
-      g_qLeft[q] = target; g_qDelay[q] = MathMax(0, MathMin(delay, 60)); g_qNext[q] = 0; g_qOpened[q] = 0; g_qErr[q] = ""; g_qUntil[q] = untilNoMargin;
-      ProcessQueue();
+      int opened = 0; string err = "";
+      for(int k = 0; k < target; k++)
+        {
+         if(untilNoMargin)
+           {
+            double need = 0;
+            double px = buy ? SymbolInfoDouble(sym, SYMBOL_ASK) : SymbolInfoDouble(sym, SYMBOL_BID);
+            if(!OrderCalcMargin(buy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, sym, lot, px, need) || need >= AccountInfoDouble(ACCOUNT_MARGIN_FREE) * 0.95) break;
+           }
+         bool ok = false;
+         if(otype == "limit")      ok = buy ? trade.BuyLimit(lot, price, sym, sl, tp) : trade.SellLimit(lot, price, sym, sl, tp);
+         else if(otype == "stop")  ok = buy ? trade.BuyStop(lot, price, sym, sl, tp) : trade.SellStop(lot, price, sym, sl, tp);
+         else                      ok = buy ? trade.Buy(lot, sym, 0, sl, tp, "Arrissa") : trade.Sell(lot, sym, 0, sl, tp, "Arrissa");
+         if(ok && (trade.ResultRetcode() == TRADE_RETCODE_DONE || trade.ResultRetcode() == TRADE_RETCODE_PLACED)) opened++;
+         else { err = trade.ResultRetcodeDescription(); if(!untilNoMargin) continue; else break; }
+         if(delay > 0 && k < target - 1) Sleep(MathMin(delay, 60) * 1000);
+        }
+      PushResult(id, opened > 0, "Opened " + IntegerToString(opened) + " " + side + " " + sym + (err != "" ? " | " + err : ""));
       return;
      }
    if(cmd == "close_all")    { PushResult(id, true, "Closed " + IntegerToString(CloseAll())); return; }
    if(cmd == "close_trade")
      {
-      if(!PositionSelectByTicket(ticket)) { PushResult(id, true, "#" + IntegerToString((long)ticket) + " already closed"); return; }
-      bool scalp = PositionGetInteger(POSITION_MAGIC) == InpMagic + 1;
-      bool ok = scalp ? CloseReq(strade, ticket, "website close") : CloseReq(trade, ticket, "website close");
-      PushResult(id, ok, ok ? "Closed #" + IntegerToString((long)ticket) + " (confirmed)" : "Close not confirmed: " + (scalp ? strade.ResultRetcodeDescription() : trade.ResultRetcodeDescription()));
+      bool ok = PositionSelectByTicket(ticket) && trade.PositionClose(ticket);
+      PushResult(id, ok, ok ? "Closed #" + IntegerToString((long)ticket) : trade.ResultRetcodeDescription());
       return;
      }
    if(cmd == "break_even" || cmd == "delete_sl" || cmd == "set_sl_tp")
@@ -389,21 +276,6 @@ int ProtIndex(ulong ticket, double risk)
    return n;
   }
 
-// Fixed $ profit close for platform trades. Independent of Auto-protect (1.50 skipped it when protect was off).
-// POSITION_PROFIT is in the account currency and excludes commission.
-void CheckProfitClose()
-  {
-   if(InpProfitClose <= 0) return;
-   for(int i = PositionsTotal() - 1; i >= 0; i--)
-     {
-      ulong tk = PositionGetTicket(i);
-      if(tk == 0 || !PositionSelectByTicket(tk)) continue;
-      if(PositionGetInteger(POSITION_MAGIC) != InpMagic) continue;
-      if(PositionGetDouble(POSITION_PROFIT) >= InpProfitClose)
-         CloseReq(trade, tk, "profit target " + DoubleToString(InpProfitClose, 2) + " " + AccountInfoString(ACCOUNT_CURRENCY) + " reached");
-     }
-  }
-
 void ProtectPositions()
   {
    if(!InpProtect) return;
@@ -419,6 +291,8 @@ void ProtectPositions()
       double vol  = PositionGetDouble(POSITION_VOLUME);
       bool   buy  = PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY;
       int    k    = ProtIndex(tk, sl > 0 ? MathAbs(open - sl) : 0);
+      if(InpProfitClose > 0 && PositionGetDouble(POSITION_PROFIT) >= InpProfitClose)
+        { trade.PositionClose(tk); Print("ArrissaEA: profit target $", InpProfitClose, " reached on ", tk, " - closed"); continue; }
       if(k < 0) continue;
       double risk = g_protRisk[k];
       double px   = buy ? SymbolInfoDouble(sym, SYMBOL_BID) : SymbolInfoDouble(sym, SYMBOL_ASK);
@@ -428,12 +302,10 @@ void ProtectPositions()
         {
          double step = SymbolInfoDouble(sym, SYMBOL_VOLUME_STEP), vmin = SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN);
          double half = MathFloor(vol / 2 / step) * step;
-         bool partOk = true;
-         if(half >= vmin && vol - half >= vmin) partOk = trade.PositionClosePartial(tk, half) && Done(trade);
-         bool beOk = trade.PositionModify(tk, NormalizeDouble(open, dg), tp) && Done(trade);
+         if(half >= vmin && vol - half >= vmin) trade.PositionClosePartial(tk, half);
+         trade.PositionModify(tk, NormalizeDouble(open, dg), tp);
          g_protHalf[k] = true;
-         PushExec("protect_1r", sym, IntegerToString((long)tk), 0, partOk && beOk, (partOk ? "half closed" : "half close failed") + string(beOk ? ", stop at breakeven" : ", breakeven failed: " + trade.ResultRetcodeDescription()));
-         Print("ArrissaEA: 1R reached on ", tk, partOk ? " - half closed" : " - half close FAILED", beOk ? ", stop at breakeven" : ", breakeven FAILED: " + trade.ResultRetcodeDescription());
+         Print("ArrissaEA: 1R reached on ", tk, " - half closed, stop at breakeven");
          continue;
         }
       if(g_protHalf[k] && gain >= risk * 1.5)
@@ -483,179 +355,6 @@ void CheckWatches()
          g_watchSym[i] = "";   // fired; ignore until removed
         }
      }
-  }
-
-//+------------------------------------------------------------------+
-//| Fast Scalping (local; settings come from the website S/B lines)  |
-//| Same rule as src/lib/scalp.ts: on a closed M1 bar, close breaks  |
-//| the high/low of the previous N bars on the EMA side -> enter;    |
-//| stop = k x ATR, target = R x stop (R >= 1.5), time exit.          |
-//+------------------------------------------------------------------+
-bool     g_sOn = false;
-datetime g_sAt = 0;          // local time of the last settings line
-string   g_sSyms[];
-string   g_sRes[];
-datetime g_sLastBar[];
-datetime g_sLossAt[];
-int      g_sLook = 20, g_sAtrLen = 14, g_sHold = 300, g_sEma = 50;
-double   g_sSlAtr = 1.5, g_sRR = 1.5, g_sSpreadFrac = 0.25, g_sLot = 0.01, g_sDayLoss = 0;
-string   g_sReason = "";
-string   g_bSym[], g_bBias[];
-double   g_dayPl = 0;
-datetime g_dayPlAt = 0;
-
-void ScalpSettings(string &f[], int k)
-  {
-   g_sAt = TimeLocal();
-   bool on = f[1] == "1";
-   if(on != g_sOn) Print("ArrissaEA: Fast Scalping ", on ? "ON" : "OFF", k > 12 && f[12] != "" ? " - " + f[12] : "");
-   g_sOn = on;
-   if(k > 12) g_sReason = f[12];
-   if(k < 12) return;
-   string parts[];
-   int n = StringSplit(f[2], ',', parts);
-   if(n != ArraySize(g_sSyms) || (n > 0 && parts[0] != g_sSyms[0]))
-     {
-      ArrayResize(g_sSyms, n); ArrayResize(g_sRes, n); ArrayResize(g_sLastBar, n); ArrayResize(g_sLossAt, n);
-      for(int i = 0; i < n; i++) { g_sSyms[i] = parts[i]; g_sRes[i] = ResolveSymbol(parts[i]); g_sLastBar[i] = 0; g_sLossAt[i] = 0; }
-     }
-   g_sLook = (int)MathMax(5, StringToInteger(f[3])); g_sAtrLen = (int)MathMax(5, StringToInteger(f[4]));
-   g_sSlAtr = MathMax(0.5, StringToDouble(f[5])); g_sRR = MathMax(1.5, StringToDouble(f[6]));
-   g_sHold = (int)MathMax(30, StringToInteger(f[7])); g_sSpreadFrac = StringToDouble(f[8]); g_sEma = (int)MathMax(10, StringToInteger(f[9]));
-   g_sLot = StringToDouble(f[10]); g_sDayLoss = StringToDouble(f[11]);
-  }
-
-void ScalpBias(string &f[], int k)
-  {
-   for(int i = 0; i < ArraySize(g_bSym); i++) if(g_bSym[i] == f[1]) { g_bBias[i] = f[2]; return; }
-   int n = ArraySize(g_bSym); ArrayResize(g_bSym, n + 1); ArrayResize(g_bBias, n + 1);
-   g_bSym[n] = f[1]; g_bBias[n] = f[2];
-  }
-
-string BiasOf(string sym) { for(int i = 0; i < ArraySize(g_bSym); i++) if(g_bSym[i] == sym) return g_bBias[i]; return "none"; }
-
-int ScalpCount(string sym)
-  {
-   int n = 0;
-   for(int i = PositionsTotal() - 1; i >= 0; i--)
-     {
-      ulong tk = PositionGetTicket(i);
-      if(tk == 0 || PositionGetInteger(POSITION_MAGIC) != InpMagic + 1) continue;
-      if(sym == "" || PositionGetString(POSITION_SYMBOL) == sym) n++;
-     }
-   return n;
-  }
-
-double TodayPl()
-  {
-   if(TimeLocal() - g_dayPlAt < 30) return g_dayPl;
-   g_dayPlAt = TimeLocal();
-   MqlDateTime d; TimeToStruct(TimeCurrent(), d); d.hour = 0; d.min = 0; d.sec = 0;
-   double t = 0;
-   if(HistorySelect(StructToTime(d), TimeCurrent() + 60))
-      for(int i = HistoryDealsTotal() - 1; i >= 0; i--)
-        {
-         ulong dl = HistoryDealGetTicket(i);
-         long e = HistoryDealGetInteger(dl, DEAL_ENTRY);
-         if(e == DEAL_ENTRY_OUT || e == DEAL_ENTRY_OUT_BY) t += HistoryDealGetDouble(dl, DEAL_PROFIT) + HistoryDealGetDouble(dl, DEAL_SWAP) + HistoryDealGetDouble(dl, DEAL_COMMISSION);
-        }
-   g_dayPl = t;
-   return t;
-  }
-
-void ScalpEntries()
-  {
-   if(!g_sOn || TimeLocal() - g_sAt > 120) return;   // website settings too old: no new scalps
-   if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED) || !MQLInfoInteger(MQL_TRADE_ALLOWED)) return;
-   if(ScalpCount("") >= 2) return;
-   if(g_sDayLoss > 0 && TodayPl() <= -g_sDayLoss) return;
-   for(int s = 0; s < ArraySize(g_sSyms); s++)
-     {
-      string sym = g_sRes[s];
-      if(sym == "") continue;
-      string bias = BiasOf(g_sSyms[s]);
-      if(bias == "block") continue;
-      if(ScalpCount(sym) > 0) continue;
-      if(g_sLossAt[s] > 0 && TimeLocal() - g_sLossAt[s] < 600) continue;   // 10 min cool-down after a losing scalp
-      int need = MathMin(1000, MathMax(g_sLook, g_sAtrLen) + g_sEma * 4 + 2);
-      MqlRates r[];
-      ArraySetAsSeries(r, false);
-      int n = CopyRates(sym, PERIOD_M1, 1, need, r);   // closed bars only, oldest first
-      if(n < MathMax(g_sLook, g_sAtrLen) + 2) continue;
-      if(r[n - 1].time == g_sLastBar[s]) continue;
-      g_sLastBar[s] = r[n - 1].time;
-      if(TimeCurrent() - r[n - 1].time > 180) continue;   // stale bar (market closed)
-      double kk = 2.0 / (g_sEma + 1), ema = r[0].close;
-      for(int i = 1; i < n; i++) ema = r[i].close * kk + ema * (1 - kk);
-      double atr = 0;
-      for(int i = n - g_sAtrLen; i < n; i++) atr += MathMax(r[i].high - r[i].low, MathMax(MathAbs(r[i].high - r[i - 1].close), MathAbs(r[i].low - r[i - 1].close)));
-      atr /= g_sAtrLen;
-      if(atr <= 0) continue;
-      double hi = -DBL_MAX, lo = DBL_MAX;
-      for(int i = n - 1 - g_sLook; i < n - 1; i++) { hi = MathMax(hi, r[i].high); lo = MathMin(lo, r[i].low); }
-      double c = r[n - 1].close;
-      bool buy = c > hi && c > ema, sell = c < lo && c < ema;
-      if(!buy && !sell) continue;
-      if((buy && bias == "sell") || (sell && bias == "buy")) { Print("ArrissaEA scalp: ", sym, buy ? " buy" : " sell", " breakout skipped - against the AI bias"); continue; }
-      double ask = SymbolInfoDouble(sym, SYMBOL_ASK), bid = SymbolInfoDouble(sym, SYMBOL_BID);
-      double spread = ask - bid, slDist = g_sSlAtr * atr;
-      if(spread > g_sSpreadFrac * slDist) continue;
-      double stopsLvl = SymbolInfoInteger(sym, SYMBOL_TRADE_STOPS_LEVEL) * SymbolInfoDouble(sym, SYMBOL_POINT);
-      if(stopsLvl > 0 && slDist <= stopsLvl) continue;
-      double entry = buy ? ask : bid;
-      double sl = NormPrice(sym, buy ? entry - slDist : entry + slDist), tp = NormPrice(sym, buy ? entry + g_sRR * slDist : entry - g_sRR * slDist);
-      double lot = NormLot(sym, g_sLot > 0 ? g_sLot : SymbolInfoDouble(sym, SYMBOL_VOLUME_MIN));
-      double loss = 0;
-      if(!OrderCalcProfit(buy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL, sym, lot, entry, sl, loss)) continue;
-      if(MathAbs(loss) > AccountInfoDouble(ACCOUNT_BALANCE) * 0.02) { Print("ArrissaEA scalp: ", sym, " skipped - stop would risk more than 2% of balance"); continue; }
-      ulong t0 = GetMicrosecondCount();
-      bool ok = (buy ? strade.Buy(lot, sym, 0, sl, tp, "UfuqScalp") : strade.Sell(lot, sym, 0, sl, tp, "UfuqScalp")) && Done(strade);
-      double ms = MsSince(t0);
-      PushExec(ok ? "scalp_open" : "scalp_open_fail", g_sSyms[s], IntegerToString((long)strade.ResultOrder()), ms, ok, (buy ? "buy" : "sell") + string(" breakout") + (ok ? "" : " | " + strade.ResultRetcodeDescription()), SymbolInfoInteger(sym, SYMBOL_SPREAD));
-      Print("ArrissaEA scalp: ", buy ? "BUY " : "SELL ", sym, " ", ok ? "opened" : "FAILED " + strade.ResultRetcodeDescription(), " in ", DoubleToString(ms, 0), " ms (sl ", sl, " tp ", tp, ")");
-      if(ScalpCount("") >= 2) return;
-     }
-  }
-
-// Time exit for scalps (stop and target sit at the broker). Runs even when the website is unreachable.
-void ScalpManage()
-  {
-   for(int i = PositionsTotal() - 1; i >= 0; i--)
-     {
-      ulong tk = PositionGetTicket(i);
-      if(tk == 0 || !PositionSelectByTicket(tk) || PositionGetInteger(POSITION_MAGIC) != InpMagic + 1) continue;
-      long age = (long)(TimeCurrent() - (datetime)PositionGetInteger(POSITION_TIME));
-      if(age >= g_sHold) CloseReq(strade, tk, "scalp time exit " + IntegerToString(g_sHold) + "s");
-     }
-  }
-
-string ExitReason(ulong deal)
-  {
-   long r = HistoryDealGetInteger(deal, DEAL_REASON);
-   if(r == DEAL_REASON_SL) return "sl";
-   if(r == DEAL_REASON_TP) return "tp";
-   if(r == DEAL_REASON_SO) return "stop_out";
-   if(r == DEAL_REASON_EXPERT) return "ea";
-   return "manual";
-  }
-
-// Confirmed fills and closes from the trade server.
-void OnTradeTransaction(const MqlTradeTransaction &trans, const MqlTradeRequest &request, const MqlTradeResult &result)
-  {
-   if(trans.type != TRADE_TRANSACTION_DEAL_ADD || trans.deal == 0 || !HistoryDealSelect(trans.deal)) return;
-   long magic = HistoryDealGetInteger(trans.deal, DEAL_MAGIC);
-   if(magic != InpMagic && magic != InpMagic + 1) return;
-   long entry = HistoryDealGetInteger(trans.deal, DEAL_ENTRY);
-   if(entry != DEAL_ENTRY_OUT && entry != DEAL_ENTRY_OUT_BY) return;
-   string sym = HistoryDealGetString(trans.deal, DEAL_SYMBOL);
-   double pl = HistoryDealGetDouble(trans.deal, DEAL_PROFIT) + HistoryDealGetDouble(trans.deal, DEAL_SWAP) + HistoryDealGetDouble(trans.deal, DEAL_COMMISSION);
-   ulong pos = (ulong)HistoryDealGetInteger(trans.deal, DEAL_POSITION_ID);
-   int k = CrIndex(pos);
-   double ms = k >= 0 ? MsSince(g_crAt[k]) : -1;
-   PushExec(magic == InpMagic + 1 ? "scalp_closed" : "closed", sym, IntegerToString((long)pos), ms, true, ExitReason(trans.deal) + " " + DoubleToString(pl, 2));
-   g_dayPlAt = 0;
-   if(magic == InpMagic + 1 && pl < 0)
-      for(int s = 0; s < ArraySize(g_sRes); s++) if(g_sRes[s] == sym) g_sLossAt[s] = TimeLocal();
   }
 
 //+------------------------------------------------------------------+
@@ -725,7 +424,6 @@ string BuildBody(bool withMarket)
    b += "\"server\":\"" + Esc(AccountInfoString(ACCOUNT_SERVER)) + "\",";
    b += "\"company\":\"" + Esc(AccountInfoString(ACCOUNT_COMPANY)) + "\",";
    b += "\"currency\":\"" + Esc(AccountInfoString(ACCOUNT_CURRENCY)) + "\",";
-   b += "\"ea_version\":\"1.60\",";
    b += "\"balance\":" + Num(AccountInfoDouble(ACCOUNT_BALANCE), 2) + ",";
    b += "\"equity\":" + Num(AccountInfoDouble(ACCOUNT_EQUITY), 2) + ",";
    b += "\"free_margin\":" + Num(AccountInfoDouble(ACCOUNT_MARGIN_FREE), 2) + ",";
@@ -748,7 +446,6 @@ string BuildBody(bool withMarket)
       b += "\"stop_loss\":" + Num(PositionGetDouble(POSITION_SL)) + ",";
       b += "\"take_profit\":" + Num(PositionGetDouble(POSITION_TP)) + ",";
       b += "\"profit\":" + Num(PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP), 2) + ",";
-      b += "\"strategy\":\"" + (PositionGetInteger(POSITION_MAGIC) == InpMagic + 1 ? "scalp" : "main") + "\",";
       b += "\"opened_at\":\"" + Iso((datetime)PositionGetInteger(POSITION_TIME)) + "\"}";
      }
    b += "],";
@@ -775,8 +472,6 @@ string BuildBody(bool withMarket)
          b += "\"volume\":" + Num(HistoryDealGetDouble(d, DEAL_VOLUME), 2) + ",";
          b += "\"close_price\":" + Num(HistoryDealGetDouble(d, DEAL_PRICE)) + ",";
          b += "\"profit\":" + Num(pl, 2) + ",";
-         b += "\"strategy\":\"" + (HistoryDealGetInteger(d, DEAL_MAGIC) == InpMagic + 1 ? "scalp" : "main") + "\",";
-         b += "\"exit_reason\":\"" + ExitReason(d) + "\",";
          b += "\"closed_at\":\"" + Iso((datetime)HistoryDealGetInteger(d, DEAL_TIME)) + "\"}";
         }
      }
@@ -786,8 +481,6 @@ string BuildBody(bool withMarket)
    for(int i = 0; i < ArraySize(g_results); i++) { if(i > 0) b += ","; b += g_results[i]; }
    b += "],\"hedge_fired\":[";
    for(int i = 0; i < ArraySize(g_fired); i++) { if(i > 0) b += ","; b += "\"" + g_fired[i] + "\""; }
-   b += "],\"exec\":[";
-   for(int i = 0; i < ArraySize(g_exec); i++) { if(i > 0) b += ","; b += g_exec[i]; }
    b += "]";
    if(withMarket) { string m = MarketJson(); string q = QuotesJson(); if(m == "" && q != "") q = StringSubstr(q, 1); if(m != "" || q != "") b += ",\"market\":[" + m + q + "]"; }
    b += "}";
@@ -805,7 +498,7 @@ int Post(string body, bool closeConn, string &text)
    string resHeaders;
    string url = InpApiUrl + "/sync?format=text";
    ResetLastError();
-   int code = WebRequest("POST", url, headers, 7000, data, result, resHeaders);   // shorter wait: the EA cannot manage trades while this runs
+   int code = WebRequest("POST", url, headers, 15000, data, result, resHeaders);
    text = code == -1 ? "" : CharArrayToString(result, 0, WHOLE_ARRAY, CP_UTF8);
    return code;
   }
@@ -821,8 +514,7 @@ string Explain(int code, string text)
    return "HTTP " + IntegerToString(code) + ": " + text;
   }
 
-int g_skip = 0;
-double g_syncSum = 0, g_syncMax = 0;   // timer ticks to wait before the next attempt after a failure (back-off)
+int g_skip = 0;   // timer ticks to wait before the next attempt after a failure (back-off)
 
 void Fail()
   {
@@ -837,7 +529,6 @@ void Sync()
    if(g_skip > 0) { g_skip--; return; }
    bool withMarket = g_marketDue && g_failStreak == 0;
    string text;
-   ulong t0 = GetMicrosecondCount();
    int code = Post(BuildBody(withMarket), false, text);
    // One lighter retry only on the first failure (no bulky broker data, fresh connection).
    if(g_failStreak == 0 && (code == -1 || code >= 1000 || (code >= 500 && code < 600)))
@@ -862,16 +553,12 @@ void Sync()
    if(!g_connected) Print("ArrissaEA connected - account ", AccountInfoInteger(ACCOUNT_LOGIN), " is online on the website.");
    g_connected = true; g_failStreak = 0;
    g_syncCount++;
-   double syncMs = MsSince(t0);
-   g_syncSum += syncMs; g_syncMax = MathMax(g_syncMax, syncMs);
-   if(g_syncCount % 30 == 0) { PushExec("sync", "", "", g_syncSum / 30.0, true, "avg of 30 syncs, max " + DoubleToString(g_syncMax, 0) + " ms"); g_syncSum = 0; g_syncMax = 0; }
    g_marketDue = withMarket ? false : g_marketDue;
    if(g_syncCount % 30 == 0) g_marketDue = true;
 
    // Delivered: clear the outbox and move the history window.
    ArrayResize(g_results, 0);
    ArrayResize(g_fired, 0);
-   ArrayResize(g_exec, 0);
    g_lastHistory = TimeCurrent() - 120;
 
    string lines[];
@@ -883,8 +570,6 @@ void Sync()
       int k = StringSplit(lines[i], '|', f);
       if(k >= 15 && f[0] == "C") Execute(f);
       else if(k >= 4 && f[0] == "W") { SetWatch(f[1], f[2], StringToDouble(f[3])); seenWatch += f[1] + "|"; }
-      else if(k >= 2 && f[0] == "S") ScalpSettings(f, k);
-      else if(k >= 3 && f[0] == "B") ScalpBias(f, k);
      }
    // Drop watches the server no longer sends (executed or cancelled).
    for(int i = ArraySize(g_watchId) - 1; i >= 0; i--)

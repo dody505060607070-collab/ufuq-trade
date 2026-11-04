@@ -31,7 +31,7 @@ export async function processLessons(db: DB) {
   const since = new Date(Date.now() - 7 * 86400_000).toISOString();
   // Wait 2h after close so we can see where price went next.
   const ready = new Date(Date.now() - 2 * 3600_000).toISOString();
-  const { data: closed } = await db.from("trades").select("*").eq("status", "closed").or("strategy.is.null,strategy.neq.scalp").gte("closed_at", since).lte("closed_at", ready).order("closed_at", { ascending: false }).limit(40);
+  const { data: closed } = await db.from("trades").select("*").eq("status", "closed").gte("closed_at", since).lte("closed_at", ready).order("closed_at", { ascending: false }).limit(40);
   if (!closed?.length) return 0;
   const { data: done } = await db.from("trade_lessons").select("trade_id").in("trade_id", closed.map((t) => t.id));
   const doneIds = new Set((done ?? []).map((d) => d.trade_id));

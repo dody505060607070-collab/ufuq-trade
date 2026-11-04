@@ -38,7 +38,6 @@ import { Route as AuthenticatedChallengeRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDecisionsRouteImport } from './routes/_authenticated/decisions'
 import { Route as AuthenticatedHedgeRouteImport } from './routes/_authenticated/hedge'
-import { Route as AuthenticatedLabRouteImport } from './routes/_authenticated/lab'
 import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
 import { Route as AuthenticatedPlatformsRouteImport } from './routes/_authenticated/platforms'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -210,11 +209,6 @@ const AuthenticatedDecisionsRoute = AuthenticatedDecisionsRouteImport.update({
 const AuthenticatedHedgeRoute = AuthenticatedHedgeRouteImport.update({
   id: '/hedge',
   path: '/hedge',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedLabRoute = AuthenticatedLabRouteImport.update({
-  id: '/lab',
-  path: '/lab',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPerformanceRoute =
@@ -399,7 +393,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/decisions': typeof AuthenticatedDecisionsRoute
   '/hedge': typeof AuthenticatedHedgeRoute
-  '/lab': typeof AuthenticatedLabRoute
   '/performance': typeof AuthenticatedPerformanceRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -456,7 +449,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/decisions': typeof AuthenticatedDecisionsRoute
   '/hedge': typeof AuthenticatedHedgeRoute
-  '/lab': typeof AuthenticatedLabRoute
   '/performance': typeof AuthenticatedPerformanceRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
   '/whales': typeof AuthenticatedWhalesRoute
@@ -515,7 +507,6 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/decisions': typeof AuthenticatedDecisionsRoute
   '/_authenticated/hedge': typeof AuthenticatedHedgeRoute
-  '/_authenticated/lab': typeof AuthenticatedLabRoute
   '/_authenticated/performance': typeof AuthenticatedPerformanceRoute
   '/_authenticated/platforms': typeof AuthenticatedPlatformsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
@@ -575,7 +566,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/decisions'
     | '/hedge'
-    | '/lab'
     | '/performance'
     | '/platforms'
     | '/settings'
@@ -632,7 +622,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/decisions'
     | '/hedge'
-    | '/lab'
     | '/performance'
     | '/platforms'
     | '/whales'
@@ -690,7 +679,6 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/decisions'
     | '/_authenticated/hedge'
-    | '/_authenticated/lab'
     | '/_authenticated/performance'
     | '/_authenticated/platforms'
     | '/_authenticated/settings'
@@ -949,13 +937,6 @@ declare module '@tanstack/react-router' {
       path: '/hedge'
       fullPath: '/hedge'
       preLoaderRoute: typeof AuthenticatedHedgeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/lab': {
-      id: '/_authenticated/lab'
-      path: '/lab'
-      fullPath: '/lab'
-      preLoaderRoute: typeof AuthenticatedLabRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/performance': {
@@ -1228,7 +1209,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDecisionsRoute: typeof AuthenticatedDecisionsRoute
   AuthenticatedHedgeRoute: typeof AuthenticatedHedgeRoute
-  AuthenticatedLabRoute: typeof AuthenticatedLabRoute
   AuthenticatedPerformanceRoute: typeof AuthenticatedPerformanceRoute
   AuthenticatedPlatformsRoute: typeof AuthenticatedPlatformsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
@@ -1247,7 +1227,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDecisionsRoute: AuthenticatedDecisionsRoute,
   AuthenticatedHedgeRoute: AuthenticatedHedgeRoute,
-  AuthenticatedLabRoute: AuthenticatedLabRoute,
   AuthenticatedPerformanceRoute: AuthenticatedPerformanceRoute,
   AuthenticatedPlatformsRoute: AuthenticatedPlatformsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,

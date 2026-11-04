@@ -20,8 +20,6 @@ const position = z.object({
   profit: z.number().optional(),
   opened_at: z.string().nullable().optional(),
   closed_at: z.string().nullable().optional(),
-  strategy: z.enum(["main", "scalp"]).optional(),
-  exit_reason: z.string().max(40).optional(),
 });
 
 const body = z.object({
@@ -34,17 +32,11 @@ const body = z.object({
     login: z.union([z.string(), z.number()]).transform(String).optional(),
     server: z.string().max(100).optional(),
     company: z.string().max(100).optional(),
-    ea_version: z.string().max(10).optional(),
   }).optional(),
   positions: z.array(position).max(500).optional(),
   closed: z.array(position).max(500).optional(),
   results: z.array(z.object({ id: z.string().uuid(), status: z.enum(["done", "failed"]), result: z.string().max(500).optional() })).max(200).optional(),
   hedge_fired: z.array(z.string().uuid()).max(50).optional(),
-  // EA v1.60+: execution timings (request -> confirmation) and sync round trips.
-  exec: z.array(z.object({
-    kind: z.string().max(30), symbol: z.string().max(30).optional(), ticket: z.union([z.string(), z.number()]).transform(String).optional(),
-    ms: z.number().optional(), ok: z.boolean().optional(), reason: z.string().max(200).optional(), spread: z.number().optional(),
-  })).max(100).optional(),
   market: z.array(z.object({
     symbol: z.string().max(20),
     broker_symbol: z.string().max(30).optional(),
@@ -120,9 +112,6 @@ export const Route = createFileRoute("/api/public/ea/sync")({
           if (stale.length) await db.from("trades").update({ status: "closed", closed_at: now }).in("id", stale);
           await lockProfits(db, acc, p.positions);
         }
-        if (p.exec?.length) {
-          await db.from("ea_exec_events").insert(p.exec.map((e) => ({ account_id: acc.id, user_id: acc.user_id, kind: e.kind, symbol: e.symbol ?? null, ticket: e.ticket ?? null, ms: e.ms == null ? null : Math.round(e.ms), ok: e.ok ?? true, reason: e.reason ?? null, spread: e.spread == null ? null : Math.round(e.spread) })));
-        }
         for (const r of p.results ?? []) {
           await db.from("trade_commands").update({ status: r.status, result: r.result ?? null, executed_at: now }).eq("id", r.id).eq("account_id", acc.id);
         }
@@ -155,9 +144,6 @@ export const Route = createFileRoute("/api/public/ea/sync")({
             lines.push(["C", c.id, c.command, v(pl.symbol), v(pl.side), v(pl.order_type ?? "market"), v(pl.lot), v(pl.sl), v(pl.tp), v(pl.price), v(pl.count ?? 1), v(pl.delay_seconds ?? 0), v(pl.threshold), v(pl.ticket), pl.until_no_margin ? "1" : "0"].join("|"));
           }
           for (const w of watch) lines.push(["W", w.id, v(w.symbol), v(w.price)].join("|"));
-          // Fast scalping settings (EA v1.60+; older EAs ignore these lines).
-          const { scalpLines } = await import("@/lib/scalp-sync.server");
-          lines.push(...(await scalpLines(db, acc.id)));
           return new Response(lines.join("\n") + "\n", { headers: { ...cors, "Content-Type": "text/plain" } });
         }
         return json({ commands: cmds ?? [], watch_prices: watch, server_time: now });
