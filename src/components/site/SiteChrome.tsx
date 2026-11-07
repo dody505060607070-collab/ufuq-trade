@@ -77,6 +77,7 @@ export function SiteFooter() {
         </div>
       </div>
       <p className="border-t border-border/40 py-4 text-center text-[11px] text-muted-foreground">{t("Trading in derivatives is highly speculative and involves significant risk.")}</p>
+      <DesignerCredit />
     </footer>
   );
 }

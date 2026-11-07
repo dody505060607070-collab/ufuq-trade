@@ -61,6 +61,7 @@ export function PublicFooter() {
       </div>
       <p className="border-t border-border/60 py-5 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} {t("Ufuq Trade. All rights reserved.")} </p>
+      <DesignerCredit />
     </footer>
   );
 }
