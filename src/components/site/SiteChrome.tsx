@@ -9,6 +9,7 @@ import { useT, LanguageToggle } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useBrokers } from "@/lib/trading";
 import { BrandMark } from "./Logo";
+import { DesignerCredit } from "./DesignerCredit";
 import { BrandLogo, BrokerLogo, type LogoKey } from "@/components/app/InstrumentIcon";
 import fAnalysis from "@/assets/f-analysis.jpg";
 import fMulti from "@/assets/f-multiasset.jpg";

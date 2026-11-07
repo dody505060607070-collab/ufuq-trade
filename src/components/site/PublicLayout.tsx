@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Instagram, Send } from "lucide-react";
 import { Logo } from "./Logo";
+import { DesignerCredit } from "./DesignerCredit";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 
