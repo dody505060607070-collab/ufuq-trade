@@ -16,6 +16,7 @@ export const AR_PUBLIC: Record<string, string> = {
   "Privacy": "الخصوصية",
   "Risk disclosure": "الإفصاح عن المخاطر",
   "Ufuq Trade. All rights reserved.": "أُفُق تريد. جميع الحقوق محفوظة.",
+  "Designed & developed by": "تصميم وتطوير",
   "Google sign-in failed.": "تعذّر تسجيل الدخول باستخدام Google.",
   "Continue with Google": "المتابعة باستخدام Google",
   "Features": "المزايا",

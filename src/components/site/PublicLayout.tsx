@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Instagram, Send } from "lucide-react";
 import { Logo } from "./Logo";
+import { DesignerCredit } from "./DesignerCredit";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 
@@ -61,6 +62,7 @@ export function PublicFooter() {
       </div>
       <p className="border-t border-border/60 py-5 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} {t("Ufuq Trade. All rights reserved.")} </p>
+      <DesignerCredit />
     </footer>
   );
 }
