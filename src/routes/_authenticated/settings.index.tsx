@@ -135,8 +135,8 @@ function AccountRow({ a }: { a: Account }) {
         <label className="flex items-center gap-2"><Switch checked={a.auto_trading} onCheckedChange={(v) => update({ auto_trading: v }, v ? t("Auto trading enabled.") : t("Auto trading disabled."))} />  {t("Auto-trade platform signals")}</label>
         <div className="flex items-center gap-1 rounded-full bg-muted/40 p-1" role="group" aria-label={t("AI for this account")}>
           <span className="px-2 text-xs text-muted-foreground">{t("AI for this account")}</span>
-          {(["gemini", "openai"] as const).map((p) => (
-            <Button key={p} size="sm" variant={a.ai_provider === p ? "default" : "ghost"} className="h-7 rounded-full" onClick={() => a.ai_provider !== p && update({ ai_provider: p }, t("AI saved for this account."))}>{p === "openai" ? "ChatGPT" : "Gemini"}</Button>
+          {(["gemini", "openai", "mixed"] as const).map((p) => (
+            <Button key={p} size="sm" variant={a.ai_provider === p ? "default" : "ghost"} className="h-7 rounded-full" onClick={() => a.ai_provider !== p && update({ ai_provider: p }, t("AI saved for this account."))}>{p === "openai" ? "ChatGPT" : p === "mixed" ? t("Gemini + ChatGPT (take turns)") : "Gemini"}</Button>
           ))}
         </div>
         <Button size="sm" variant="ghost" className="ms-auto text-destructive" onClick={remove}><Trash2 />  {t("Disconnect")}</Button>
