@@ -1,17 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { pickSlowPair, SLOW_MODE_MINUTES, DAILY_GEMINI_CALLS } from "./signal-guard";
 import { OPENAI_MIN_CONFIDENCE } from "./ai-provider";
+import * as guard from "./signal-guard";
 import { skipReason, MIN_CONFIDENCE_FLOOR } from "./autopilot";
 
-describe("Gemini slow mode after the daily budget", () => {
-  it("keeps analysing every 30 minutes instead of stopping", () => {
-    expect(SLOW_MODE_MINUTES).toBe(30);
-    expect(DAILY_GEMINI_CALLS).toBe(40);
-  });
-  it("analyses the symbol with the oldest Gemini analysis first", () => {
-    const keys = ["XAUUSD|H1|gemini", "EURUSD|H1|gemini", "GBPUSD|H1|gemini"];
-    expect(pickSlowPair(keys, { "XAUUSD|H1|gemini": 3000, "EURUSD|H1|gemini": 1000, "GBPUSD|H1|gemini": 2000 })).toBe("EURUSD|H1|gemini");
-    expect(pickSlowPair(keys, { "XAUUSD|H1|gemini": 3000 })).toBe("EURUSD|H1|gemini");
+describe("no daily AI budget", () => {
+  it("the daily Gemini cap and slow mode are gone (user removed them 2026-11-09)", () => {
+    expect("DAILY_GEMINI_CALLS" in guard).toBe(false);
+    expect("SLOW_MODE_MINUTES" in guard).toBe(false);
   });
 });
 

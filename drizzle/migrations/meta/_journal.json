@@ -127,6 +127,13 @@
       "when": 1793368550677,
       "tag": "0017_arabic_ai_text",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794243935574,
+      "tag": "0018_ai_provider_mixed",
+      "breakpoints": true
     }
   ]
 }

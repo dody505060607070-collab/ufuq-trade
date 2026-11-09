@@ -257,6 +257,7 @@ export const AR_APP: Record<string, string> = {
   "Auto-trade platform signals": "تداول إشارات المنصة تلقائياً",
   "AI for this account": "الذكاء الاصطناعي لهذا الحساب",
   "AI saved for this account.": "تم حفظ الذكاء الاصطناعي لهذا الحساب.",
+  "Gemini + ChatGPT (take turns)": "Gemini + ChatGPT (بالتبادل)",
   "Notifications are blocked in your browser settings.": "الإشعارات محظورة في إعدادات المتصفح.",
   "Signal notifications on.": "تم تفعيل إشعارات الإشارات.",
   "Signal notifications off.": "تم إيقاف إشعارات الإشارات.",
