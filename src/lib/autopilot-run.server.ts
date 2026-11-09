@@ -1,7 +1,7 @@
 import { skipReason, tradeLot, REAL_SECOND_CHECK, LOSS_LOCK_MINUTES, isSameSetup, inQuietHours, QUIET_REASON } from "@/lib/autopilot";
 import { pauseReason, adaptiveCooldown } from "@/lib/profitlock";
 import { toArabic, firstSentence } from "@/lib/msg-ar";
-import { providerOf, analysisKey, providerLabel, OPENAI_MIN_CONFIDENCE } from "@/lib/ai-provider";
+import { accountProvider, analysisKey, providerLabel, OPENAI_MIN_CONFIDENCE } from "@/lib/ai-provider";
 import { timeMachine, tmLine, tmBlocks, TM_REAL_VETO, type TmResult } from "@/lib/timemachine";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -38,6 +38,9 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
     return { ok: true, users: users.length, queued: 0, quiet: true };
   }
   // One analysis per symbol/timeframe/AI provider, shared by all accounts using that provider.
+  // "mixed" accounts take turns between Gemini and ChatGPT; one clock for the whole cycle keeps the choice consistent.
+  const nowMs = Date.now();
+  const providerOf = (v: unknown) => accountProvider(v, nowMs);
   const provsOf = (uid: string) => [...new Set((liveAccs ?? []).filter((a) => a.user_id === uid).map((a) => providerOf(a.ai_provider)))];
   const allPairs = [...new Set(users.flatMap((u) => provsOf(u.user_id).flatMap((p) => u.symbols.map((s) => analysisKey(s, u.timeframe, p)))))];
   // Real trades need the broker's own live price; markets the EA doesn't price yet are not analysed (no AI cost).
@@ -52,33 +55,20 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   for (const k of unpricedPairs) waits.set(k, "Waiting: no live broker price for this market yet (real trades use the broker's own price)");
   const news = new Map<string, boolean>();
   const owner = users[0]!.user_id;
-  // Slow mode: once today's Gemini budget is used, analyse one Gemini symbol per SLOW_MODE_MINUTES (oldest analysis first) instead of stopping.
-  const { geminiBudgetUsed } = await import("@/lib/ai-budget.server");
-  const { pickSlowPair, SLOW_MODE_MINUTES } = await import("@/lib/signal-guard");
-  const slow = pairs.some((k) => k.endsWith("|gemini")) && (await geminiBudgetUsed());
-  let slowPick: string | null = null;
-  if (slow) {
-    const gem = pairs.filter((k) => k.endsWith("|gemini"));
-    const { data: recent } = await db.from("analyses").select("symbol,timeframe,created_at").eq("provider", "gemini").gte("created_at", new Date(Date.now() - 86400_000).toISOString()).order("created_at", { ascending: false }).limit(200);
-    const lastAt: Record<string, number> = {};
-    for (const a of recent ?? []) { const k = analysisKey(a.symbol, a.timeframe ?? "H1", "gemini"); lastAt[k] ??= new Date(a.created_at).getTime(); }
-    slowPick = pickSlowPair(gem, lastAt);
-  }
   await Promise.all(pairs.map(async (k) => {
     const [sym = "", tf = "H1", pv] = k.split("|");
     const prov = providerOf(pv);
     try {
       let r = await getCached(db, sym, tf, prov);
-      if (!r && slow && prov === "gemini" && k !== slowPick) { waits.set(k, `Daily Gemini budget used — slow mode: one analysis every ${SLOW_MODE_MINUTES} min, ${slowPick?.split("|")[0] ?? "another symbol"} goes first`); return; }
       if (!r) {
-        r = await runAI(db, sym, tf, null, prov, { slow: slow && prov === "gemini" });
+        r = await runAI(db, sym, tf, null, prov);
         await db.from("analyses").insert({ user_id: owner, symbol: sym, timeframe: tf, provider: prov, direction: r.direction, confidence: Math.round(r.confidence), entry: r.entry, stop_loss: r.stop_loss, take_profit: r.take_profit, summary: r.summary, summary_ar: r.summary_ar ?? null });
       }
       results.set(k, r);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       results.set(k, null);
-      if (msg.includes("slow mode")) waits.set(k, msg); else { console.error("autopilot analysis", k, e); errors.set(k, msg); }
+      console.error("autopilot analysis", k, e); errors.set(k, msg);
     }
     if (!news.has(sym)) news.set(sym, !!(await newsNearby(sym)));
   }));

@@ -55,7 +55,7 @@ export async function brokerCandles(db: DB, symbol: string, timeframe: string, l
 }
 
 /** Fresh AI analysis from live candles, calendar and headlines. provider picks Gemini (default) or ChatGPT. */
-export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null, provider: AiProvider = "gemini", opts: { slow?: boolean } = {}): Promise<Levels> {
+export async function runAI(db: DB, symbol: string, timeframe: string, manualPrice: number | null, provider: AiProvider = "gemini"): Promise<Levels> {
   const [, { data: inst }] = await Promise.all([
     db.from("ai_models").select("model_id").eq("is_default", true).eq("is_active", true).maybeSingle(),
     db.from("instruments").select("name,yahoo_symbol").eq("symbol", symbol).maybeSingle(),
@@ -104,7 +104,7 @@ export async function runAI(db: DB, symbol: string, timeframe: string, manualPri
     // Gemini first, Radox AI as backup — no Lovable AI fallback.
     const geminiKey = process.env["GEMINI_API_KEY"] ?? "";
     if (!geminiKey && !process.env["RADOX_API_KEY"]) throw new Error("Gemini API key is not configured.");
-    text = await callGemini(geminiKey, prompt, INSTRUCTIONS, opts.slow);
+    text = await callGemini(geminiKey, prompt, INSTRUCTIONS);
     if (!text) throw new Error(lastGeminiError ?? "Gemini analysis failed. Please try again.");
   }
   const match = text.match(/\{[\s\S]*\}/);
@@ -133,11 +133,8 @@ export async function newsNearby(symbol: string, windowMin = 30) {
   return blockingEvent(symbol, cal, Date.now(), windowMin);
 }
 
-async function callGemini(key: string, prompt: string, system = INSTRUCTIONS, slow = false): Promise<string | null> {
-  const budget = await import("@/lib/ai-budget.server");
-  // Normal budget first; once it is used up, Auto-Pilot (slow=true) still gets one call every SLOW_MODE_MINUTES.
-  const ok = (await budget.takeAiCall()) || (slow && (await budget.takeSlowAiCall()));
-  if (!ok) { lastGeminiError = slow ? "Daily AI budget used — slow mode: next Gemini analysis within 30 min" : "Daily AI budget reached — resumes tomorrow (keeps the $5 Gemini credit lasting a month)"; return null; }
+async function callGemini(key: string, prompt: string, system = INSTRUCTIONS): Promise<string | null> {
+  // No daily cap (user removed it 2026-11-09); the shared CACHE_MINUTES analysis keeps calls low.
   const primary = key ? await geminiOnce(key, prompt, system) : null;
   if (primary) return primary;
   // Backup: Radox AI (OpenAI-compatible) only when Gemini fails and RADOX_API_KEY is set.

@@ -43,15 +43,3 @@ export function levelProblem(p: Proposal, atr: number | null): string | null {
   return null;
 }
 
-/** Max Gemini calls per UTC day (all users, all features). ~40 calls/day keeps a $5 Gemini top-up lasting about a month. */
-export const DAILY_GEMINI_CALLS = 40;
-
-/** After DAILY_GEMINI_CALLS is used up, Auto-Pilot keeps going in slow mode: one Gemini analysis every this many minutes (instead of stopping). */
-export const SLOW_MODE_MINUTES = 30;
-
-/** Slow mode analyses one symbol per turn: the one whose last Gemini analysis is oldest (never analysed = first). */
-export function pickSlowPair(keys: string[], lastAt: Record<string, number | undefined>): string | null {
-  let best: string | null = null, bestT = Infinity;
-  for (const k of keys) { const t = lastAt[k] ?? 0; if (t < bestT) { bestT = t; best = k; } }
-  return best;
-}
