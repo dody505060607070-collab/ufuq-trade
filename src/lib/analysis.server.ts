@@ -198,7 +198,7 @@ export let lastGeminiError: string | null = null;
 /** Reason of the most recent failed ChatGPT call in this worker (null after a success). */
 export let lastOpenAIError: string | null = null;
 
-/** One ChatGPT call with the user's own OPENAI_API_KEY (not counted against the Gemini daily budget). */
+/** One ChatGPT call with the user's own OPENAI_API_KEY. */
 export async function callOpenAI(prompt: string, system = INSTRUCTIONS): Promise<string | null> {
   const key = process.env["OPENAI_API_KEY"];
   if (!key) { lastOpenAIError = "ChatGPT API key is not configured (OPENAI_API_KEY)"; return null; }
@@ -266,8 +266,6 @@ export async function verifyTrade(symbol: string, timeframe: string, p: Levels, 
   if (!key) return { agree: false, confidence: 0, reason: "Second check unavailable (no AI key)" };
   const prompt = `Proposed trade on ${symbol} ${timeframe}: ${p.direction.toUpperCase()} at ${p.entry}, stop ${p.stop_loss}, target ${p.take_profit}, first trader's confidence ${p.confidence}%. Live price: ${price ?? "unknown"}. Date (UTC): ${new Date().toISOString()}.\nFirst trader's reasoning:\n${p.summary}\n\nShould we open it?`;
   const text = await callGemini(key, prompt, VERIFY_SYS).catch(() => null);
-  // Out of daily AI budget: the second opinion is skipped (code risk checks still veto) instead of blocking every trade.
-  if (!text && lastGeminiError?.startsWith("Daily AI budget")) return { agree: true, confidence: p.confidence, reason: "skipped: daily AI budget reached" };
   try {
     const j = JSON.parse(text?.match(/\{[\s\S]*\}/)?.[0] ?? "null") as { agree?: unknown; confidence?: unknown; reason?: unknown } | null;
     if (!j) throw new Error();
