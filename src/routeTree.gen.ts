@@ -64,6 +64,7 @@ import { Route as AuthenticatedSettingsPreferencesRouteImport } from './routes/_
 import { Route as AuthenticatedSettingsProfileRouteImport } from './routes/_authenticated/settings.profile'
 import { Route as AuthenticatedAdminUsersIdRouteImport } from './routes/_authenticated/admin.users.$id'
 import { Route as ApiPublicAutopilotRunRouteImport } from './routes/api/public/autopilot/run'
+import { Route as ApiPublicEaQuantRouteImport } from './routes/api/public/ea/quant'
 import { Route as ApiPublicEaSyncRouteImport } from './routes/api/public/ea/sync'
 
 const IndexRoute = IndexRouteImport.update({
@@ -358,6 +359,11 @@ const ApiPublicAutopilotRunRoute = ApiPublicAutopilotRunRouteImport.update({
   path: '/api/public/autopilot/run',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEaQuantRoute = ApiPublicEaQuantRouteImport.update({
+  id: '/api/public/ea/quant',
+  path: '/api/public/ea/quant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEaSyncRoute = ApiPublicEaSyncRouteImport.update({
   id: '/api/public/ea/sync',
   path: '/api/public/ea/sync',
@@ -419,6 +425,7 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
   '/api/public/autopilot/run': typeof ApiPublicAutopilotRunRoute
+  '/api/public/ea/quant': typeof ApiPublicEaQuantRoute
   '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesByTo {
@@ -474,6 +481,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
   '/api/public/autopilot/run': typeof ApiPublicAutopilotRunRoute
+  '/api/public/ea/quant': typeof ApiPublicEaQuantRoute
   '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRoutesById {
@@ -533,6 +541,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/admin/users/$id': typeof AuthenticatedAdminUsersIdRoute
   '/api/public/autopilot/run': typeof ApiPublicAutopilotRunRoute
+  '/api/public/ea/quant': typeof ApiPublicEaQuantRoute
   '/api/public/ea/sync': typeof ApiPublicEaSyncRoute
 }
 export interface FileRouteTypes {
@@ -592,6 +601,7 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/admin/users/$id'
     | '/api/public/autopilot/run'
+    | '/api/public/ea/quant'
     | '/api/public/ea/sync'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -647,6 +657,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/admin/users/$id'
     | '/api/public/autopilot/run'
+    | '/api/public/ea/quant'
     | '/api/public/ea/sync'
   id:
     | '__root__'
@@ -705,6 +716,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/'
     | '/_authenticated/admin/users/$id'
     | '/api/public/autopilot/run'
+    | '/api/public/ea/quant'
     | '/api/public/ea/sync'
   fileRoutesById: FileRoutesById
 }
@@ -731,6 +743,7 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicAutopilotRunRoute: typeof ApiPublicAutopilotRunRoute
+  ApiPublicEaQuantRoute: typeof ApiPublicEaQuantRoute
   ApiPublicEaSyncRoute: typeof ApiPublicEaSyncRoute
 }
 
@@ -1121,6 +1134,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAutopilotRunRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ea/quant': {
+      id: '/api/public/ea/quant'
+      path: '/api/public/ea/quant'
+      fullPath: '/api/public/ea/quant'
+      preLoaderRoute: typeof ApiPublicEaQuantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ea/sync': {
       id: '/api/public/ea/sync'
       path: '/api/public/ea/sync'
@@ -1263,6 +1283,7 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicAutopilotRunRoute: ApiPublicAutopilotRunRoute,
+  ApiPublicEaQuantRoute: ApiPublicEaQuantRoute,
   ApiPublicEaSyncRoute: ApiPublicEaSyncRoute,
 }
 export const routeTree = rootRouteImport

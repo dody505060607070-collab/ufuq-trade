@@ -21,6 +21,8 @@ export const COMMANDS = {
   set_sl_tp: "Set SL/TP",
   trailing_profit: "Trailing profit",
   cap_loss: "Cap loss",
+  quant_pause: "Pause Quant EA",
+  quant_resume: "Resume Quant EA",
 } as const;
 export type CommandName = keyof typeof COMMANDS;
 

@@ -114,7 +114,9 @@ export const Route = createFileRoute("/api/public/ea/sync")({
           const { data: openRows } = await db.from("trades").select("id,ticket").eq("account_id", acc.id).eq("status", "open");
           const stale = (openRows ?? []).filter((r) => !live.has(r.ticket)).map((r) => r.id);
           if (stale.length) await db.from("trades").update({ status: "closed", closed_at: now }).in("id", stale);
-          await lockProfits(db, acc, p.positions);
+          // Quant EA accounts manage their own exits (trailing stops); server profit-lock would cut winners short.
+          const { data: eng } = await db.from("trading_accounts").select("engine").eq("id", acc.id).maybeSingle();
+          if (eng?.engine !== "quant") await lockProfits(db, acc, p.positions);
         }
         for (const r of p.results ?? []) {
           await db.from("trade_commands").update({ status: r.status, result: r.result ?? null, executed_at: now }).eq("id", r.id).eq("account_id", acc.id);

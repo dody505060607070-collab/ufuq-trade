@@ -27,7 +27,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
   // Only analyse for users with a live MT5 account (seen in the last 5 min) and auto trading on — saves AI calls.
   const liveSince = new Date(Date.now() - 5 * 60_000).toISOString();
   const { data: liveAccs } = all?.length
-    ? await db.from("trading_accounts").select("id,user_id,ai_provider").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).gte("last_seen_at", liveSince)
+    ? await db.from("trading_accounts").select("id,user_id,ai_provider").in("user_id", all.map((u) => u.user_id)).eq("auto_trading", true).neq("engine", "quant").gte("last_seen_at", liveSince)
     : { data: [] as { id: string; user_id: string; ai_provider: string }[] };
   const liveUsers = new Set((liveAccs ?? []).map((a) => a.user_id));
   const users = (all ?? []).filter((u) => liveUsers.has(u.user_id));
@@ -103,7 +103,7 @@ export async function runAutopilot(db: SupabaseClient<Database>, onlyUser?: stri
       const detail_ar = m && aiAr ? `${toArabic(m[1])}انتظار: ${firstSentence(aiAr)}` : toArabic(detail);
       return db.from("autopilot_events").insert({ user_id: u.user_id, symbol, action, detail, detail_ar });
     };
-    const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity,ai_provider,lot_size").eq("user_id", u.user_id).eq("auto_trading", true);
+    const { data: accounts } = await db.from("trading_accounts").select("id,last_seen_at,balance,equity,ai_provider,lot_size").eq("user_id", u.user_id).eq("auto_trading", true).neq("engine", "quant");
     const live = (accounts ?? []).filter((a) => a.last_seen_at && Date.now() - new Date(a.last_seen_at).getTime() < 5 * 60_000);
     if (!live.length) { await log("-", "skipped", "No connected account with auto trading on"); continue; }
     const ids = live.map((a) => a.id);
