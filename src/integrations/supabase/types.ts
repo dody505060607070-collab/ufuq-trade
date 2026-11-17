@@ -896,6 +896,176 @@ export type Database = {
         }
         Relationships: []
       }
+      quant_events: {
+        Row: {
+          account_id: string
+          at: string
+          created_at: string
+          id: string
+          level: string
+          message: string
+          strategy: string | null
+          symbol: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          at: string
+          created_at?: string
+          id?: string
+          level: string
+          message: string
+          strategy?: string | null
+          symbol?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          at?: string
+          created_at?: string
+          id?: string
+          level?: string
+          message?: string
+          strategy?: string | null
+          symbol?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quant_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "trading_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quant_settings: {
+        Row: {
+          account_id: string
+          daily_loss_pct: number
+          paused: boolean
+          risk_pct: number
+          strategies: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          daily_loss_pct?: number
+          paused?: boolean
+          risk_pct?: number
+          strategies?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          daily_loss_pct?: number
+          paused?: boolean
+          risk_pct?: number
+          strategies?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quant_settings_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "trading_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quant_status: {
+        Row: {
+          account_id: string
+          daily_loss_pct: number | null
+          day_start: number | null
+          ea_version: string | null
+          equity: number | null
+          open_risk: number | null
+          peak: number | null
+          reason: string | null
+          risk_pct: number | null
+          strategies: Json
+          trading: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          daily_loss_pct?: number | null
+          day_start?: number | null
+          ea_version?: string | null
+          equity?: number | null
+          open_risk?: number | null
+          peak?: number | null
+          reason?: string | null
+          risk_pct?: number | null
+          strategies?: Json
+          trading?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          daily_loss_pct?: number | null
+          day_start?: number | null
+          ea_version?: string | null
+          equity?: number | null
+          open_risk?: number | null
+          peak?: number | null
+          reason?: string | null
+          risk_pct?: number | null
+          strategies?: Json
+          trading?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quant_status_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "trading_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quant_trade_tags: {
+        Row: {
+          account_id: string
+          created_at: string
+          strategy: string
+          ticket: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          strategy: string
+          ticket: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          strategy?: string
+          ticket?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quant_trade_tags_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "trading_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signals: {
         Row: {
           created_at: string
@@ -1595,6 +1765,7 @@ export type Database = {
           currency: string | null
           ea_key: string
           ea_version: string | null
+          engine: string
           equity: number | null
           executor_id: string | null
           executor_seen_at: string | null
@@ -1624,6 +1795,7 @@ export type Database = {
           currency?: string | null
           ea_key?: string
           ea_version?: string | null
+          engine?: string
           equity?: number | null
           executor_id?: string | null
           executor_seen_at?: string | null
@@ -1653,6 +1825,7 @@ export type Database = {
           currency?: string | null
           ea_key?: string
           ea_version?: string | null
+          engine?: string
           equity?: number | null
           executor_id?: string | null
           executor_seen_at?: string | null
