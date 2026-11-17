@@ -72,8 +72,9 @@ export const Route = createFileRoute("/api/public/ea/sync")({
           // Username + API key flow: the EA identifies the MT5 account by its login and is auto-registered.
           const { data: cred } = await db.from("ea_credentials").select("user_id").eq("api_key", apiKey).maybeSingle();
           if (!cred) return fail("unknown api key", 401);
-          const { data: prof } = await db.from("profiles").select("username").eq("id", cred.user_id).maybeSingle();
+          const { data: prof } = await db.from("profiles").select("username,approval_status").eq("id", cred.user_id).maybeSingle();
           if (!prof?.username || prof.username.toLowerCase() !== username) return fail("username does not match api key", 401);
+          if (prof.approval_status !== "approved") return fail("account not approved", 403);
           const login = p.account?.login;
           if (!login || !/^\d{3,20}$/.test(login)) return fail("missing account login", 400);
           acc = (await db.from("trading_accounts").select("id,user_id").eq("user_id", cred.user_id).eq("login", login).maybeSingle()).data;
@@ -83,6 +84,9 @@ export const Route = createFileRoute("/api/public/ea/sync")({
           }
         }
         if (!acc) return fail("unknown key", 401);
+        // Access revoked or not yet approved by the owner: no sync, no trading commands.
+        const { data: owner } = await db.from("profiles").select("approval_status").eq("id", acc.user_id).maybeSingle();
+        if (owner?.approval_status !== "approved") return fail("account not approved", 403);
         const now = new Date().toISOString();
 
         const { login: _l, company: _c, ...accFields } = p.account ?? {};
