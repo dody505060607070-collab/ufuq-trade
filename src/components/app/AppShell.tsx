@@ -8,6 +8,7 @@ import {
   LayoutGrid, Landmark, Monitor, SlidersHorizontal, KeyRound, ArrowRightLeft, BarChart3, User, ShieldCheck, LogOut, FileText, ArrowLeft, Bot, Brain, Radar, Layers,
   FlaskConical, Trophy,
   Sparkles,
+  Cpu,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { to: "/quant", label: "Quant EA", icon: Cpu },
   { to: "/autopilot", label: "Auto-Pilot", icon: Bot },
   { to: "/challenge", label: "$100 to $1M Demo Challenge", icon: Trophy },
   { to: "/brain", label: "AI Brain", icon: Brain },

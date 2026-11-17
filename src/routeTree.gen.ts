@@ -40,6 +40,7 @@ import { Route as AuthenticatedDecisionsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedHedgeRouteImport } from './routes/_authenticated/hedge'
 import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
 import { Route as AuthenticatedPlatformsRouteImport } from './routes/_authenticated/platforms'
+import { Route as AuthenticatedQuantRouteImport } from './routes/_authenticated/quant'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedWhalesRouteImport } from './routes/_authenticated/whales'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
@@ -223,6 +224,11 @@ const AuthenticatedPlatformsRoute = AuthenticatedPlatformsRouteImport.update({
   path: '/platforms',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedQuantRoute = AuthenticatedQuantRouteImport.update({
+  id: '/quant',
+  path: '/quant',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -401,6 +407,7 @@ export interface FileRoutesByFullPath {
   '/hedge': typeof AuthenticatedHedgeRoute
   '/performance': typeof AuthenticatedPerformanceRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
+  '/quant': typeof AuthenticatedQuantRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/whales': typeof AuthenticatedWhalesRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -458,6 +465,7 @@ export interface FileRoutesByTo {
   '/hedge': typeof AuthenticatedHedgeRoute
   '/performance': typeof AuthenticatedPerformanceRoute
   '/platforms': typeof AuthenticatedPlatformsRoute
+  '/quant': typeof AuthenticatedQuantRoute
   '/whales': typeof AuthenticatedWhalesRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/accounts/add-mt5': typeof AuthenticatedAccountsAddMt5Route
@@ -517,6 +525,7 @@ export interface FileRoutesById {
   '/_authenticated/hedge': typeof AuthenticatedHedgeRoute
   '/_authenticated/performance': typeof AuthenticatedPerformanceRoute
   '/_authenticated/platforms': typeof AuthenticatedPlatformsRoute
+  '/_authenticated/quant': typeof AuthenticatedQuantRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/_authenticated/whales': typeof AuthenticatedWhalesRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -577,6 +586,7 @@ export interface FileRouteTypes {
     | '/hedge'
     | '/performance'
     | '/platforms'
+    | '/quant'
     | '/settings'
     | '/whales'
     | '/.lovable/oauth/consent'
@@ -634,6 +644,7 @@ export interface FileRouteTypes {
     | '/hedge'
     | '/performance'
     | '/platforms'
+    | '/quant'
     | '/whales'
     | '/.lovable/oauth/consent'
     | '/accounts/add-mt5'
@@ -692,6 +703,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hedge'
     | '/_authenticated/performance'
     | '/_authenticated/platforms'
+    | '/_authenticated/quant'
     | '/_authenticated/settings'
     | '/_authenticated/whales'
     | '/.lovable/oauth/consent'
@@ -966,6 +978,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlatformsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/quant': {
+      id: '/_authenticated/quant'
+      path: '/quant'
+      fullPath: '/quant'
+      preLoaderRoute: typeof AuthenticatedQuantRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
       path: '/settings'
@@ -1231,6 +1250,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHedgeRoute: typeof AuthenticatedHedgeRoute
   AuthenticatedPerformanceRoute: typeof AuthenticatedPerformanceRoute
   AuthenticatedPlatformsRoute: typeof AuthenticatedPlatformsRoute
+  AuthenticatedQuantRoute: typeof AuthenticatedQuantRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedWhalesRoute: typeof AuthenticatedWhalesRoute
   AuthenticatedAccountsAddMt5Route: typeof AuthenticatedAccountsAddMt5Route
@@ -1249,6 +1269,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHedgeRoute: AuthenticatedHedgeRoute,
   AuthenticatedPerformanceRoute: AuthenticatedPerformanceRoute,
   AuthenticatedPlatformsRoute: AuthenticatedPlatformsRoute,
+  AuthenticatedQuantRoute: AuthenticatedQuantRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedWhalesRoute: AuthenticatedWhalesRoute,
   AuthenticatedAccountsAddMt5Route: AuthenticatedAccountsAddMt5Route,
